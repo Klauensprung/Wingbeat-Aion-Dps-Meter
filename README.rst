@@ -1,95 +1,138 @@
 Wingbeat ♥ Aion 2 DPS Meter
 ==========================
 
-Free local Aion 2 DPS meter for Windows with live damage, healing, PvP tracking,
-and a customizable overlay. No external account or login is required.
+Wingbeat is a free, local DPS meter for Aion 2 on Windows. Track damage,
+healing and PvP encounters, inspect your skills, and review saved fights.
+No account, external login or subscription is required.
 
-Repository name: ``wingbeat-aion-dps-meter``.
+Features
+--------
 
-Skills and healing breakdowns use transparent rows with contribution bars.
-**Damage %** and **Healing %** are shares of the total in the current character
-filter; bar widths use the same percentages and refresh with captured events.
+* Live damage and healing meters, with breakdowns by character, skill and target.
+* Party views for up to 10 players and PvP tracking for multiple opponents.
+* A transparent overlay with your identified character pinned first, class
+  colours and symbols, five themes, custom colours, and a movable, resizable window.
+* Transparent skill and healing tables with contribution bars and percentages
+  that follow the current character filter.
+* Zoomable rotation timelines with event inspection, scrubbing and opener views.
+* Captured combat power, local ping estimates, loot energy and player stats.
+* Player-stat icons, clear values, and each skill's last reported cooldown.
+* Saved fights, character trends and comparisons using your local fight history.
+* Bundled skill names, skill images and NPC names for offline display.
 
-Captured character readings
----------------------------
+Getting started
+---------------
+
+1. Download and extract the Windows x64 release ZIP.
+2. Run ``Wingbeat.exe``. The package includes the .NET 10 runtime.
+3. Install `Npcap <https://npcap.com/#download>`_ for live capture. Wingbeat
+   prompts you with the official download link if the driver is missing.
+4. Select your network adapter in Settings and start capture.
+5. Change zones while capturing to refresh your character identity and CP.
+   Joining a party while capturing lets Wingbeat receive party profiles.
+6. Open the overlay and choose Damage or Healing from its menu.
+
+Saved fights and the built-in demo can be viewed without Npcap.
+
+Using the overlay
+-----------------
+
+Drag the header to move the overlay and use the resize grip to change its size.
+The position lock prevents accidental movement. Your identified character stays
+at the top while the remaining rows scroll.
+
+The DAMAGE / HEALING menu controls the meter mode, party/PvP scope, compact rows
+and **Class colours**. Class symbols appear beside DPS or HPS; unknown classes
+use a neutral diamond. Settings are saved locally.
+
+Reading your fights
+-------------------
+
+**Skills and Healing** show contributions for the current character filter.
+Bar widths match **Damage %** or **Healing %**, making the largest contributions
+easy to compare. Click a player's meter row to inspect their skills.
+
+**Rotations** shows damage and healing on a shared timeline. Zoom in to inspect
+individual events, pin an event to step through the sequence, or follow the
+latest activity.
 
 **Player stats** shows your latest captured attack, damage bonuses and combat
-speed with coloured icons and prominent values. Stat IDs and raw values remain
-available beneath each label; unknown stats use a neutral icon. Percentage fields use the protocol's
-basis-point units. These are local-character snapshots, not other players' stats.
-**Cooldowns** shows each skill's last reported remaining milliseconds and packet
-time; it is not a live countdown. Readings are saved with fights.
+speed with coloured icons. Stat IDs and raw values remain below each label;
+unknown stats stay visible with a neutral icon. **Cooldowns** shows the last
+reported remaining time, rather than a running countdown.
 
-Supported network metadata also includes 64-bit HP, explicit character-ID links
-for matching party profiles, and short death records. EU identity records sharing
-the death opcode stay separate. Unsupported layouts remain unavailable; full
-RATmeter parity is not claimed.
+**Saved fights and Trends** let you revisit encounters and follow a character's
+performance. CP-bracket reports and top-performer comparisons use only your
+saved fights and need enough comparable encounters to produce results.
 
-Demo screenshots
-----------------
+Names and images included
+-------------------------
 
-These are real app screenshots using built-in synthetic demo data. Names,
-numbers and encounters are illustrative, not recordings of real players.
+Every build includes 16,899 skill names, 377 skill images covering 670 skill
+families, and 12,587 NPC template names. Catalogs load automatically at startup;
+no separate download is needed.
+
+Captured spawn packets connect temporary target IDs to NPC names. Unknown
+players and targets keep their IDs until identifying data arrives. Existing
+saved NPC records can resolve through the bundled catalog when a template ID
+was recorded.
+
+**Load skill names** in Settings supports local overrides. Optional local icon
+and NPC-name overrides are also supported. Missing or damaged local data falls
+back to bundled data where available.
+
+Current limits
+--------------
+
+Game decoding and healing support remain experimental and partial. Information
+is available only when the relevant packets are captured and supported.
+
+* Your CP comes from local-character packets; other players' CP comes from
+  matched party profiles. Missing CP remains ``--``.
+* Ping is an estimate for your connection. Other players' ping is unavailable.
+* Detailed player stats and cooldown readings describe your local character.
+* Healing totals do not distinguish effective healing from overhealing.
+* Performance comparisons use local history, not a global player ranking.
+
+Screenshots
+-----------
+
+These screenshots use synthetic demo data. Names, values and encounters are
+illustrative.
 
 .. figure:: docs/images/party-meter.png
-   :alt: Wingbeat party meter showing ten demo players with class-coloured damage bars.
+   :alt: Wingbeat party damage meter with class-coloured bars.
    :width: 100%
 
-   Party damage breakdown with DPS, contribution and encounter duration.
+   Party damage, DPS and encounter duration.
 
 .. figure:: docs/images/damage-overlay.png
-   :alt: Compact transparent Wingbeat overlay with your character pinned above nine party members.
+   :alt: Transparent Wingbeat overlay with the local character pinned first.
    :width: 390px
 
-   Transparent damage overlay with your character pinned first and loot energy below.
-
-Open the overlay's DAMAGE / HEALING menu to toggle **Class colours**. Each
-player's DPS or HPS has a class symbol beside it; hover the symbol for its name.
-Unknown classes use a neutral diamond. Turning class colours off uses your
-chosen accent colour and keeps PvP opponents red. The choice is saved locally.
-
-Overlay rows show your combat power from the local-character packet and party
-members' CP from matched party profiles, or values entered in character details.
-Start capture before changing zones to refresh your identity and CP; join a
-party while capturing to receive its profiles. These packet layouts remain experimental. Missing CP remains
-``--``; it is not guessed from item level or arbitrary numbers in a packet.
-The overlay footer shows the last **local ping estimate** from the game's
-client-clock echo. Other players' ping is unavailable and remains ``--``.
-The party protocol's latency-state byte is not a millisecond measurement.
+   Compact overlay with class symbols and loot energy.
 
 .. figure:: docs/images/party-rotations.png
-   :alt: Wingbeat rotation view with separate damage and healing lanes and timeline zoom controls.
+   :alt: Wingbeat party rotation timeline with damage and healing lanes.
    :width: 100%
 
-   Party rotation timelines with zoom controls and damage and healing events.
+   Zoomable party rotation timelines.
 
 .. figure:: docs/images/pvp-tracking.png
-   :alt: Wingbeat PvP view showing three demo opponents and incoming and outgoing damage.
+   :alt: Wingbeat PvP view showing incoming and outgoing damage.
    :width: 100%
 
-   PvP tracking with multiple opponents and damage in both directions.
+   PvP tracking across multiple opponents.
 
-Build and run
--------------
+Build from source
+-----------------
 
-Build with the .NET 10 SDK using ``powershell -File .\Build-Windows.ps1``.
-The resulting Windows x64 package includes the .NET runtime. Run ``Wingbeat.exe``;
-live capture additionally requires the separately installed Npcap driver.
-Skill names are bundled inside the application and loaded automatically at startup,
-including on a fresh offline installation. **Load skill names** in Settings imports
-optional local overrides; entries not supplied by the import keep their bundled names.
-If a local catalog is damaged, the bundled names remain available. Unknown skill IDs
-still display numerically. Skill images are also included (377 PNGs covering 670
-skill families), so the skills and healing views work offline out of the box.
-Optional local icon overrides are supported; unavailable images use a placeholder.
-The application also embeds 12,587 NPC template names and loads them at startup.
-Captured spawn packets map temporary target entity IDs to these templates. Local
-``npc-names.json`` overrides remain supported; missing identities retain their IDs.
+On Windows with the .NET 10 SDK, run::
 
-Game decoding and healing support remain experimental and partial.
+    powershell -File .\Build-Windows.ps1
 
-The project is being prepared for open-source release; its own license has not
-yet been selected. Dependency terms are in ``THIRD-PARTY-NOTICES.txt`` and
-``licenses/``. Local fight history, captures, settings and private notes are
-excluded from Git. Run ``powershell -File .\Verify-Public.ps1`` after staging
-changes and review the staged diff before publishing.
+The standalone Windows x64 ZIP is written to ``releases/``. Npcap remains a
+separate driver installation.
+
+Dependency and game-data notices are in ``THIRD-PARTY-NOTICES.txt`` and
+``licenses/``.
