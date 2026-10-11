@@ -19,6 +19,7 @@ public static class MeterPresentation
         ["Sorcerer"] = "#69CCF0", ["Spiritmaster"] = "#E389C0", ["Cleric"] = "#DFE8F2", ["Chanter"] = "#56D5B1", ["Brawler"] = "#EF8B64"
     };
     static readonly string[] PlayerColors = ["#65CBE9", "#AE91EF", "#65D6AF", "#EABF70", "#EA8EA7", "#82B1F0", "#B5CE75", "#DA9CE9"];
+    public static string ClassColorFor(string job, string fallback) => ClassColors.GetValueOrDefault(job, fallback);
     public static string ColorFor(Actor? actor)
     {
         if (actor != null && ClassColors.TryGetValue(actor.Job, out var color)) return color;
@@ -52,10 +53,12 @@ public static class MeterPresentation
             visible = new[] { own }.Concat(sorted.Where(r => r.Id != fight.LocalPlayer));
         }
         double seconds = fight.Seconds;
+        var inferredClasses = ClassEvidence.Infer(fight);
         var rows = visible.Take(Math.Clamp(limit, 1, 50)).Select(r => {
             var actor = fight.Actors.GetValueOrDefault(r.Id); long amount = Value(r);
-            return new MeterRow(r.Id, r.Character, actor?.Job ?? "Unknown", amount, amount / seconds,
-                total == 0 ? 0 : 100d * amount / total, maximum == 0 ? 0 : (double)amount / maximum, ColorFor(actor), r.Id == fight.LocalPlayer, actor?.Player == true);
+            string job = ClassEvidence.Resolve(actor, r.Id, inferredClasses);
+            return new MeterRow(r.Id, r.Character, job, amount, amount / seconds,
+                total == 0 ? 0 : 100d * amount / total, maximum == 0 ? 0 : (double)amount / maximum, ClassColorFor(job, ColorFor(actor)), r.Id == fight.LocalPlayer, actor?.Player == true);
         }).ToArray();
         return new(rows, total, total / seconds, scope);
     }
@@ -83,7 +86,7 @@ public sealed class MeterView : StackPanel
     public event Action<int>? ActorSelected;
     public int RowCount => bars.Count;
     public Brush RowBackground { get; init; } = UiTheme.Brush("#1A2230");
-    public void Update(IReadOnlyList<MeterRow> rows, bool compact = false, bool healing = false, bool hasEvents = false, string? emptyText = null, int startPosition = 1)
+    public void Update(IReadOnlyList<MeterRow> rows, bool compact = false, bool healing = false, bool hasEvents = false, string? emptyText = null, int startPosition = 1, bool showClassSymbols = false)
     {
         if (rows.Count == 0)
         {
@@ -99,7 +102,7 @@ public sealed class MeterView : StackPanel
             var row = rows[i];
             if (!bars.TryGetValue(row.Id, out var bar)) { bar = new MeterBar { Background = RowBackground }; bar.Selected += id => ActorSelected?.Invoke(id); bars.Add(row.Id, bar); }
             if (Children.IndexOf(bar) != i) { Children.Remove(bar); Children.Insert(i, bar); }
-            bar.Update(row, i + startPosition, compact, healing);
+            bar.Update(row, i + startPosition, compact, healing, showClassSymbols);
         }
     }
 }
@@ -113,6 +116,7 @@ sealed class MeterBar : Border
     readonly TextBlock name = new() { FontWeight = FontWeights.SemiBold, TextTrimming = TextTrimming.CharacterEllipsis };
     readonly TextBlock job = new() { FontSize = 10, Margin = new(0, 2, 0, 0) };
     readonly TextBlock rate = new() { FontWeight = FontWeights.Bold, HorizontalAlignment = HorizontalAlignment.Right };
+    readonly System.Windows.Shapes.Path classSymbol = new() { Width = 14, Height = 14, Stretch = Stretch.Uniform, StrokeThickness = 1.5, StrokeLineJoin = PenLineJoin.Round, Margin = new(0, 0, 5, 0), VerticalAlignment = VerticalAlignment.Center };
     readonly TextBlock amount = new() { FontSize = 10, HorizontalAlignment = HorizontalAlignment.Right };
     MeterRow? current;
     public event Action<int>? Selected;
@@ -127,7 +131,9 @@ sealed class MeterBar : Border
         var identity = new StackPanel { VerticalAlignment = VerticalAlignment.Center, Margin = new(3, 0, 10, 0) };
         identity.Children.Add(name); identity.Children.Add(job);
         var values = new StackPanel { VerticalAlignment = VerticalAlignment.Center, MinWidth = 91 };
-        values.Children.Add(rate); values.Children.Add(amount);
+        var rateLine = new StackPanel { Orientation = Orientation.Horizontal, HorizontalAlignment = HorizontalAlignment.Right };
+        rateLine.Children.Add(classSymbol); rateLine.Children.Add(rate);
+        values.Children.Add(rateLine); values.Children.Add(amount);
         content.Children.Add(rank); Grid.SetColumn(identity, 1); content.Children.Add(identity); Grid.SetColumn(values, 2); content.Children.Add(values);
         canvas.Children.Add(content);
         SizeChanged += (_, _) => SetWidth();
@@ -137,8 +143,15 @@ sealed class MeterBar : Border
         MouseLeftButtonUp += (_, e) => { if (current != null) Selected?.Invoke(current.Id); e.Handled = true; };
     }
     void SetWidth() => fill.Width = Math.Max(0, canvas.ActualWidth * (current?.Fraction ?? 0));
-    public void Update(MeterRow row, int position, bool compact, bool healing)
+    public void Update(MeterRow row, int position, bool compact, bool healing, bool showClassSymbols)
     {
+        if (current?.Job != row.Job) {
+            classSymbol.Data = ClassSymbols.For(row.Job);
+            classSymbol.Stroke = UiTheme.Brush(MeterPresentation.ClassColorFor(row.Job, "#CAD4E3"));
+            classSymbol.ToolTip = row.Job == "Unknown" ? "Class not known yet" : row.Job;
+            System.Windows.Automation.AutomationProperties.SetName(classSymbol, classSymbol.ToolTip.ToString());
+        }
+        classSymbol.Visibility = showClassSymbols ? Visibility.Visible : Visibility.Collapsed;
         if (current?.Color != row.Color)
         {
             var color = (Color)ColorConverter.ConvertFromString(row.Color);

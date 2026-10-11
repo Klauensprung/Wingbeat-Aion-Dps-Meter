@@ -8,6 +8,28 @@ public static class DisplayTests
 {
     public static void Run(Action<bool, string> check, string temp)
     {
+        var classFight = new Fight { LocalPlayer = 1, PartyKnown = true };
+        classFight.Actors[1] = new(1, "Entity 1", true, true, 0, "Unknown", 0);
+        classFight.Actors[2] = new(2, "Entity 2", true, true, 0, "Unknown", 0);
+        classFight.Actors[3] = new(3, "NPC", false, false, 0, "Unknown", 0) { NpcId = 2000001 };
+        classFight.Actors[4] = new(4, "Summon", false, false, 0, "Unknown", 0);
+        classFight.Healing.Add(new() { ActorId = 1, TargetId = 2, SkillCode = 17100130, Damage = 100, Timestamp = 1000, IsHeal = true });
+        classFight.Damage.AddRange([
+            new() { ActorId = 2, TargetId = 3, SkillCode = 14010001, Damage = 100, Timestamp = 2000 },
+            new() { ActorId = 3, TargetId = 1, SkillCode = 12010001, Damage = 100, Timestamp = 2000 },
+            new() { ActorId = 4, TargetId = 3, SkillCode = 17150032, Damage = 100, Timestamp = 2000 }
+        ]);
+        var classRows = MeterPresentation.Build(classFight, Analysis.Totals(classFight), allActors: true, pinLocal: true).Rows;
+        check(classRows.Single(r => r.Id == 1) is { Job: "Cleric", Name: "Entity 1" } && classRows.Single(r => r.Id == 2).Job == "Ranger",
+            "Normal damage overlay infers classes from healing and damage even without captured class metadata");
+        check(classRows.Single(r => r.Id == 1).Color == MeterPresentation.ClassColorFor("Cleric", "") && classFight.Actors[1].Job == "Unknown",
+            "Inferred overlay colours preserve raw captured identities");
+        check(classRows.Where(r => r.Id is 3 or 4).All(r => r.Job == "Unknown"), "NPC templates and summon skills cannot produce player class symbols");
+        check(MeterPresentation.Build(classFight, Analysis.Totals(classFight), healing: true, pinLocal: true).Rows[0].Job == "Cleric",
+            "Healing overlays share the same class inference");
+        classFight.Actors[1] = classFight.Actors[1] with { Job = "Chanter" };
+        check(MeterPresentation.Build(classFight, Analysis.Totals(classFight), pinLocal: true).Rows[0].Job == "Chanter",
+            "Captured or explicitly entered class takes precedence over skill inference");
         string catalog = Path.Combine(temp, "skill-names.json");
         File.WriteAllText(catalog, """{"17040000":"Family A","17040120":"Exact variant","1220000":"NPC A","1225540":"NPC B","3000020":"Effect A"}""");
         var names = new SkillNames(catalog);
@@ -25,6 +47,14 @@ public static class DisplayTests
             check(rejected, "Malformed catalog rejected: " + bad);
         }
         check(new SkillNames(Path.Combine(temp, "absent.json")).Resolve(100).Match == "unknown", "Missing catalog does not prevent offline analysis");
+
+        check(MeterPresentation.ClassColorFor("cleric", "#123456") == MeterPresentation.ClassColorFor("Cleric", "#654321") &&
+            MeterPresentation.ClassColorFor("Unknown", "#123456") == "#123456", "Class colours ignore case and preserve fallback colours for unknown actors");
+        var classes = new[] { "Gladiator", "Templar", "Assassin", "Ranger", "Sorcerer", "Spiritmaster", "Cleric", "Chanter", "Brawler" };
+        check(classes.Select(ClassSymbols.For).Distinct().Count() == classes.Length && classes.All(c => ClassSymbols.For(c).IsFrozen && !ClassSymbols.For(c).Bounds.IsEmpty), "All supported classes have distinct cached vector symbols");
+        check(ReferenceEquals(ClassSymbols.For("cleric"), ClassSymbols.For("Cleric")) && !ReferenceEquals(ClassSymbols.For("Unknown"), ClassSymbols.For("Cleric")), "Class symbols handle casing and unknown identities without guessing");
+        var restoredPreferences = JsonSerializer.Deserialize<Preferences>(JsonSerializer.Serialize(new Preferences { OverlayCustomBars = true }))!;
+        check(restoredPreferences.OverlayCustomBars && !JsonSerializer.Deserialize<Preferences>("{}")!.OverlayCustomBars, "Overlay colour choice persists and existing default settings retain class colours");
 
         var engine = new CombatEngine(); long revision = -1;
         var initial = engine.SnapshotIfChanged(null, ref revision);

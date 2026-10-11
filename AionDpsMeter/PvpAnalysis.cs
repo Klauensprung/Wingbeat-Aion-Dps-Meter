@@ -13,23 +13,15 @@ public static class PvpAnalysis
 {
     // Display evidence only, never a fabricated identity or a change to captured hits.
     // Class prefixes and summon-only families are documented in THIRD-PARTY-NOTICES.txt.
-    static readonly string[] Jobs = ["Gladiator", "Templar", "Assassin", "Ranger", "Sorcerer", "Spiritmaster", "Cleric", "Chanter", "Brawler"];
-    static bool CharacterSkill(int code) => code is >= 11000000 and < 20000000 &&
-        code / 10000 is not (1528 or 1600 or 1610 or 1611 or 1612 or 1613 or 1615 or 1625 or 1699 or 1715);
-
     public static PvpData Build(Fight fight)
     {
         bool Friendly(int id) => id > 0 && (id == fight.LocalPlayer || fight.Actors.GetValueOrDefault(id)?.Party == true);
-        var jobs = fight.Damage.Concat(fight.Healing).Where(e => CharacterSkill(e.SkillCode))
-            .GroupBy(e => e.ActorId).ToDictionary(g => g.Key, g =>
-                g.GroupBy(e => e.SkillCode / 1000000).OrderByDescending(c => c.Count()).ThenBy(c => c.Key).First().Key);
+        var jobs = ClassEvidence.Infer(fight);
         bool PlayerLike(int id) => id > 0 && fight.Actors.GetValueOrDefault(id)?.NpcId is not > 0 &&
             (fight.Actors.GetValueOrDefault(id)?.Player == true || jobs.ContainsKey(id));
-        string Job(int id) => fight.Actors.GetValueOrDefault(id)?.Job is string job && job != "Unknown" ? job :
-            jobs.TryGetValue(id, out int prefix) ? Jobs[prefix - 11] : "Unknown";
-        string Name(int id) => fight.Actors.GetValueOrDefault(id)?.Player == true || id == fight.LocalPlayer ? fight.Name(id) :
-            Job(id) == "Unknown" ? $"Opponent #{id}" : $"{Job(id)} #{id}";
-        string Identity(int id) => fight.Actors.GetValueOrDefault(id)?.Player == true ? "Named" : "Name pending";
+        string Job(int id) => ClassEvidence.Resolve(fight.Actors.GetValueOrDefault(id), id, jobs);
+        string Name(int id) => fight.Name(id);
+        string Identity(int id) => fight.Actors.GetValueOrDefault(id)?.Player == true && fight.Name(id) != $"Entity {id}" ? "Named" : "Name pending";
 
         // Only exchanges with your side establish hostility. Other nearby fights and
         // PvE damage cannot inflate the PvP totals or extend the shared DPS duration.

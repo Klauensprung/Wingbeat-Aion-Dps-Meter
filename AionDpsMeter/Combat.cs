@@ -32,7 +32,7 @@ public sealed class Fight
     public long Start => Damage.Select(e => e.Timestamp).Concat(Healing.Select(e => e.Timestamp)).Concat(Defense.Select(e => e.Timestamp)).DefaultIfEmpty(0).Min();
     public long End => Damage.Select(e => e.Timestamp).Concat(Healing.Select(e => e.Timestamp)).Concat(Defense.Select(e => e.Timestamp)).DefaultIfEmpty(0).Max();
     public double Seconds => Math.Max(1, (End - Start) / 1000d);
-    public string Name(int id) => Actors.TryGetValue(id, out var a) ? a.Name : $"Entity {id}";
+    public string Name(int id) => Actors.TryGetValue(id, out var a) && !string.IsNullOrWhiteSpace(a.Name) ? a.Name : $"Entity {id}";
     public bool HasEvents => Damage.Count + Healing.Count + Defense.Count > 0;
     public bool HasRecordedData => HasEvents || Network.Count > 0 || Energy != null || Builds.Count > 0 || PartyKnown || Actors.Values.Any(a => a.ProfileSource == "Entered locally");
     public Fight Copy() => new() { Version = Version, Id = Id, Label = Label, Created = Created, Demo = Demo, LocalPlayer = LocalPlayer,

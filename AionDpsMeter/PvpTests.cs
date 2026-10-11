@@ -19,6 +19,12 @@ internal static class PvpTests
     public static void Run(Action<bool, string> check)
     {
         var f = Duel(); var pvp = PvpAnalysis.Build(f); var meter = PvpAnalysis.Meter(f, pvp);
+        check(pvp.Opponents.Single().Opponent == "Entity 2" && meter.Rows.Single(r => r.Id == 2).Name == "Entity 2",
+            "Unnamed opponents display entity IDs in both the PvP table and overlay despite inferred classes");
+        var blankIdentity = Duel(); blankIdentity.Actors[2] = blankIdentity.Actors[2] with { Name = " ", Player = true };
+        check(blankIdentity.Name(2) == "Entity 2" && blankIdentity.Name(999) == "Entity 999" &&
+            PvpAnalysis.Build(blankIdentity).Opponents.Single() is { Opponent: "Entity 2", Identity: "Name pending" },
+            "Blank and absent actor names fall back to entity IDs without claiming a captured name");
         check(pvp.Opponents.Single() is { Id: 2, Identity: "Name pending", DamageToUs: 3000, DamageFromUs: 100, DPS: 300, Healing: 500 },
             "PvP retains an unnamed class-skill attacker with correctly directed damage and healing");
         check(pvp.Seconds == 10 && pvp.YourDamage == 100 && pvp.EnemyDamage == 3000 && meter.Rows[0].Id == 1 && meter.Rows[1].Rate == 300,

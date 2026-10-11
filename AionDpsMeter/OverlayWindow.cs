@@ -105,6 +105,7 @@ public sealed class OverlayWindow : Window
         Scope("All actors", "All");
         menu.Items.Add(new Separator());
         Item("Compact rows", preferences.OverlayCompact, () => preferences.OverlayCompact = !preferences.OverlayCompact);
+        Item("Class colours", !preferences.OverlayCustomBars, () => preferences.OverlayCustomBars = !preferences.OverlayCustomBars);
         Item("Lock position", preferences.OverlayLocked, () => preferences.OverlayLocked = !preferences.OverlayLocked);
         return menu;
     }
@@ -140,7 +141,9 @@ public sealed class OverlayWindow : Window
         bool showPvp = scope == "PvP" || (scope is not ("All" or "Party") && pvp.HasOpponents);
         var data = showPvp ? PvpAnalysis.Meter(fight, pvp, preferences.OverlayHealing) :
             MeterPresentation.Build(fight, totals, preferences.OverlayHealing, scope == "All", pinLocal: true);
-        if (preferences.OverlayCustomBars)
+        if (!preferences.OverlayCustomBars)
+            data = data with { Rows = data.Rows.Select(r => r with { Color = MeterPresentation.ClassColorFor(r.Job, r.Color) }).ToArray() };
+        else
         {
             var friendly = pvp.Combatants.Where(c => c.Friendly).Select(c => c.Id).ToHashSet();
             data = data with { Rows = data.Rows.Select(r => !showPvp || friendly.Contains(r.Id) ? r with { Color = preferences.Accent } : r).ToArray() };
@@ -158,16 +161,22 @@ public sealed class OverlayWindow : Window
         encounter.Text = (fight.Demo ? "DEMO  ·  " : "") + fight.Label + "  ·  " + data.Scope;
         var own = data.Rows.Where(r => r.Local).ToArray();
         var others = data.Rows.Where(r => !r.Local).ToArray();
-        ownMeter.Update(own, preferences.OverlayCompact, preferences.OverlayHealing, fight.HasEvents);
+        ownMeter.Update(own, preferences.OverlayCompact, preferences.OverlayHealing, fight.HasEvents, showClassSymbols: true);
         ownMeter.Visibility = own.Length == 0 ? Visibility.Collapsed : Visibility.Visible;
         actorScroll.Visibility = own.Length > 0 && others.Length == 0 ? Visibility.Collapsed : Visibility.Visible;
-        meter.Update(others, preferences.OverlayCompact, preferences.OverlayHealing, fight.HasEvents, startPosition: own.Length > 0 ? 2 : 1);
+        meter.Update(others, preferences.OverlayCompact, preferences.OverlayHealing, fight.HasEvents, startPosition: own.Length > 0 ? 2 : 1, showClassSymbols: true);
         total.Text = showPvp && !preferences.OverlayHealing ? $"YOU   {MeterPresentation.Number(pvp.YourDamage)}     ·     ENEMY   {MeterPresentation.Number(pvp.EnemyDamage)}" :
             $"TOTAL   {MeterPresentation.Number(data.Amount)}     ·     {MeterPresentation.Number(data.Rate)} {(preferences.OverlayHealing ? "HPS" : "DPS")}";
         energy.Text = fight.Energy == null ? "Wingbeat  ·  local" : $"Loot energy   {fight.Energy.Daily:N0} daily  /  {fight.Energy.Bonus:N0} bonus";
     }
     internal void CheckModes()
     {
+        bool previousCustom = preferences.OverlayCustomBars;
+        var colourToggle = CreateOptions().Items.OfType<MenuItem>().Single(i => i.Header?.ToString() == "Class colours");
+        colourToggle.RaiseEvent(new RoutedEventArgs(MenuItem.ClickEvent));
+        if (preferences.OverlayCustomBars == previousCustom || CreateOptions().Items.OfType<MenuItem>().Single(i => i.Header?.ToString() == "Class colours").IsChecked != !preferences.OverlayCustomBars)
+            throw new InvalidOperationException("Class colour toggle did not update the overlay preferences and menu.");
+        preferences.OverlayCustomBars = previousCustom; RefreshMeter();
         bool previous = preferences.OverlayHealing;
         preferences.OverlayHealing = true; RefreshMeter();
         if (RowCount != 10 || ownMeter.RowCount != 1) throw new InvalidOperationException("Healing overlay did not retain all ten party members and the local row.");

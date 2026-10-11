@@ -24,6 +24,11 @@ numbers and encounters are illustrative, not recordings of real players.
 
    Transparent damage overlay with your character pinned first and loot energy below.
 
+Open the overlay's DAMAGE / HEALING menu to toggle **Class colours**. Each
+player's DPS or HPS has a class symbol beside it; hover the symbol for its name.
+Unknown classes use a neutral diamond. Turning class colours off uses your
+chosen accent colour and keeps PvP opponents red. The choice is saved locally.
+
 .. figure:: docs/images/party-rotations.png
    :alt: Wingbeat rotation view with separate damage and healing lanes and timeline zoom controls.
    :width: 100%

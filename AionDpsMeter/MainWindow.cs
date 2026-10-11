@@ -554,7 +554,7 @@ public sealed class MainWindow : Window
     void ToggleOverlay()
     {
         if (overlay != null) { overlay.Close(); overlay = null; return; }
-        overlay = new OverlayWindow(NewFight, id => FocusActor(id, preferences.OverlayHealing), SavePreferences); overlay.Closed += (_, _) => overlay = null;
+        overlay = new OverlayWindow(NewFight, id => FocusActor(id, preferences.OverlayHealing), () => { customBars.IsChecked = preferences.OverlayCustomBars; SavePreferences(); }); overlay.Closed += (_, _) => overlay = null;
         var fight = capture != null ? LiveSnapshot() : Current;
         overlay.Update(fight, preferences, rows: ReferenceEquals(fight, displayedSnapshot) ? displayedTotals : null); overlay.Show();
     }
