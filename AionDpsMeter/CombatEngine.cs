@@ -9,6 +9,14 @@ public sealed class CombatEngine
     readonly Queue<Fight> completed = new();
     readonly object saveGate = new();
     readonly Dictionary<int, long> lastDeaths = new();
+    const long IdleResetMs = 15000;
+    const long RecoveryWindowMs = 300000, AddPhaseWindowMs = 120000;
+    bool recoveryBlocked;
+    long? lastCombat;
+    Fight? resumable;
+    long resumeStoppedAt;
+    HashSet<int> resumeTargets = new();
+    HashSet<int> phaseAnchors = new();
     long unsupportedPayloads;
     long revision;
     long identityEvents;
@@ -54,6 +62,7 @@ public sealed class CombatEngine
                 case "damage" when item.Damage != null: RecordDamage(item.Damage, false); break;
                 case "heal" when item.Damage != null: RecordDamage(item.Damage, true); break;
                 case "defense" when item.Defense != null:
+                    BeginCombat(item.Defense.Timestamp, item.Defense.ActorId, item.Defense.TargetId, false);
                     EnsureActor(item.Defense.ActorId); EnsureActor(item.Defense.TargetId); Fight.Defense.Add(item.Defense); revision++; break;
                 case "energy" when item.Energy != null: Fight.Energy = item.Energy; revision++; break;
                 case "player-stats" when item.Stats != null:
@@ -82,6 +91,10 @@ public sealed class CombatEngine
                         item.Network.Fields.TryGetProperty("EntityId", out var deathId) && deathId.ValueKind == System.Text.Json.JsonValueKind.Number && deathId.TryGetInt32(out int dead) && dead > 0 &&
                         (!lastDeaths.TryGetValue(dead, out long previousDeath) || item.Network.Timestamp - previousDeath > 1000)) {
                         Fight.Deaths.Add(new(dead, item.Network.Timestamp)); lastDeaths[dead] = item.Network.Timestamp;
+                        resumeTargets.Remove(dead); phaseAnchors.Remove(dead);
+                    }
+                    if (item.Network.Kind == "dungeon-result" && item.Network.Fields.TryGetProperty("Cleared", out var cleared) && cleared.ValueKind == System.Text.Json.JsonValueKind.True) {
+                        resumable = null; resumeTargets.Clear(); phaseAnchors.Clear(); recoveryBlocked = true;
                     }
                     Fight.Network.Add(item.Network); revision++; break;
                 default: throw new ArgumentException("Incomplete or unsupported decoded event.");
@@ -98,6 +111,7 @@ public sealed class CombatEngine
                 previous.Player && actor.NpcId > 0 || previous.NpcId > 0 && actor.Player;
             if (replaced)
             {
+                resumeTargets.Remove(actor.Id); phaseAnchors.Remove(actor.Id);
                 // A reused entity ID must not rename a different creature/player in saved hits.
                 bool participated = Fight.Damage.Concat(Fight.Healing).Any(e => e.ActorId == actor.Id || e.TargetId == actor.Id) ||
                     Fight.Defense.Any(e => e.ActorId == actor.Id || e.TargetId == actor.Id) || Fight.Deaths.Any(e => e.EntityId == actor.Id);
@@ -146,6 +160,7 @@ public sealed class CombatEngine
         if (damage.Timestamp < 0 || damage.Damage < 0) throw new ArgumentOutOfRangeException(nameof(damage));
         lock (Gate)
         {
+            BeginCombat(damage.Timestamp, damage.ActorId, damage.TargetId, healing);
             EnsureActor(damage.ActorId); EnsureActor(damage.TargetId);
             (healing ? Fight.Healing : Fight.Damage).Add(damage with { IsHeal = healing });
             revision++;
@@ -190,7 +205,7 @@ public sealed class CombatEngine
             var previous = Fight;
             Fight = new() { Label = label, LocalPlayer = previous.LocalPlayer, Actors = previous.Actors.Where(p => p.Value.OriginalEntityId == 0).ToDictionary(), Specs = new(previous.Specs), Energy = previous.Energy, PartyProfiles = [..previous.PartyProfiles], LocalPing = previous.LocalPing, LocalStats = CharacterReadings.Copy(previous.LocalStats),
                 Builds = previous.Builds.Where(p => previous.Actors.GetValueOrDefault(p.Key)?.OriginalEntityId == 0).ToDictionary(p => p.Key, p => FightMetadata.Copy(p.Value)), PartyKnown = previous.PartyKnown, PartySource = previous.PartySource };
-            lastDeaths.Clear();
+            lastDeaths.Clear(); lastCombat = null; recoveryBlocked = false; resumable = null; resumeTargets.Clear(); phaseAnchors.Clear();
             revision++;
         }
     }
@@ -201,6 +216,86 @@ public sealed class CombatEngine
             if (Fight.HasRecordedData) completed.Enqueue(Snapshot());
             NewFight(label);
         }
+    }
+    // The live UI calls this even when no packets arrive. Replay uses event timestamps.
+    public void AdvanceTime(long timestamp)
+    {
+        lock (Gate)
+        {
+            if (lastCombat == null || timestamp - lastCombat.Value < IdleResetMs || !Fight.HasEvents) return;
+            // A healing-only pause may also clear, without losing its contribution
+            // or extending the boss recovery window indefinitely.
+            if (resumable != null && Fight.Damage.Count == 0 && Fight.Defense.Count == 0) {
+                var pending = resumable.Copy();
+                pending.Healing.AddRange(Fight.Healing); pending.Deaths.AddRange(Fight.Deaths); pending.Network.AddRange(Fight.Network);
+                foreach (var entry in Fight.Actors) pending.Actors[entry.Key] = entry.Value;
+                var keptTargets = resumeTargets; var keptAnchors = phaseAnchors; long stopped = resumeStoppedAt;
+                completed.Enqueue(pending);
+                // NewFight clears these sets, so retain independent copies.
+                keptTargets = new(keptTargets); keptAnchors = new(keptAnchors);
+                NewFight(Fight.Label);
+                resumable = pending; resumeTargets = keptTargets; phaseAnchors = keptAnchors; resumeStoppedAt = stopped;
+                return;
+            }
+            var previous = Snapshot();
+            bool Friendly(int id) => id == previous.LocalPlayer || previous.Actors.GetValueOrDefault(id)?.Party == true;
+            var targets = previous.Damage.Select(e => (e.ActorId, e.TargetId))
+                .Concat(previous.Defense.Select(e => (e.ActorId, e.TargetId)))
+                .Where(e => previous.LocalPlayer == 0 || Friendly(e.ActorId) || Friendly(e.TargetId))
+                .SelectMany(e => Friendly(e.TargetId) ? new[] { e.ActorId } : new[] { e.TargetId })
+                .Where(id => id > 0 && !Friendly(id) && previous.Actors.GetValueOrDefault(id)?.OriginalEntityId == 0)
+                .Except(previous.Deaths.Select(d => d.EntityId)).ToHashSet();
+            bool blocked = recoveryBlocked; long stoppedAt = lastCombat.Value;
+            completed.Enqueue(previous);
+            NewFight(previous.Label);
+            if (blocked) return;
+            resumable = previous; resumeTargets = targets; resumeStoppedAt = stoppedAt;
+            // Cast records are NPC activity hints, not an authoritative boss flag.
+            // Sustained combat also allows recovery when those hints were not captured.
+            bool sustained = previous.Seconds >= 30;
+            var hints = previous.Network.Select(e => e.Kind switch {
+                "boss-cast" => NetworkEntity(e, "CasterId"), "boss-enrage" => NetworkEntity(e, "EntityId"), _ => 0
+            }).Where(id => id > 0).ToHashSet();
+            phaseAnchors = targets.Where(id => previous.Actors.GetValueOrDefault(id) is { NpcId: > 0 } &&
+                (sustained || hints.Contains(id))).ToHashSet();
+        }
+    }
+    static int NetworkEntity(NetworkEvent e, string key) =>
+        e.Fields.ValueKind == System.Text.Json.JsonValueKind.Object && e.Fields.TryGetProperty(key, out var value) &&
+        value.ValueKind == System.Text.Json.JsonValueKind.Number && value.TryGetInt32(out int id) ? id : 0;
+
+    void BeginCombat(long timestamp, int actor, int target, bool healing)
+    {
+        AdvanceTime(timestamp);
+        bool Friendly(int id) => id == Fight.LocalPlayer || Fight.Actors.GetValueOrDefault(id)?.Party == true;
+        // Nearby fights must not choose the next encounter for our party.
+        if (Fight.LocalPlayer > 0 && !Friendly(actor) && !Friendly(target)) return;
+        if (!healing && resumable != null)
+        {
+            long gap = timestamp - resumeStoppedAt;
+            int hostile = Friendly(target) ? actor : target;
+            bool possibleAdd = phaseAnchors.Count > 0 && gap <= AddPhaseWindowMs &&
+                (Friendly(actor) || Friendly(target)) && !Friendly(hostile) &&
+                Fight.Actors.GetValueOrDefault(hostile)?.Player != true;
+            if (gap <= RecoveryWindowMs && ((!Friendly(actor) && resumeTargets.Contains(actor)) || (!Friendly(target) && resumeTargets.Contains(target)) || possibleAdd))
+            {
+                var current = Fight;
+                Fight = resumable.Copy();
+                foreach (var entry in current.Actors) Fight.Actors[entry.Key] = entry.Value;
+                Fight.LocalPlayer = current.LocalPlayer; Fight.PartyKnown = current.PartyKnown; Fight.PartySource = current.PartySource;
+                Fight.PartyProfiles = current.PartyProfiles; Fight.LocalPing = current.LocalPing; Fight.LocalStats = current.LocalStats;
+                Fight.Energy = current.Energy; Fight.Specs = current.Specs; Fight.Label = current.Label;
+                foreach (var entry in current.Builds) Fight.Builds[entry.Key] = entry.Value;
+                Fight.Damage.AddRange(current.Damage); Fight.Healing.AddRange(current.Healing); Fight.Defense.AddRange(current.Defense);
+                Fight.Deaths.AddRange(current.Deaths); Fight.Network.AddRange(current.Network);
+                lastDeaths.Clear();
+                foreach (var death in Fight.Deaths) lastDeaths[death.EntityId] = Math.Max(lastDeaths.GetValueOrDefault(death.EntityId), death.Timestamp);
+                revision++;
+            }
+            // The next hostile exchange either resumes this encounter or commits a new one.
+            resumable = null; resumeTargets.Clear(); phaseAnchors.Clear();
+        }
+        lastCombat = Math.Max(lastCombat ?? timestamp, timestamp);
     }
     public Fight[] SaveCompleted(FightStore store) => SaveCompleted(store.Save);
     internal Fight[] SaveCompleted(Action<Fight> save)
@@ -213,7 +308,11 @@ public sealed class CombatEngine
             while (true)
             {
                 Fight fight;
-                lock (Gate) { if (!completed.TryPeek(out fight!)) break; }
+                lock (Gate) {
+                    if (!completed.TryPeek(out fight!)) break;
+                    if (fight.Id == Fight.Id) fight = Snapshot();
+                    else if (fight.Id == resumable?.Id) fight = resumable.Copy();
+                }
                 save(fight);
                 lock (Gate) completed.Dequeue();
                 saved.Add(fight);

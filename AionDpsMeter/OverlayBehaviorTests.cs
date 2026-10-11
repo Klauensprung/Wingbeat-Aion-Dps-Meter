@@ -42,9 +42,9 @@ internal static class OverlayBehaviorTests
         var store = new FightStore(Path.Combine(temp, "overlay-behavior")); store.Save(snapshot);
         check(store.Load(Path.Combine(store.Root, snapshot.Id + ".json")).Deaths.SequenceEqual(snapshot.Deaths) && JsonSerializer.Deserialize<Fight>("{}")!.Deaths.Count == 0,
             "Death history survives saving and older fights default to zero deaths");
-        engine.Apply(new("damage", Damage: duel.Damage[0] with { Timestamp = 180000 }));
+        engine.Apply(new("damage", Damage: duel.Damage[0] with { Timestamp = 20001 }));
         check(engine.Fight.Id == snapshot.Id && engine.Fight.Damage.Count == 4 && engine.Fight.Deaths.Count == 3,
-            "A long boss phase preserves damage and deaths in the same fight");
+            "Continued combat preserves damage and observed deaths");
         engine.Apply(new("actor", Actor: new(2, "OldPlayer", true, false, 0, "Cleric", 2301)));
         engine.Apply(new("actor", Actor: new(2, "NewTarget", false, false, 0, "Unknown", 0) { NpcId = 101 }));
         check(engine.Fight.Id == snapshot.Id && engine.Fight.Damage.Count == 4 &&

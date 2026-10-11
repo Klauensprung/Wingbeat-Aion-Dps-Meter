@@ -202,6 +202,7 @@ public sealed class MainWindow : Window
         if (demo) LoadDemo(); else Refresh();
         timer.Tick += (_, _) => {
             try {
+                if (capture != null) engine.AdvanceTime(DateTimeOffset.UtcNow.ToUnixTimeMilliseconds());
                 FinishAutosave(wait: false);
                 long now = Environment.TickCount64;
                 if (capture != null && autosave == null && now >= nextMaintenance)

@@ -18,9 +18,12 @@ public sealed record MeterData(MeterRow[] Rows, long Amount, double Rate, string
 
 public static class MeterPresentation
 {
+    // Representative highlights sampled from the shaded game class emblems.
+    // These are display colours, not an official table of flat hex values.
+    // Reference: RATmeter 1.11.3.320 wwwroot/images/classes/11.png through 19.png.
     static readonly Dictionary<string, string> ClassColors = new(StringComparer.OrdinalIgnoreCase) {
-        ["Gladiator"] = "#C79C6E", ["Templar"] = "#F0C75E", ["Assassin"] = "#AD8BF0", ["Ranger"] = "#91CC69",
-        ["Sorcerer"] = "#69CCF0", ["Spiritmaster"] = "#E389C0", ["Cleric"] = "#DFE8F2", ["Chanter"] = "#56D5B1", ["Brawler"] = "#EF8B64"
+        ["Gladiator"] = "#6FB8CA", ["Templar"] = "#7C9EF7", ["Assassin"] = "#79B271", ["Ranger"] = "#5FAE8C",
+        ["Sorcerer"] = "#B087E9", ["Spiritmaster"] = "#C365C4", ["Cleric"] = "#E7CF7D", ["Chanter"] = "#E2A45A", ["Brawler"] = "#F74647"
     };
     static readonly string[] PlayerColors = ["#65CBE9", "#AE91EF", "#65D6AF", "#EABF70", "#EA8EA7", "#82B1F0", "#B5CE75", "#DA9CE9"];
     public static string ClassColorFor(string job, string fallback) => ClassColors.GetValueOrDefault(job, fallback);

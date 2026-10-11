@@ -165,6 +165,7 @@ public static class SelfTest
             OverlayBehaviorTests.Run(Check, temp);
             PvpTests.Run(Check);
             IngestionTests.Run(Check, temp);
+            EncounterTests.Run(Check, temp);
             FeatureTests.Run(Check, temp);
             RotationTests.Run(Check);
             File.WriteAllLines(Path.Combine(AppContext.BaseDirectory, "self-test-results.txt"), results.Append($"Passed {results.Count} checks."));
