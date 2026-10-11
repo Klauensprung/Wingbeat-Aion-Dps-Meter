@@ -1,0 +1,66 @@
+Wingbeat dependency notices
+==============================
+
+Healing family metadata — SkeeveTV
+Source: https://github.com/SkeeveAN/Aion-DPS-Meter/blob/c668aad9832963d6bf45cd3f8062e7172f5ae95c/Client/assets/aion2/skills/heal_skill_families.json
+Copyright (c) 2026 SkeeveTV. License: MIT.
+Adapted recovery family IDs in HealingSkills.cs; no runtime dependency.
+License text: licenses/SkeeveTV-MIT.txt.
+
+Optional local skill artwork and NPC labels
+The explicit Update-GameData.ps1 downloader reads the public game-data snapshot:
+https://github.com/SkeeveAN/Aion-DPS-Meter/tree/c668aad9832963d6bf45cd3f8062e7172f5ae95c/Client/assets/aion2
+Source repository code: Copyright (c) 2026 SkeeveTV, MIT; see licenses/SkeeveTV-MIT.txt.
+Game names and artwork belong to NCSOFT and their respective owners; the code's
+MIT license does not establish a separate license for those game assets.
+Downloaded data is stored only in local-data, excluded from source publication,
+with a source manifest. The application does not automatically download it.
+NPC wire layout reference was checked against private captures; no upstream
+decoder code was copied.
+PvP display class prefixes and summon-family exclusions were cross-checked
+against the same repository's Aion2SkillNames.cs and skill_names.json snapshot.
+These metadata facts inform PvpAnalysis.cs; no upstream code was ported.
+
+SharpPcap 6.3.0 — dotpcap contributors
+Upstream: https://github.com/dotpcap/sharppcap
+Package: https://www.nuget.org/packages/SharpPcap/6.3.0
+License: MIT (as declared by the exact NuGet package).
+Copyright: Tamir Gal, Chris Morgan and others (package metadata).
+License text: licenses/SharpPcap-MIT.txt.
+Source revision: 9f853932df0cda241bc38b1c13093e28f08a70cb.
+
+PacketDotNet 1.4.7 — dotpcap contributors
+Upstream: https://github.com/dotpcap/packetnet
+Package: https://www.nuget.org/packages/PacketDotNet/1.4.7
+License: Mozilla Public License 2.0.
+Corresponding source and license: https://github.com/dotpcap/packetnet
+Author: Chris Morgan and contributors.
+License text: licenses/PacketDotNet-MPL-2.0.txt.
+Version source: https://github.com/dotpcap/packetnet/tree/v1.4.7
+Source revision: 1215ee6f7db5aa8d3bf11ad3f05142299c7e6736.
+
+Framework-dependent builds require the .NET 10 Desktop Runtime separately.
+Build-Windows.ps1 bundles the .NET 10 runtime and WPF for Windows x64; their
+exact runtime-pack license texts/notices are copied to licenses. Versions are
+recorded in build-info.json. Sources: https://github.com/dotnet/runtime and
+https://github.com/dotnet/wpf. Their applicable third-party terms are retained.
+
+Npcap is optional, separately installed and not redistributed here.
+Its upstream guide describes it as source-available, not open-source:
+https://npcap.com/guide/
+Npcap terms: https://github.com/nmap/npcap/blob/master/LICENSE
+
+The license texts above are copied to the application output. Dependencies
+restore from their pinned upstream NuGet packages. No rights to unrelated
+proprietary implementations are asserted by this project.
+
+Protocol research provenance
+The implementation was informed by private reference material and game captures;
+it was not produced through a formal clean-room process. Decoding remains partial.
+Public field-layout reference:
+https://github.com/SkeeveAN/Aion-DPS-Meter/blob/c668aad9832963d6bf45cd3f8062e7172f5ae95c/Client/Aion2/Protocol/Aion2FrameDecoder.cs
+Resource-only skill ID reference (no implementation code included or translated):
+https://github.com/taengu/A2Tools-DPS-Meter/blob/bf2f3f351c0323e3e3e774e3fb36e9791f0b2ab2/src/data/resource_restore_skills.json
+
+A license for the newly written project code has not yet been selected.
+The dependency licenses above do not license the project as a whole.

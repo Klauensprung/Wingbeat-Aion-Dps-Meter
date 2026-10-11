@@ -1,0 +1,80 @@
+# Build outputs and downloadable distributions
+**/bin/
+**/obj/
+artifacts/
+releases/
+publish/
+*.exe
+*.dll
+*.pdb
+*.zip
+*.7z
+*.nupkg
+
+# Per-machine IDE and publishing state
+.vs/
+.vscode/
+.idea/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+**/Properties/PublishProfiles/
+
+# Private fights, packet captures, diagnostics and downloaded game assets
+local-data/
+live-test/
+test-artifacts/
+TestResults/
+coverage/
+*.pcap
+*.pcapng
+*.cap
+*.etl
+*.dmp
+*.log
+*.binlog
+*-results.txt
+*-error.txt
+replay-report.json
+events.jsonl
+*.jsonl
+!examples/synthetic-events.jsonl
+
+# Local research, activity notes, screenshots and assistant state
+notes/
+private/
+.private/
+research/
+screenshots/
+.codex/
+.claude/
+AGENTS.local.md
+LOCAL-README.txt
+*.local.*
+*.bak
+*.tmp
+*.orig
+*.rej
+
+# Credentials and local environment configuration
+.env
+.env.*
+!.env.example
+*.pfx
+*.p12
+*.pem
+*.key
+id_rsa
+id_ed25519
+secrets.json
+
+# OS metadata
+Thumbs.db
+Desktop.ini
+.DS_Store
+
+# Keep text notes out of the public repository; retain dependency terms.
+*.txt
+!/THIRD-PARTY-NOTICES.txt
+!/licenses/*.txt

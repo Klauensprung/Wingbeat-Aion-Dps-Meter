@@ -1,0 +1,8 @@
+{"Kind":"actor","Actor":{"Id":1,"Name":"Demo attacker","Player":true,"Party":true,"Cp":15000,"Job":"Unknown","Server":1}}
+{"Kind":"actor","Actor":{"Id":2,"Name":"Demo opponent","Player":true,"Party":false,"Cp":15100,"Job":"Unknown","Server":1}}
+{"Kind":"damage","Damage":{"Timestamp":1000,"ActorId":1,"TargetId":2,"SkillCode":42,"Damage":100,"IsCritical":false}}
+{"Kind":"damage","Damage":{"Timestamp":2000,"ActorId":2,"TargetId":1,"SkillCode":43,"Damage":75,"IsCritical":false}}
+{"Kind":"damage","Damage":{"Timestamp":3000,"ActorId":1,"TargetId":2,"SkillCode":42,"Damage":150,"IsCritical":true}}
+{"Kind":"heal","Damage":{"Timestamp":3500,"ActorId":1,"TargetId":1,"SkillCode":44,"Damage":30,"IsCritical":false}}
+{"Kind":"defense","Defense":{"Timestamp":4000,"ActorId":2,"TargetId":1,"SkillCode":43,"Outcome":1}}
+{"Kind":"energy","Energy":{"Daily":100,"Bonus":20,"FromLoginList":false,"TimestampMs":4000}}

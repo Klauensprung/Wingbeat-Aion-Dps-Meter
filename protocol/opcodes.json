@@ -1,0 +1,466 @@
+{
+    "schemaVersion":  1,
+    "origin":  "Protocol facts researched from supplied private reference material and local game captures.",
+    "validation":  "Candidate byte patterns only. Actual decoder coverage is tracked in event-coverage.json; a signature match does not establish decoded events.",
+    "signatures":  [
+                       {
+                           "name":  "Wire pattern 04 38",
+                           "kind":  "dispatch-opcode",
+                           "hex":  "04 38",
+                           "bytes":  [
+                                         4,
+                                         56
+                                     ],
+                           "euValidated":  false
+                       },
+                       {
+                           "name":  "Wire pattern 05 38",
+                           "kind":  "dispatch-opcode",
+                           "hex":  "05 38",
+                           "bytes":  [
+                                         5,
+                                         56
+                                     ],
+                           "euValidated":  false
+                       },
+                       {
+                           "name":  "Wire pattern 02 38",
+                           "kind":  "dispatch-opcode",
+                           "hex":  "02 38",
+                           "bytes":  [
+                                         2,
+                                         56
+                                     ],
+                           "euValidated":  false
+                       },
+                       {
+                           "name":  "Wire pattern 00 8D",
+                           "kind":  "dispatch-opcode",
+                           "hex":  "00 8D",
+                           "bytes":  [
+                                         0,
+                                         141
+                                     ],
+                           "euValidated":  false
+                       },
+                       {
+                           "name":  "Wire pattern 04 8D",
+                           "kind":  "dispatch-opcode",
+                           "hex":  "04 8D",
+                           "bytes":  [
+                                         4,
+                                         141
+                                     ],
+                           "euValidated":  false
+                       },
+                       {
+                           "name":  "Wire pattern 0E 38",
+                           "kind":  "dispatch-opcode",
+                           "hex":  "0E 38",
+                           "bytes":  [
+                                         14,
+                                         56
+                                     ],
+                           "euValidated":  false
+                       },
+                       {
+                           "name":  "Wire pattern 40 36",
+                           "kind":  "dispatch-opcode",
+                           "hex":  "40 36",
+                           "bytes":  [
+                                         64,
+                                         54
+                                     ],
+                           "euValidated":  false
+                       },
+                       {
+                           "name":  "Wire pattern 41 36",
+                           "kind":  "dispatch-opcode",
+                           "hex":  "41 36",
+                           "bytes":  [
+                                         65,
+                                         54
+                                     ],
+                           "euValidated":  false
+                       },
+                       {
+                           "name":  "Wire pattern 42 36",
+                           "kind":  "dispatch-opcode",
+                           "hex":  "42 36",
+                           "bytes":  [
+                                         66,
+                                         54
+                                     ],
+                           "euValidated":  false
+                       },
+                       {
+                           "name":  "Wire pattern 3D 38",
+                           "kind":  "dispatch-opcode",
+                           "hex":  "3D 38",
+                           "bytes":  [
+                                         61,
+                                         56
+                                     ],
+                           "euValidated":  false
+                       },
+                       {
+                           "name":  "Wire pattern 35 38",
+                           "kind":  "dispatch-opcode",
+                           "hex":  "35 38",
+                           "bytes":  [
+                                         53,
+                                         56
+                                     ],
+                           "euValidated":  false
+                       },
+                       {
+                           "name":  "Wire pattern 03 38",
+                           "kind":  "dispatch-opcode",
+                           "hex":  "03 38",
+                           "bytes":  [
+                                         3,
+                                         56
+                                     ],
+                           "euValidated":  false
+                       },
+                       {
+                           "name":  "Wire pattern 1B 56",
+                           "kind":  "dispatch-opcode",
+                           "hex":  "1B 56",
+                           "bytes":  [
+                                         27,
+                                         86
+                                     ],
+                           "euValidated":  false
+                       },
+                       {
+                           "name":  "Wire pattern 15 36",
+                           "kind":  "dispatch-opcode",
+                           "hex":  "15 36",
+                           "bytes":  [
+                                         21,
+                                         54
+                                     ],
+                           "euValidated":  false
+                       },
+                       {
+                           "name":  "Wire pattern 00 E2",
+                           "kind":  "dispatch-opcode",
+                           "hex":  "00 E2",
+                           "bytes":  [
+                                         0,
+                                         226
+                                     ],
+                           "euValidated":  false
+                       },
+                       {
+                           "name":  "Wire pattern 00 61",
+                           "kind":  "dispatch-opcode",
+                           "hex":  "00 61",
+                           "bytes":  [
+                                         0,
+                                         97
+                                     ],
+                           "euValidated":  false
+                       },
+                       {
+                           "name":  "Wire pattern 01 61",
+                           "kind":  "dispatch-opcode",
+                           "hex":  "01 61",
+                           "bytes":  [
+                                         1,
+                                         97
+                                     ],
+                           "euValidated":  false
+                       },
+                       {
+                           "name":  "Wire pattern 0C 61",
+                           "kind":  "dispatch-opcode",
+                           "hex":  "0C 61",
+                           "bytes":  [
+                                         12,
+                                         97
+                                     ],
+                           "euValidated":  false
+                       },
+                       {
+                           "name":  "Wire pattern 16 36",
+                           "kind":  "dispatch-opcode",
+                           "hex":  "16 36",
+                           "bytes":  [
+                                         22,
+                                         54
+                                     ],
+                           "euValidated":  false
+                       },
+                       {
+                           "name":  "Wire pattern 01 91",
+                           "kind":  "dispatch-opcode",
+                           "hex":  "01 91",
+                           "bytes":  [
+                                         1,
+                                         145
+                                     ],
+                           "euValidated":  false
+                       },
+                       {
+                           "name":  "Wire pattern 44 36",
+                           "kind":  "dispatch-opcode",
+                           "hex":  "44 36",
+                           "bytes":  [
+                                         68,
+                                         54
+                                     ],
+                           "euValidated":  false
+                       },
+                       {
+                           "name":  "Wire pattern 45 36",
+                           "kind":  "dispatch-opcode",
+                           "hex":  "45 36",
+                           "bytes":  [
+                                         69,
+                                         54
+                                     ],
+                           "euValidated":  false
+                       },
+                       {
+                           "name":  "Wire pattern 06 38",
+                           "kind":  "dispatch-opcode",
+                           "hex":  "06 38",
+                           "bytes":  [
+                                         6,
+                                         56
+                                     ],
+                           "euValidated":  false
+                       },
+                       {
+                           "name":  "Wire pattern 2A 38",
+                           "kind":  "dispatch-opcode",
+                           "hex":  "2A 38",
+                           "bytes":  [
+                                         42,
+                                         56
+                                     ],
+                           "euValidated":  false
+                       },
+                       {
+                           "name":  "Wire pattern 2B 38",
+                           "kind":  "dispatch-opcode",
+                           "hex":  "2B 38",
+                           "bytes":  [
+                                         43,
+                                         56
+                                     ],
+                           "euValidated":  false
+                       },
+                       {
+                           "name":  "Wire pattern 2C 38",
+                           "kind":  "dispatch-opcode",
+                           "hex":  "2C 38",
+                           "bytes":  [
+                                         44,
+                                         56
+                                     ],
+                           "euValidated":  false
+                       },
+                       {
+                           "name":  "Wire pattern 05 E0",
+                           "kind":  "dispatch-opcode",
+                           "hex":  "05 E0",
+                           "bytes":  [
+                                         5,
+                                         224
+                                     ],
+                           "euValidated":  false
+                       },
+                       {
+                           "name":  "Wire pattern 09 38",
+                           "kind":  "dispatch-opcode",
+                           "hex":  "09 38",
+                           "bytes":  [
+                                         9,
+                                         56
+                                     ],
+                           "euValidated":  false
+                       },
+                       {
+                           "name":  "Wire pattern 01 00 00 00 00",
+                           "kind":  "declared-byte-pattern",
+                           "hex":  "01 00 00 00 00",
+                           "bytes":  [
+                                         1,
+                                         0,
+                                         0,
+                                         0,
+                                         0
+                                     ],
+                           "euValidated":  false
+                       },
+                       {
+                           "name":  "Wire pattern 15 36 00 00",
+                           "kind":  "declared-byte-pattern",
+                           "hex":  "15 36 00 00",
+                           "bytes":  [
+                                         21,
+                                         54,
+                                         0,
+                                         0
+                                     ],
+                           "euValidated":  false
+                       },
+                       {
+                           "name":  "Wire pattern 22 6B 69 6C 6C 5F 63 6F 75 6E 74 22",
+                           "kind":  "ascii-marker",
+                           "hex":  "22 6B 69 6C 6C 5F 63 6F 75 6E 74 22",
+                           "bytes":  [
+                                         34,
+                                         107,
+                                         105,
+                                         108,
+                                         108,
+                                         95,
+                                         99,
+                                         111,
+                                         117,
+                                         110,
+                                         116,
+                                         34
+                                     ],
+                           "euValidated":  false
+                       },
+                       {
+                           "name":  "Wire pattern 7B 22 6B 69 6C 6C 5F 63 6F 75 6E 74 22",
+                           "kind":  "ascii-marker",
+                           "hex":  "7B 22 6B 69 6C 6C 5F 63 6F 75 6E 74 22",
+                           "bytes":  [
+                                         123,
+                                         34,
+                                         107,
+                                         105,
+                                         108,
+                                         108,
+                                         95,
+                                         99,
+                                         111,
+                                         117,
+                                         110,
+                                         116,
+                                         34
+                                     ],
+                           "euValidated":  false
+                       },
+                       {
+                           "name":  "Wire pattern 02 97",
+                           "kind":  "additional-opcode",
+                           "hex":  "02 97",
+                           "bytes":  [
+                                         2,
+                                         151
+                                     ],
+                           "euValidated":  false
+                       },
+                       {
+                           "name":  "Wire pattern 0B 61",
+                           "kind":  "additional-opcode",
+                           "hex":  "0B 61",
+                           "bytes":  [
+                                         11,
+                                         97
+                                     ],
+                           "euValidated":  false
+                       },
+                       {
+                           "name":  "Wire pattern 24 E2",
+                           "kind":  "additional-opcode",
+                           "hex":  "24 E2",
+                           "bytes":  [
+                                         36,
+                                         226
+                                     ],
+                           "euValidated":  false
+                       },
+                       {
+                           "name":  "Wire pattern 0F 38",
+                           "kind":  "additional-opcode",
+                           "hex":  "0F 38",
+                           "bytes":  [
+                                         15,
+                                         56
+                                     ],
+                           "euValidated":  false
+                       },
+                       {
+                           "name":  "Wire pattern 13 38",
+                           "kind":  "additional-opcode",
+                           "hex":  "13 38",
+                           "bytes":  [
+                                         19,
+                                         56
+                                     ],
+                           "euValidated":  false
+                       },
+                       {
+                           "name":  "Wire pattern 01",
+                           "kind":  "tunnel-tag",
+                           "hex":  "01",
+                           "bytes":  [
+                                         1
+                                     ],
+                           "euValidated":  false
+                       },
+                       {
+                           "name":  "Wire pattern 05",
+                           "kind":  "tunnel-tag",
+                           "hex":  "05",
+                           "bytes":  [
+                                         5
+                                     ],
+                           "euValidated":  false
+                       },
+                       {
+                           "name":  "Wire pattern 09",
+                           "kind":  "tunnel-tag",
+                           "hex":  "09",
+                           "bytes":  [
+                                         9
+                                     ],
+                           "euValidated":  false
+                       },
+                       {
+                           "name":  "Wire pattern 02",
+                           "kind":  "tunnel-tag",
+                           "hex":  "02",
+                           "bytes":  [
+                                         2
+                                     ],
+                           "euValidated":  false
+                       },
+                       {
+                           "name":  "Wire pattern 03",
+                           "kind":  "tunnel-tag",
+                           "hex":  "03",
+                           "bytes":  [
+                                         3
+                                     ],
+                           "euValidated":  false
+                       },
+                       {
+                           "name":  "Wire pattern 22",
+                           "kind":  "tunnel-tag",
+                           "hex":  "22",
+                           "bytes":  [
+                                         34
+                                     ],
+                           "euValidated":  false
+                       },
+                       {
+                           "name":  "Wire pattern 23",
+                           "kind":  "tunnel-tag",
+                           "hex":  "23",
+                           "bytes":  [
+                                         35
+                                     ],
+                           "euValidated":  false
+                       }
+                   ]
+}
