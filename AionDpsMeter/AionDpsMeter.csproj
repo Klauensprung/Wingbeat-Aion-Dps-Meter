@@ -11,14 +11,15 @@
     <AssemblyTitle>Wingbeat &#x2665; Aion 2 DPS Meter</AssemblyTitle>
     <ApplicationIcon>Assets/aion-dps-meter.ico</ApplicationIcon>
     <Description>Free local Aion 2 DPS meter with live damage, healing, PvP tracking, and a customizable overlay.</Description>
-    <Version>0.5.6</Version>
+    <Version>0.5.9</Version>
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="SharpPcap" Version="6.3.0" />
     <PackageReference Include="PacketDotNet" Version="1.4.7" />
   </ItemGroup>
   <ItemGroup>
-    <Content Include="Assets/skill-icons.json;Assets/skill-icons/*.png" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+    <EmbeddedResource Include="Assets/skill-icons.json" LogicalName="Wingbeat.SkillIcons.json" />
+    <EmbeddedResource Include="Assets/skill-icons/*.png" LogicalName="Wingbeat.SkillIcons.%(Filename)%(Extension)" />
     <EmbeddedResource Include="Assets/npc-names.json" LogicalName="Wingbeat.NpcNames.json" />
     <EmbeddedResource Include="Assets/skill-names.json" LogicalName="Wingbeat.SkillNames.json" />
     <Content Include="../Update-GameData.ps1" Link="Update-GameData.ps1" CopyToOutputDirectory="PreserveNewest" />

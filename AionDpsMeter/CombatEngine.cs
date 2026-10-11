@@ -8,7 +8,7 @@ public sealed class CombatEngine
     readonly IGamePacketDecoder decoder;
     readonly Queue<Fight> completed = new();
     readonly object saveGate = new();
-    long lastEvent;
+    readonly Dictionary<int, long> lastDeaths = new();
     long unsupportedPayloads;
     long revision;
     long identityEvents;
@@ -39,21 +39,22 @@ public sealed class CombatEngine
             {
                 case "actor" when item.Actor != null: UpdateActor(item.Actor); break;
                 case "local-player" when item.Actor is { Player: true } local:
-                    // The first or a changed local identity starts a scene/session.
+                    // A changed known local identity starts a scene/session.
                     // Repeated records for the same character are updates, and
                     // must not discard other players' names or split their fight.
-                    if (Fight.LocalPlayer != local.Id || !Fight.Actors.TryGetValue(local.Id, out var knownLocal) ||
-                        knownLocal.Name != local.Name || knownLocal.Server != local.Server)
+                    if (Fight.LocalPlayer > 0 && (Fight.LocalPlayer != local.Id || !Fight.Actors.TryGetValue(local.Id, out var knownLocal) ||
+                        knownLocal.Name != local.Name || (knownLocal.Server > 0 && local.Server > 0 && knownLocal.Server != local.Server)))
                     {
                         if (Fight.HasRecordedData) completed.Enqueue(Snapshot());
                         NewFight(Fight.Label);
                         Fight.Actors.Clear(); Fight.Specs.Clear(); Fight.Builds.Clear(); Fight.PartyProfiles = []; Fight.LocalPing = null; Fight.LocalStats = null; Fight.PartyKnown = false; Fight.PartySource = "Not captured"; Fight.LocalPlayer = local.Id;
                     }
+                    Fight.LocalPlayer = local.Id;
                     UpdateActor(local); break;
                 case "damage" when item.Damage != null: RecordDamage(item.Damage, false); break;
                 case "heal" when item.Damage != null: RecordDamage(item.Damage, true); break;
                 case "defense" when item.Defense != null:
-                    BeginEvent(item.Defense.Timestamp); EnsureActor(item.Defense.ActorId); EnsureActor(item.Defense.TargetId); Fight.Defense.Add(item.Defense); revision++; break;
+                    EnsureActor(item.Defense.ActorId); EnsureActor(item.Defense.TargetId); Fight.Defense.Add(item.Defense); revision++; break;
                 case "energy" when item.Energy != null: Fight.Energy = item.Energy; revision++; break;
                 case "player-stats" when item.Stats != null:
                     CharacterReadings.Validate(item.Stats);
@@ -76,7 +77,12 @@ public sealed class CombatEngine
                 case "party" when item.Party != null: FightMetadata.SetRoster(Fight, item.Party); revision++; break;
                 case "build" when item.Build != null: FightMetadata.SetBuild(Fight, item.Build); revision++; break;
                 case "network" when item.Network != null:
-                    if (Fight.Network.Count >= 250000) { completed.Enqueue(Snapshot()); NewFight(Fight.Label); }
+                    if (item.Network.Fields.ValueKind != System.Text.Json.JsonValueKind.Object) break;
+                    if (item.Network.Kind == "entity-death" && item.Network.Timestamp >= 0 &&
+                        item.Network.Fields.TryGetProperty("EntityId", out var deathId) && deathId.ValueKind == System.Text.Json.JsonValueKind.Number && deathId.TryGetInt32(out int dead) && dead > 0 &&
+                        (!lastDeaths.TryGetValue(dead, out long previousDeath) || item.Network.Timestamp - previousDeath > 1000)) {
+                        Fight.Deaths.Add(new(dead, item.Network.Timestamp)); lastDeaths[dead] = item.Network.Timestamp;
+                    }
                     Fight.Network.Add(item.Network); revision++; break;
                 default: throw new ArgumentException("Incomplete or unsupported decoded event.");
             }
@@ -93,7 +99,9 @@ public sealed class CombatEngine
             if (replaced)
             {
                 // A reused entity ID must not rename a different creature/player in saved hits.
-                if (Fight.HasRecordedData) { completed.Enqueue(Snapshot()); NewFight(Fight.Label); }
+                bool participated = Fight.Damage.Concat(Fight.Healing).Any(e => e.ActorId == actor.Id || e.TargetId == actor.Id) ||
+                    Fight.Defense.Any(e => e.ActorId == actor.Id || e.TargetId == actor.Id) || Fight.Deaths.Any(e => e.EntityId == actor.Id);
+                if (participated) ArchiveActor(actor.Id);
                 Fight.Builds.Remove(actor.Id);
             }
             else
@@ -111,12 +119,34 @@ public sealed class CombatEngine
         }
         Fight.Actors[actor.Id] = actor; PlayerTelemetry.ApplyProfiles(Fight); identityEvents++; revision++;
     }
+    void ArchiveActor(int id)
+    {
+        int archived = int.MaxValue;
+        while (Fight.Actors.ContainsKey(archived)) archived--;
+        Fight.Actors[archived] = Fight.Actors[id] with { Id = archived, OriginalEntityId = id, Party = false };
+        for (int i = 0; i < Fight.Damage.Count; i++) {
+            var e = Fight.Damage[i];
+            if (e.ActorId == id || e.TargetId == id) Fight.Damage[i] = e with { ActorId = e.ActorId == id ? archived : e.ActorId, TargetId = e.TargetId == id ? archived : e.TargetId };
+        }
+        for (int i = 0; i < Fight.Healing.Count; i++) {
+            var e = Fight.Healing[i];
+            if (e.ActorId == id || e.TargetId == id) Fight.Healing[i] = e with { ActorId = e.ActorId == id ? archived : e.ActorId, TargetId = e.TargetId == id ? archived : e.TargetId };
+        }
+        for (int i = 0; i < Fight.Defense.Count; i++) {
+            var e = Fight.Defense[i];
+            if (e.ActorId == id || e.TargetId == id) Fight.Defense[i] = e with { ActorId = e.ActorId == id ? archived : e.ActorId, TargetId = e.TargetId == id ? archived : e.TargetId };
+        }
+        for (int i = 0; i < Fight.Deaths.Count; i++)
+            if (Fight.Deaths[i].EntityId == id) Fight.Deaths[i] = Fight.Deaths[i] with { EntityId = archived };
+        lastDeaths.Remove(id);
+        if (Fight.Builds.Remove(id, out var build)) Fight.Builds[archived] = FightMetadata.Copy(build) with { ActorId = archived };
+    }
     internal void RecordDamage(DamageEvent damage, bool healing)
     {
         if (damage.Timestamp < 0 || damage.Damage < 0) throw new ArgumentOutOfRangeException(nameof(damage));
         lock (Gate)
         {
-            BeginEvent(damage.Timestamp); EnsureActor(damage.ActorId); EnsureActor(damage.TargetId);
+            EnsureActor(damage.ActorId); EnsureActor(damage.TargetId);
             (healing ? Fight.Healing : Fight.Damage).Add(damage with { IsHeal = healing });
             revision++;
         }
@@ -158,9 +188,9 @@ public sealed class CombatEngine
         lock (Gate)
         {
             var previous = Fight;
-            Fight = new() { Label = label, LocalPlayer = previous.LocalPlayer, Actors = new(previous.Actors), Specs = new(previous.Specs), Energy = previous.Energy, PartyProfiles = [..previous.PartyProfiles], LocalPing = previous.LocalPing, LocalStats = CharacterReadings.Copy(previous.LocalStats),
-                Builds = previous.Builds.ToDictionary(p => p.Key, p => FightMetadata.Copy(p.Value)), PartyKnown = previous.PartyKnown, PartySource = previous.PartySource };
-            lastEvent = 0;
+            Fight = new() { Label = label, LocalPlayer = previous.LocalPlayer, Actors = previous.Actors.Where(p => p.Value.OriginalEntityId == 0).ToDictionary(), Specs = new(previous.Specs), Energy = previous.Energy, PartyProfiles = [..previous.PartyProfiles], LocalPing = previous.LocalPing, LocalStats = CharacterReadings.Copy(previous.LocalStats),
+                Builds = previous.Builds.Where(p => previous.Actors.GetValueOrDefault(p.Key)?.OriginalEntityId == 0).ToDictionary(p => p.Key, p => FightMetadata.Copy(p.Value)), PartyKnown = previous.PartyKnown, PartySource = previous.PartySource };
+            lastDeaths.Clear();
             revision++;
         }
     }
@@ -171,14 +201,6 @@ public sealed class CombatEngine
             if (Fight.HasRecordedData) completed.Enqueue(Snapshot());
             NewFight(label);
         }
-    }
-    void BeginEvent(long timestamp)
-    {
-        if (Fight.HasEvents && ((lastEvent > 0 && timestamp - lastEvent > 15000) || Fight.Damage.Count + Fight.Healing.Count + Fight.Defense.Count >= 250000))
-        {
-            completed.Enqueue(Snapshot()); NewFight(Fight.Label);
-        }
-        lastEvent = Math.Max(lastEvent, timestamp);
     }
     public Fight[] SaveCompleted(FightStore store) => SaveCompleted(store.Save);
     internal Fight[] SaveCompleted(Action<Fight> save)

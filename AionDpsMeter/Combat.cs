@@ -6,7 +6,8 @@ namespace AionDpsMeter.Local;
 
 public sealed record Actor(int Id, string Name, bool Player, bool Party, int Cp, string Job, int Server)
 {
-    // Optional metadata keeps old saved fights compatible. Id is the live entity ID.
+    // Archived identities use a separate key when the game reuses their entity ID.
+    public int OriginalEntityId { get; init; }
     public int NpcId { get; init; }
     public uint CharacterId { get; init; }
     public string ProfileSource { get; init; } = "Captured";
@@ -25,6 +26,7 @@ public sealed class Fight
     public List<DamageEvent> Damage { get; set; } = new();
     public List<DamageEvent> Healing { get; set; } = new();
     public List<DefenseEvent> Defense { get; set; } = new();
+    public List<DeathEvent> Deaths { get; set; } = new();
     public List<NetworkEvent> Network { get; set; } = new();
     public Dictionary<int, Spec> Specs { get; set; } = new();
     public Dictionary<int, ActorBuild> Builds { get; set; } = new();
@@ -45,9 +47,9 @@ public sealed class Fight
         return actor.Name;
     }
     public bool HasEvents => Damage.Count + Healing.Count + Defense.Count > 0;
-    public bool HasRecordedData => HasEvents || LocalStats != null || Network.Count > 0 || Energy != null || Builds.Count > 0 || PartyKnown || Actors.Values.Any(a => a.ProfileSource == "Entered locally");
+    public bool HasRecordedData => HasEvents || Deaths.Count > 0 || LocalStats != null || Network.Count > 0 || Energy != null || Builds.Count > 0 || PartyKnown || Actors.Values.Any(a => a.ProfileSource == "Entered locally");
     public Fight Copy() => new() { Version = Version, Id = Id, Label = Label, Created = Created, Demo = Demo, LocalPlayer = LocalPlayer,
-        Actors = new(Actors), Damage = new(Damage), Healing = new(Healing), Defense = new(Defense), Network = new(Network), PartyProfiles = [..PartyProfiles], LocalPing = LocalPing, LocalStats = CharacterReadings.Copy(LocalStats),
+        Actors = new(Actors), Damage = new(Damage), Healing = new(Healing), Defense = new(Defense), Network = new(Network), Deaths = new(Deaths), PartyProfiles = [..PartyProfiles], LocalPing = LocalPing, LocalStats = CharacterReadings.Copy(LocalStats),
         Specs = Specs.ToDictionary(p => p.Key, p => p.Value with { Choices = p.Value.Choices.ToArray() }), Energy = Energy,
         Builds = Builds.ToDictionary(p => p.Key, p => FightMetadata.Copy(p.Value)), PartyKnown = PartyKnown, PartySource = PartySource };
 }
@@ -127,8 +129,9 @@ public sealed class FightStore
         if (new FileInfo(path).Length > 128 * 1024 * 1024) throw new InvalidDataException("Fight exceeds 128 MB limit.");
         var f = JsonSerializer.Deserialize<Fight>(File.ReadAllText(path), Options) ?? throw new InvalidDataException("Empty fight.");
         if (f.Version != 1 || !Guid.TryParseExact(f.Id, "N", out _) || string.IsNullOrWhiteSpace(f.Label) || f.Actors == null || f.Damage == null || f.Healing == null || f.Defense == null || f.Specs == null || f.Actors.Any(a => a.Value == null || a.Value.Name == null || a.Value.Job == null) || f.Specs.Any(s => s.Value == null || s.Value.Choices == null) || f.Damage.Any(e => e == null || e.Damage < 0 || e.Timestamp < 0) || f.Healing.Any(e => e == null || e.Damage < 0 || e.Timestamp < 0) || f.Defense.Any(e => e == null || e.Timestamp < 0)) throw new InvalidDataException("Unsupported or invalid fight data.");
-        if (f.Network == null || f.Network.Count > 250000 || f.Network.Any(e => e == null || e.Timestamp < 0 || string.IsNullOrWhiteSpace(e.Kind) || string.IsNullOrWhiteSpace(e.Opcode) || e.Fields.ValueKind != JsonValueKind.Object)) throw new InvalidDataException("Invalid network event data.");
-        if (f.Actors.Values.Any(a => a.NpcId < 0 || (a.NpcId > 0 && a.Player))) throw new InvalidDataException("Invalid NPC identity metadata.");
+        if (f.Deaths == null || f.Deaths.Any(d => d == null || d.EntityId <= 0 || d.Timestamp < 0)) throw new InvalidDataException("Invalid death events.");
+        if (f.Network == null || f.Network.Any(e => e == null || e.Timestamp < 0 || string.IsNullOrWhiteSpace(e.Kind) || string.IsNullOrWhiteSpace(e.Opcode) || e.Fields.ValueKind != JsonValueKind.Object)) throw new InvalidDataException("Invalid network event data.");
+        if (f.Actors.Values.Any(a => a.OriginalEntityId < 0 || a.NpcId < 0 || (a.NpcId > 0 && a.Player))) throw new InvalidDataException("Invalid NPC identity metadata.");
         if (f.Builds == null || f.PartySource == null || f.Builds.Count > 512 || f.Actors.Values.Any(a => a.Cp < 0 || a.Server < 0 || a.ProfileSource == null)) throw new InvalidDataException("Invalid character metadata.");
         PlayerTelemetry.Validate(f.PartyProfiles);
         if (f.LocalStats != null) CharacterReadings.Validate(f.LocalStats);

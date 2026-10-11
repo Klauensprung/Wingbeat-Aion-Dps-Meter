@@ -24,6 +24,7 @@ public sealed class Preferences
     public string OverlayScope { get; set; } = "Auto";
     public bool OverlayCustomBars { get; set; }
     public bool OverlayCompact { get; set; } = true;
+    public bool OverlayPinLocal { get; set; }
     public bool OverlayLocked { get; set; }
     public double OverlayWidth { get; set; } = 390;
     public double OverlayHeight { get; set; } = 530;
@@ -58,7 +59,8 @@ public sealed class MainWindow : Window
     readonly TrendChart trendChart = new();
     readonly ComboBox trendCharacter = new() { MinWidth = 250, Margin = new(8), DisplayMemberPath = "Label" };
     readonly ComboBox trendMetric = new() { Width = 110, Margin = new(8), ItemsSource = new[] { "DPS", "HPS" }, SelectedIndex = 0 };
-    readonly CheckBox customBars = new() { Content = "Accent-coloured overlay bars", Margin = new(8), VerticalAlignment = VerticalAlignment.Center };
+    readonly CheckBox pinLocal = new() { Content = "Pin my character first in the overlay", Margin = new(8), VerticalAlignment = VerticalAlignment.Center };
+    readonly CheckBox customBars = new() { Content = "Unique participant colours (class colours off)", Margin = new(8), VerticalAlignment = VerticalAlignment.Center };
     readonly TextBlock trendSummary = new() { Margin = new(8), TextWrapping = TextWrapping.Wrap };
     readonly TextBlock cohortSummary = new() { Margin = new(8), TextWrapping = TextWrapping.Wrap };
     readonly TextBlock differenceSummary = new() { Margin = new(8), TextWrapping = TextWrapping.Wrap };
@@ -106,7 +108,7 @@ public sealed class MainWindow : Window
         LocalLog.Write($"Display metadata: {skillIcons.Count} icon families, {NpcNames.Default.Count} NPC names; " +
             (skillIcons.LoadError ?? "icons loaded") + "; " + (NpcNames.Default.LoadError ?? "NPC names loaded"));
         try { if (File.Exists(PreferencePath)) preferences = JsonSerializer.Deserialize<Preferences>(File.ReadAllText(PreferencePath)) ?? new(); } catch { }
-        filter.Text = preferences.Filter; accent.Text = preferences.Accent; themes.SelectedItem = preferences.Theme; customBars.IsChecked = preferences.OverlayCustomBars;
+        filter.Text = preferences.Filter; accent.Text = preferences.Accent; themes.SelectedItem = preferences.Theme; customBars.IsChecked = preferences.OverlayCustomBars; pinLocal.IsChecked = preferences.OverlayPinLocal;
         character.Tag = "Filter characters…";
         var root = new DockPanel(); Content = root;
         var header = new StackPanel(); DockPanel.SetDock(header, Dock.Top); root.Children.Add(header);
@@ -143,7 +145,9 @@ public sealed class MainWindow : Window
         var settings = new StackPanel();
         var captureSettings = new WrapPanel { Margin = new(4) }; captureSettings.Children.Add(Label("Adapter")); captureSettings.Children.Add(adapters); captureSettings.Children.Add(Button("Refresh adapters", RefreshAdapters)); captureSettings.Children.Add(Button("Install Npcap", () => NpcapSetup.CreateDialog(this).ShowDialog())); settings.Children.Add(SettingsSection("Capture", captureSettings));
         var appearance = new WrapPanel { Margin = new(4) }; appearance.Children.Add(Label("Theme")); appearance.Children.Add(themes); appearance.Children.Add(Label("Accent")); appearance.Children.Add(accent); appearance.Children.Add(Button("Apply", ApplyPreferences)); settings.Children.Add(SettingsSection("Appearance", appearance));
-        appearance.Children.Add(customBars);
+        appearance.Children.Add(customBars); appearance.Children.Add(pinLocal);
+        pinLocal.IsChecked = preferences.OverlayPinLocal;
+        pinLocal.Checked += (_, _) => SetPinLocal(); pinLocal.Unchecked += (_, _) => SetPinLocal();
         var localTools = new WrapPanel { Margin = new(4) }; localTools.Children.Add(Button("Load skill names", ImportSkillNames)); localTools.Children.Add(Button("Preview demo", LoadDemo)); settings.Children.Add(SettingsSection("Local data", localTools));
         var advanced = new WrapPanel { Margin = new(4) }; advanced.Children.Add(Label("Capture filter")); advanced.Children.Add(filter); advanced.Children.Add(recordSample); advanced.Children.Add(decodeEu);
         var diagnostics = new StackPanel(); diagnostics.Children.Add(advanced); diagnostics.Children.Add(status);
@@ -565,9 +569,13 @@ public sealed class MainWindow : Window
     void ToggleOverlay()
     {
         if (overlay != null) { overlay.Close(); overlay = null; return; }
-        overlay = new OverlayWindow(NewFight, id => FocusActor(id, preferences.OverlayHealing), () => { customBars.IsChecked = preferences.OverlayCustomBars; SavePreferences(); }); overlay.Closed += (_, _) => overlay = null;
+        overlay = new OverlayWindow(NewFight, id => FocusActor(id, preferences.OverlayHealing), () => { customBars.IsChecked = preferences.OverlayCustomBars; pinLocal.IsChecked = preferences.OverlayPinLocal; SavePreferences(); }); overlay.Closed += (_, _) => overlay = null;
         var fight = capture != null ? LiveSnapshot() : Current;
         overlay.Update(fight, preferences, rows: ReferenceEquals(fight, displayedSnapshot) ? displayedTotals : null); overlay.Show();
+    }
+    void SetPinLocal()
+    {
+        preferences.OverlayPinLocal = pinLocal.IsChecked == true; SavePreferences(); Refresh();
     }
     void ApplyPreferences()
     {
@@ -640,7 +648,7 @@ public sealed class MainWindow : Window
                 Set(tab, pvp.Opponents);
                 pvpMeter.Update(pvp.HasOpponents ? PvpAnalysis.Meter(f, pvp).Rows : [], compact: true, hasEvents: f.HasEvents,
                     emptyText: f.LocalPlayer == 0 && !f.Actors.Values.Any(a => a.Party) ? "Your character identity is pending\nCapture before entering a zone." : "No PvP damage recorded in this fight");
-                pvpSummary.Text = pvp.HasOpponents ? $"YOU  {pvp.YourDamage:N0} damage · {pvp.YourDamage / pvp.Seconds:N1} DPS     ENEMY  {pvp.EnemyDamage:N0} damage     {MeterPresentation.Duration(pvp.Seconds)} · {pvp.Opponents.Length} opponent(s) · enemies in red" : "Your row stays first. Names update when their identity packets arrive.";
+                pvpSummary.Text = pvp.HasOpponents ? $"YOU  {pvp.YourDamage:N0} damage · {pvp.YourDamage / pvp.Seconds:N1} DPS     ENEMY  {pvp.EnemyDamage:N0} damage     {MeterPresentation.Duration(pvp.Seconds)} · {pvp.Opponents.Length} opponent(s) · enemies in red" : "Rows rank by damage. Enable pinning in settings to keep your row first. Names update when captured.";
                 damageValue.Text = MeterPresentation.Number(pvp.YourDamage); damageValue.ToolTip = "Your damage to PvP opponents";
                 dpsValue.Text = MeterPresentation.Number(pvp.YourDamage / pvp.Seconds); dpsValue.ToolTip = "Your DPS over the shared PvP window";
                 durationValue.Text = MeterPresentation.Duration(pvp.HasOpponents ? pvp.Seconds : 0); break;
@@ -747,7 +755,7 @@ public sealed class MainWindow : Window
         preferences.Theme = oldTheme; ApplyTheme(); tabs.SelectedIndex = 0;
         if (overview.RowCount != 10) throw new Exception("Overview did not display the ten party members.");
         // Keep automated layout checks independent of a user's saved display preferences.
-        var testOverlay = new OverlayWindow(); var testPreferences = new Preferences { OverlayScope = "Party" };
+        var testOverlay = new OverlayWindow(); var testPreferences = new Preferences { OverlayScope = "Party", OverlayPinLocal = true };
         testOverlay.Update(Current, testPreferences); testOverlay.Show(); testOverlay.UpdateLayout();
         testOverlay.CheckModes(); testOverlay.UpdateLayout(); Render(testOverlay, "test-artifacts/Overlay.png");
         CheckMenu(testOverlay.CreateOptions(), "Overlay-menu");
@@ -755,11 +763,11 @@ public sealed class MainWindow : Window
         testPreferences.OverlayHealing = true; testPreferences.OverlayLocked = true; testOverlay.Update(Current, testPreferences); testOverlay.UpdateLayout();
         if (testOverlay.ResizeMode != ResizeMode.NoResize || testOverlay.RowCount != 10) throw new Exception("Locked healing overlay failed.");
         Render(testOverlay, "test-artifacts/Overlay-healing.png"); testOverlay.Close();
-        var pvpOverlay = new OverlayWindow(); pvpOverlay.Update(Current, new Preferences()); pvpOverlay.Show(); pvpOverlay.UpdateLayout();
+        var pvpOverlay = new OverlayWindow(); pvpOverlay.Update(Current, new Preferences { OverlayPinLocal = true }); pvpOverlay.Show(); pvpOverlay.UpdateLayout();
         if (pvpOverlay.CurrentScope != "PvP" || pvpOverlay.RowCount != displayedPvp.Combatants.Length) throw new Exception("Automatic PvP overlay did not retain both sides.");
         pvpOverlay.CheckPinnedScrolling(); Render(pvpOverlay, "test-artifacts/Overlay-pvp.png"); pvpOverlay.Close();
         var duel = PvpTests.Duel(); var duelOverlay = new OverlayWindow();
-        duelOverlay.Update(duel, new Preferences()); duelOverlay.Show(); duelOverlay.UpdateLayout();
+        duelOverlay.Update(duel, new Preferences { OverlayPinLocal = true }); duelOverlay.Show(); duelOverlay.UpdateLayout();
         if (duelOverlay.CurrentScope != "PvP" || duelOverlay.RowCount != 2) throw new Exception("Unnamed PvP opponent is hidden in the overlay.");
         duelOverlay.CheckPinnedScrolling(); Render(duelOverlay, "test-artifacts/Overlay-pvp-unnamed.png");
         duelOverlay.Update(new Fight { LocalPlayer = 1, Actors = new(duel.Actors) }, new Preferences());

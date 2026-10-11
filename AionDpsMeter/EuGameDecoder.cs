@@ -147,7 +147,9 @@ public sealed class EuGameDecoder(int serverPort = 13328, IReadOnlySet<int>? hea
                         if (reader.Remaining == 0) {
                             Emit(staged, "entity-death", time, hex, new { EntityId = Positive(target) }); break;
                         }
-                        reader.Take(4); int actor = reader.Var(); int server = reader.U16();
+                        uint killingSkill = reader.U32(); int actor = reader.Var(); int server = reader.U16();
+                        if (target > 0 && actor > 0 && killingSkill > 0)
+                            Emit(staged, "entity-death", time, hex, new { EntityId = target, KillerId = actor, SkillCode = killingSkill });
                         // Empty target/appearance responses are not malformed player names.
                         if (actor == 0 || server == 0) break;
                         string name = PlayerIdentity.Name(ref reader);

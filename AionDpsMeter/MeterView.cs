@@ -9,6 +9,7 @@ namespace AionDpsMeter.Local;
 public sealed record MeterRow(int Id, string Name, string Job, long Amount, double Rate, double Share, double Fraction, string Color, bool Local, bool Player)
 {
     public string Detail { get; init; } = "";
+    public int Deaths { get; init; }
     public int CombatPower { get; init; }
     public string CombatPowerSource { get; init; } = "Unknown";
     public int? LocalPingMs { get; init; }
@@ -57,12 +58,13 @@ public static class MeterPresentation
         }
         double seconds = fight.Seconds;
         var inferredClasses = ClassEvidence.Infer(fight);
+        var deathCounts = fight.Deaths.GroupBy(d => d.EntityId).ToDictionary(g => g.Key, g => g.Count());
         var rows = visible.Take(Math.Clamp(limit, 1, 50)).Select(r => {
             var actor = fight.Actors.GetValueOrDefault(r.Id); long amount = Value(r);
             string job = ClassEvidence.Resolve(actor, r.Id, inferredClasses);
             return new MeterRow(r.Id, r.Character, job, amount, amount / seconds,
                 total == 0 ? 0 : 100d * amount / total, maximum == 0 ? 0 : (double)amount / maximum, ClassColorFor(job, ColorFor(actor)), r.Id == fight.LocalPlayer, actor?.Player == true) {
-                    CombatPower = actor?.Cp ?? 0, CombatPowerSource = actor?.CpSource ?? "Unknown", LocalPingMs = PlayerTelemetry.PingFor(fight, r.Id)
+                    Deaths = deathCounts.GetValueOrDefault(r.Id), CombatPower = actor?.Cp ?? 0, CombatPowerSource = actor?.CpSource ?? "Unknown", LocalPingMs = PlayerTelemetry.PingFor(fight, r.Id)
                 };
         }).ToArray();
         return new(rows, total, total / seconds, scope);
@@ -119,6 +121,7 @@ sealed class MeterBar : Border
     readonly Border stripe = new() { Width = 3, HorizontalAlignment = HorizontalAlignment.Left, IsHitTestVisible = false };
     readonly TextBlock rank = new() { FontSize = 11, HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center };
     readonly TextBlock name = new() { FontWeight = FontWeights.SemiBold, TextTrimming = TextTrimming.CharacterEllipsis };
+    readonly TextBlock deaths = new() { FontSize = 10, Margin = new(6, 0, 0, 0), VerticalAlignment = VerticalAlignment.Center };
     readonly TextBlock job = new() { FontSize = 10, Margin = new(0, 2, 0, 0) };
     readonly TextBlock metadata = new() { FontSize = 10, TextTrimming = TextTrimming.CharacterEllipsis, Margin = new(0, 2, 0, 0) };
     readonly TextBlock rate = new() { FontWeight = FontWeights.Bold, HorizontalAlignment = HorizontalAlignment.Right };
@@ -135,7 +138,8 @@ sealed class MeterBar : Border
         content.ColumnDefinitions.Add(new() { Width = new GridLength(1, GridUnitType.Star) });
         content.ColumnDefinitions.Add(new() { Width = GridLength.Auto });
         var identity = new StackPanel { VerticalAlignment = VerticalAlignment.Center, Margin = new(3, 0, 10, 0) };
-        identity.Children.Add(name); identity.Children.Add(job); identity.Children.Add(metadata);
+        var nameLine = new DockPanel(); DockPanel.SetDock(deaths, Dock.Right); nameLine.Children.Add(deaths); nameLine.Children.Add(name);
+        identity.Children.Add(nameLine); identity.Children.Add(job); identity.Children.Add(metadata);
         var values = new StackPanel { VerticalAlignment = VerticalAlignment.Center, MinWidth = 91 };
         var rateLine = new StackPanel { Orientation = Orientation.Horizontal, HorizontalAlignment = HorizontalAlignment.Right };
         rateLine.Children.Add(classSymbol); rateLine.Children.Add(rate);
@@ -148,15 +152,28 @@ sealed class MeterBar : Border
         BorderThickness = new(1);
         MouseLeftButtonUp += (_, e) => { if (current != null) Selected?.Invoke(current.Id); e.Handled = true; };
     }
+    internal void CheckPresentation()
+    {
+        if (current == null) return;
+        var expected = (Color)ColorConverter.ConvertFromString(current.Color);
+        if (classSymbol.Stroke is not SolidColorBrush icon || icon.Color != expected ||
+            stripe.Background is not SolidColorBrush edge || edge.Color != expected ||
+            fill.Background is not LinearGradientBrush gradient || gradient.GradientStops.Any(s => s.Color.R != expected.R || s.Color.G != expected.G || s.Color.B != expected.B) ||
+            deaths.Text != "\u2620 " + current.Deaths || deaths.Visibility != Visibility.Visible)
+            throw new InvalidOperationException("Overlay icons, bars or death counts do not match the current row.");
+    }
     void SetWidth() => fill.Width = Math.Max(0, canvas.ActualWidth * (current?.Fraction ?? 0));
     public void Update(MeterRow row, int position, bool compact, bool healing, bool showClassSymbols)
     {
         if (current?.Job != row.Job) {
             classSymbol.Data = ClassSymbols.For(row.Job);
-            classSymbol.Stroke = UiTheme.Brush(MeterPresentation.ClassColorFor(row.Job, "#CAD4E3"));
             classSymbol.ToolTip = row.Job == "Unknown" ? "Class not known yet" : row.Job;
             System.Windows.Automation.AutomationProperties.SetName(classSymbol, classSymbol.ToolTip.ToString());
         }
+        classSymbol.Stroke = UiTheme.Brush(row.Color);
+        deaths.Visibility = showClassSymbols ? Visibility.Visible : Visibility.Collapsed;
+        deaths.Text = "\u2620 " + row.Deaths; deaths.Foreground = UiTheme.Brush(row.Deaths > 0 ? "#EF8792" : "#93A2B8");
+        deaths.ToolTip = $"{row.Deaths} observed deaths in this fight";
         classSymbol.Visibility = showClassSymbols ? Visibility.Visible : Visibility.Collapsed;
         if (current?.Color != row.Color)
         {
@@ -168,10 +185,10 @@ sealed class MeterBar : Border
         current = row; Height = (compact ? 35 : 48) + (showMetadata ? 12 : 0);
         metadata.Visibility = showMetadata ? Visibility.Visible : Visibility.Collapsed;
         metadata.Text = "CP " + (row.CombatPower > 0 ? row.CombatPower.ToString("N0") : "--") +
-            (showClassSymbols ? "  |  Ping " + (row.LocalPingMs is int ping ? $"~{ping} ms" : "--") : "");
+            (showClassSymbols && row.Local ? "  |  Ping " + (row.LocalPingMs is int ping ? $"~{ping} ms" : "--") : "");
         metadata.Foreground = UiTheme.Brush("#CED5E1");
         metadata.ToolTip = (row.CombatPower > 0 ? $"Combat power: {row.CombatPower:N0} ({row.CombatPowerSource})" : "Combat power not captured. Party profile packets can supply it; character details also allow manual entry.") +
-            "\n" + (row.Local ? "Ping is the last local client-clock echo estimate, not other players' latency." : "This capture does not provide this player's ping in milliseconds.");
+            (showClassSymbols && row.Local ? "\nPing is the last local client-clock echo estimate." : "");
         BorderBrush = row.Local ? UiTheme.Brush(row.Color) : Brushes.Transparent;
         rank.Text = position.ToString(); rank.Foreground = UiTheme.Brush("#CED5E1");
         name.Text = row.Name + (row.Local ? "  ·  you" : ""); name.FontSize = compact ? 12 : 14; name.Foreground = Brushes.White;

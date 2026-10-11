@@ -83,7 +83,7 @@ internal static class PlayerTelemetry
     internal static void ApplyProfiles(Fight fight)
     {
         foreach (var actor in fight.Actors.Values.ToArray()) {
-            if (actor.NpcId > 0 || (!actor.Player && actor.CharacterId == 0)) continue;
+            if (actor.OriginalEntityId > 0 || actor.NpcId > 0 || (!actor.Player && actor.CharacterId == 0)) continue;
             if (actor.Cp > 0 && (actor.CpSource == "Entered locally" || (actor.CpSource == "Unknown" && actor.ProfileSource == "Entered locally"))) continue;
             if (actor.Id == fight.LocalPlayer && actor.Cp > 0 && actor.CpSource == "Local character packet") continue;
             bool linked = actor.CharacterId > 0;
@@ -91,7 +91,7 @@ internal static class PlayerTelemetry
                 (linked ? p.CharacterId == actor.CharacterId && (!actor.Player || p.Name == actor.Name) : p.Name == actor.Name) &&
                 (actor.Server == 0 || p.Server == actor.Server)).ToArray();
             // Never confuse a global character ID with an in-zone entity ID.
-            bool unique = candidates.Length == 1 && fight.Actors.Values.Count(a => (linked ? a.CharacterId == actor.CharacterId : a.Player && a.Name == actor.Name) &&
+            bool unique = candidates.Length == 1 && fight.Actors.Values.Count(a => a.OriginalEntityId == 0 && (linked ? a.CharacterId == actor.CharacterId : a.Player && a.Name == actor.Name) &&
                 (a.Server == 0 || a.Server == candidates[0].Server)) == 1;
             if (unique && candidates[0].CombatPower > 0)
                 fight.Actors[actor.Id] = actor with { Cp = candidates[0].CombatPower, CpSource = "Party packet",

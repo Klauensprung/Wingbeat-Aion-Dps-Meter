@@ -58,9 +58,9 @@ internal static class WireTests
         check(identities.Snapshot().Actors[300] is { Party: true, Cp: 12000, Job: "Cleric", Server: 2301 }, "Spawn-only names do not erase previously known character metadata");
         identities.Process(Payload(character)); var scene = identities.Snapshot();
         identities.SaveCompleted(new FightStore(temp));
-        check(scene.LocalPlayer == 302 && scene.Name(302) == "OwnName" && !scene.Actors.ContainsKey(300) && new FightStore(temp).Load(Path.Combine(temp, afterIdentity.Id + ".json")).Name(300) == "TesterA", "Scene identity starts a new fight and prevents stale combat ID/name reuse");
+        check(scene.LocalPlayer == 302 && scene.Name(302) == "OwnName" && scene.Actors.ContainsKey(300) && scene.Id == afterIdentity.Id && scene.Damage.Count == 1, "First local identity preserves the ongoing fight and existing names");
         identities.Process(Payload(spawn)); identities.Process(Payload(hit)); identities.Process(Payload(character));
-        check(identities.Snapshot().Id == scene.Id && identities.Snapshot().Name(300) == "TesterA" && identities.Snapshot().Damage.Count == 1, "Repeated local character updates preserve party names and the active fight");
+        check(identities.Snapshot().Id == scene.Id && identities.Snapshot().Name(300) == "TesterA" && identities.Snapshot().Damage.Count == 2, "Repeated local character updates preserve party names and the active fight");
         bool identitySplits = true;
         foreach (var frame in new[] { spawn, character })
         for (int split = 1; split < frame.Length; split++)
@@ -159,10 +159,10 @@ internal static class WireTests
         engine.Process(Payload(spawn));
         check(engine.Snapshot().Id == after.Id, "Repeated NPC spawn metadata does not split an encounter");
         engine.Process(Payload(Frame(0x41, 0x36, [..Var(301), 4, 0x20, 0, ..BitConverter.GetBytes(2000002u)])));
-        var store = new FightStore(Path.Combine(temp, "npc-fights")); engine.SaveCompleted(store);
+        var store = new FightStore(Path.Combine(temp, "npc-fights")); store.Save(engine.Snapshot());
         var saved = store.Load(Path.Combine(store.Root, after.Id + ".json"));
-        check(saved.Name(301) == "Training Dummy" && saved.Actors[301].NpcId == 2000001 && saved.Damage.Single().Damage == 42 &&
-            engine.Snapshot().Name(301) == "Forest Beast", "Reused entity IDs retain the previous NPC's name and template in saved fights");
+        check(saved.Id == after.Id && saved.Name(saved.Damage.Single().TargetId) == "Training Dummy" && saved.Actors[saved.Damage.Single().TargetId].NpcId == 2000001 && saved.Damage.Single().Damage == 42 &&
+            engine.Snapshot().Name(301) == "Forest Beast", "Reused entity IDs preserve the boss fight and previous target identity in saved hits");
         engine.Apply(new("actor", Actor: new(301, "PlayerNow", true, false, 0, "Unknown", 2301)));
         check(engine.Snapshot().Actors[301] is { Player: true, NpcId: 0, Name: "PlayerNow" }, "Player identity can replace a reused NPC entity without inheriting its NPC classification");
         check(JsonSerializer.Deserialize<Actor>("{\"Id\":9,\"Name\":\"Old player\",\"Player\":true,\"Party\":false,\"Cp\":0,\"Job\":\"Unknown\",\"Server\":1}")?.NpcId == 0,

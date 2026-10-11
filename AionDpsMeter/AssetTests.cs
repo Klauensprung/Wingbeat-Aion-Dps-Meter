@@ -48,9 +48,9 @@ internal static class AssetTests
         check(icons.Find(17030001) == null && icons.Find(17040001) == null && icons.Find(17040001) == null,
             "Missing and malformed optional PNGs fall back without throwing or repeated disk reads");
         var bundled = new SkillIcons(Path.Combine(root, "fresh", "skill-icons.json"), includeBundled: true);
-        var bundledMap = SkillNames.Read(SkillIcons.BundledPath);
+        var bundledMap = SkillIcons.ReadBundledManifest();
         check(bundled.Count == 670 && bundled.LoadError == null && bundledMap.Keys.All(id => bundled.Find(id) is BitmapImage { IsFrozen: true }),
-            "Fresh published installs load all 670 skill families and all bundled PNGs offline");
+            "Fresh published installs load all 670 skill families and all embedded PNGs offline");
         var layered = new SkillIcons(manifest, includeBundled: true);
         check(layered.Find(17010001) is BitmapImage { IsFrozen: true } &&
             layered.Find(17100001) != null && layered.Find(17030001) != null && layered.Find(17040001) != null,

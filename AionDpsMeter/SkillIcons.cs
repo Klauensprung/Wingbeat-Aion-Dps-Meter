@@ -9,14 +9,20 @@ using System.Windows.Media.Imaging;
 
 namespace AionDpsMeter.Local;
 
-// UI-thread cache: each local PNG (including a missing/broken file) is opened at most once.
+// UI-thread cache: embedded defaults and local overrides are decoded at most once.
 // No URLs, network requests, file locks or mutable bitmaps in a cell binding.
 public sealed class SkillIcons : IValueConverter
 {
     readonly FrozenDictionary<int, string> files;
     readonly Dictionary<string, ImageSource?> images = new(StringComparer.OrdinalIgnoreCase);
     readonly FrozenDictionary<int, string> bundled;
-    public static string BundledPath => Path.Combine(AppContext.BaseDirectory, "Assets", "skill-icons.json");
+    const string ResourcePrefix = "embedded:Wingbeat.SkillIcons.";
+    internal static Dictionary<int, string> ReadBundledManifest()
+    {
+        using var stream = typeof(SkillIcons).Assembly.GetManifestResourceStream("Wingbeat.SkillIcons.json")
+            ?? throw new InvalidDataException("Bundled skill icons are missing.");
+        return SkillNames.Read(stream, "Bundled skill icons");
+    }
     public static string LocalPath => Path.Combine(AppContext.BaseDirectory, "local-data", "skill-icons.json");
     public int Count => files.Count;
     public string? LoadError { get; }
@@ -27,21 +33,22 @@ public sealed class SkillIcons : IValueConverter
     internal SkillIcons(string manifest, bool includeBundled)
     {
         var errors = new List<string>();
-        bundled = includeBundled ? LoadManifest(BundledPath, optional: false) : FrozenDictionary<int, string>.Empty;
+        bundled = includeBundled ? LoadManifest("", optional: false, embedded: true) : FrozenDictionary<int, string>.Empty;
         var combined = bundled.ToDictionary();
         foreach (var pair in LoadManifest(manifest, optional: includeBundled)) combined[pair.Key] = pair.Value;
         files = combined.ToFrozenDictionary();
         LoadError = errors.Count == 0 ? null : string.Join("; ", errors);
 
-        FrozenDictionary<int, string> LoadManifest(string path, bool optional)
+        FrozenDictionary<int, string> LoadManifest(string path, bool optional, bool embedded = false)
         {
             try
             {
-                path = Path.GetFullPath(path);
-                var map = SkillNames.Read(path, "Skill icons");
+                if (!embedded) path = Path.GetFullPath(path);
+                var map = embedded ? ReadBundledManifest() : SkillNames.Read(path, "Skill icons");
                 if (map.Count > 10000 || map.Values.Any(file => file.Length > 160 || !file.EndsWith(".png", StringComparison.OrdinalIgnoreCase) ||
                     file[..^4].Length == 0 || file[..^4].Any(c => !char.IsAsciiLetterOrDigit(c) && c is not ('_' or '-'))))
                     throw new InvalidDataException("Skill icons must reference PNG filenames in the skill-icons folder.");
+                if (embedded) return map.ToFrozenDictionary(pair => pair.Key, pair => ResourcePrefix + pair.Value);
                 var folder = Path.Combine(Path.GetDirectoryName(path)!, "skill-icons");
                 return map.ToFrozenDictionary(pair => pair.Key, pair => Path.Combine(folder, pair.Value));
             }
@@ -66,7 +73,10 @@ public sealed class SkillIcons : IValueConverter
         ImageSource? result = null;
         try
         {
-            using var stream = File.OpenRead(file);
+            using var stream = file.StartsWith(ResourcePrefix, StringComparison.Ordinal)
+                ? typeof(SkillIcons).Assembly.GetManifestResourceStream(file["embedded:".Length..])
+                    ?? throw new InvalidDataException("Bundled skill image is missing.")
+                : File.OpenRead(file);
             if (stream.Length is < 33 or > 262144) throw new InvalidDataException("Unexpected icon file size.");
             Span<byte> header = stackalloc byte[24]; stream.ReadExactly(header);
             if (!header[..8].SequenceEqual(new byte[] { 137, 80, 78, 71, 13, 10, 26, 10 }) || !header[12..16].SequenceEqual("IHDR"u8))

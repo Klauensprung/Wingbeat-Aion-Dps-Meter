@@ -59,6 +59,7 @@ public static class SelfTest
         for (int i = 11; i <= 13; i++) f.Damage.Add(new DamageEvent { ActorId = i, TargetId = 1, SkillCode = 11000000, Timestamp = 110000, Damage = 500 });
         f.Defense.Add(new DefenseEvent { ActorId = 1, TargetId = 11, Timestamp = 120000, Outcome = DefenseOutcome.Evade });
         f.Defense.Add(new DefenseEvent { ActorId = 11, TargetId = 1, Timestamp = 120000, Outcome = DefenseOutcome.Block });
+        f.Deaths.AddRange([new(1, 115000), new(1, 125000), new(3, 120000)]);
         f.Energy = new(840, 120, true, 100000);
         f.Specs[10020000] = new(10020000, 10, [1, 3]);
         return f;
@@ -137,7 +138,7 @@ public static class SelfTest
             string firstFightId = engine.Snapshot().Id;
             engine.RecordDamage(new DamageEvent { ActorId = 1, TargetId = 100, SkillCode = 11020000, Timestamp = 117000, Damage = 100 }, false);
             engine.SaveCompleted(store);
-            Check(engine.Snapshot().Id != firstFightId && engine.Snapshot().Damage.Count == 1 && store.Load(Path.Combine(temp, firstFightId + ".json")).Damage.Count == 2, "15-second inactivity boundary preserves completed fight");
+            Check(engine.Snapshot().Id == firstFightId && engine.Snapshot().Damage.Count == 3, "Damage-free boss phases preserve the active fight");
             var refs = typeof(CombatEngine).Assembly.GetReferencedAssemblies().Select(a => a.Name).ToArray();
             var allowedRefs = new HashSet<string> { "WindowsBase", "PresentationCore", "PresentationFramework", "System.Xaml", "netstandard", "mscorlib", "SharpPcap", "PacketDotNet" };
             Check(refs.All(n => n != null && (n.StartsWith("System.") || n.StartsWith("Microsoft.") || allowedRefs.Contains(n))), "Runtime references limited to .NET and declared capture libraries");
@@ -161,6 +162,7 @@ public static class SelfTest
             DisplayTests.Run(Check, temp);
             AssetTests.Run(Check, temp);
             ReadingTests.Run(Check, temp);
+            OverlayBehaviorTests.Run(Check, temp);
             PvpTests.Run(Check);
             IngestionTests.Run(Check, temp);
             FeatureTests.Run(Check, temp);

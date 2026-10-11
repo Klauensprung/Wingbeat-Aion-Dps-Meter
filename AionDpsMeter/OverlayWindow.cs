@@ -12,6 +12,7 @@ public sealed class OverlayWindow : Window
     readonly MeterView meter = new() { Margin = new(7, 4, 7, 2), RowBackground = UiTheme.Brush("#801A2230") };
     readonly MeterView ownMeter = new() { Margin = new(7, 4, 7, 0), Visibility = Visibility.Collapsed, RowBackground = UiTheme.Brush("#801A2230") };
     readonly ScrollViewer actorScroll;
+    readonly ParticipantColors participantColors = new();
     readonly StackPanel header = new() { Background = UiTheme.Brush("#6010151F") };
     readonly TextBlock moveGrip = new() { Text = "⋮⋮", FontSize = 15, VerticalAlignment = VerticalAlignment.Center, Foreground = UiTheme.Brush("#93A2B8") };
     readonly TextBlock duration = new() { FontSize = 12, VerticalAlignment = VerticalAlignment.Center, Margin = new(4, 0, 8, 0) };
@@ -105,6 +106,7 @@ public sealed class OverlayWindow : Window
         Scope("Party / players", "Party");
         Scope("All actors", "All");
         menu.Items.Add(new Separator());
+        Item("Pin my character first", preferences.OverlayPinLocal, () => preferences.OverlayPinLocal = !preferences.OverlayPinLocal);
         Item("Compact rows", preferences.OverlayCompact, () => preferences.OverlayCompact = !preferences.OverlayCompact);
         Item("Class colours", !preferences.OverlayCustomBars, () => preferences.OverlayCustomBars = !preferences.OverlayCustomBars);
         Item("Lock position", preferences.OverlayLocked, () => preferences.OverlayLocked = !preferences.OverlayLocked);
@@ -140,15 +142,11 @@ public sealed class OverlayWindow : Window
         if (fight == null || totals == null || pvp == null) return;
         string scope = preferences.OverlayAllActors ? "All" : preferences.OverlayScope;
         bool showPvp = scope == "PvP" || (scope is not ("All" or "Party") && pvp.HasOpponents);
-        var data = showPvp ? PvpAnalysis.Meter(fight, pvp, preferences.OverlayHealing) :
-            MeterPresentation.Build(fight, totals, preferences.OverlayHealing, scope == "All", pinLocal: true);
+        var data = showPvp ? PvpAnalysis.Meter(fight, pvp, preferences.OverlayHealing, pinLocal: preferences.OverlayPinLocal) :
+            MeterPresentation.Build(fight, totals, preferences.OverlayHealing, scope == "All", pinLocal: preferences.OverlayPinLocal);
         if (!preferences.OverlayCustomBars)
             data = data with { Rows = data.Rows.Select(r => r with { Color = MeterPresentation.ClassColorFor(r.Job, r.Color) }).ToArray() };
-        else
-        {
-            var friendly = pvp.Combatants.Where(c => c.Friendly).Select(c => c.Id).ToHashSet();
-            data = data with { Rows = data.Rows.Select(r => !showPvp || friendly.Contains(r.Id) ? r with { Color = preferences.Accent } : r).ToArray() };
-        }
+        else data = participantColors.Apply(fight, data);
         CurrentScope = data.Scope;
         pingStatus.Text = fight.LocalPing is { } sample ? $"Local ping (last estimate)   ~{sample.Milliseconds} ms" : "Local ping   --";
         pingStatus.Foreground = UiTheme.Brush(fight.LocalPing?.Milliseconds switch { < 60 => "#55D6BE", < 100 => "#EABF70", < 200 => "#EFAB78", >= 200 => "#EF8792", _ => "#93A2B8" });
@@ -162,8 +160,8 @@ public sealed class OverlayWindow : Window
         resizeGrip.Visibility = preferences.OverlayLocked ? Visibility.Collapsed : Visibility.Visible;
         duration.Text = showPvp ? MeterPresentation.Duration(pvp.HasOpponents ? pvp.Seconds : 0) : MeterPresentation.Duration(fight);
         encounter.Text = (fight.Demo ? "DEMO  ·  " : "") + fight.Label + "  ·  " + data.Scope;
-        var own = data.Rows.Where(r => r.Local).ToArray();
-        var others = data.Rows.Where(r => !r.Local).ToArray();
+        var own = data.Rows.Where(r => preferences.OverlayPinLocal && r.Local).ToArray();
+        var others = data.Rows.Where(r => !preferences.OverlayPinLocal || !r.Local).ToArray();
         ownMeter.Update(own, preferences.OverlayCompact, preferences.OverlayHealing, fight.HasEvents, showClassSymbols: true);
         ownMeter.Visibility = own.Length == 0 ? Visibility.Collapsed : Visibility.Visible;
         actorScroll.Visibility = own.Length > 0 && others.Length == 0 ? Visibility.Collapsed : Visibility.Visible;
@@ -174,12 +172,22 @@ public sealed class OverlayWindow : Window
     }
     internal void CheckModes()
     {
+        bool previousPin = preferences.OverlayPinLocal;
+        preferences.OverlayPinLocal = false; RefreshMeter();
+        if (ownMeter.RowCount != 0 || meter.RowCount != 10) throw new InvalidOperationException("Default ranking still pins the local row.");
+        CreateOptions().Items.OfType<MenuItem>().Single(i => i.Header?.ToString() == "Pin my character first").RaiseEvent(new RoutedEventArgs(MenuItem.ClickEvent));
+        if (!preferences.OverlayPinLocal || ownMeter.RowCount != 1 || meter.RowCount != 9) throw new InvalidOperationException("Pin toggle did not move the local row.");
+        preferences.OverlayPinLocal = previousPin; RefreshMeter();
+        void CheckRows() { foreach (var bar in ownMeter.Children.OfType<MeterBar>().Concat(meter.Children.OfType<MeterBar>())) bar.CheckPresentation(); }
+        CheckRows();
         bool previousCustom = preferences.OverlayCustomBars;
         var colourToggle = CreateOptions().Items.OfType<MenuItem>().Single(i => i.Header?.ToString() == "Class colours");
         colourToggle.RaiseEvent(new RoutedEventArgs(MenuItem.ClickEvent));
         if (preferences.OverlayCustomBars == previousCustom || CreateOptions().Items.OfType<MenuItem>().Single(i => i.Header?.ToString() == "Class colours").IsChecked != !preferences.OverlayCustomBars)
             throw new InvalidOperationException("Class colour toggle did not update the overlay preferences and menu.");
+        CheckRows();
         preferences.OverlayCustomBars = previousCustom; RefreshMeter();
+        CheckRows();
         bool previous = preferences.OverlayHealing;
         preferences.OverlayHealing = true; RefreshMeter();
         if (RowCount != 10 || ownMeter.RowCount != 1) throw new InvalidOperationException("Healing overlay did not retain all ten party members and the local row.");

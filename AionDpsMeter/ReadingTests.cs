@@ -31,10 +31,12 @@ internal static class ReadingTests
         var engine = new CombatEngine(); foreach (var e in events) engine.Apply(e);
         var saved = engine.Snapshot(); value.Values[19] = 9;
         check(saved.LocalStats!.Values[19] == 1234 && engine.Fight.LocalStats!.Values[19] == 1234, "Stat ingestion and snapshots do not share mutable dictionaries");
-        engine.NewFight("Next"); check(engine.Fight.LocalStats!.Values[19] == 1234, "Inactivity splits retain the latest local stat snapshot");
+        engine.NewFight("Next"); check(engine.Fight.LocalStats!.Values[19] == 1234, "Manual fight resets retain the latest local stat snapshot");
         engine.Apply(new("player-stats", Stats: new(999, new() { [19] = 1 })));
         check(engine.Fight.LocalStats!.Values[19] == 1234, "Older stat samples cannot overwrite newer readings");
         engine.Apply(new("local-player", Actor: new(1, "NewCharacter", true, false, 0, "Unknown", 2301)));
+        check(engine.Fight.LocalStats != null, "Late first identity preserves current stat readings");
+        engine.Apply(new("local-player", Actor: new(2, "OtherCharacter", true, false, 0, "Unknown", 2301)));
         check(engine.Fight.LocalStats == null, "Scene or character changes clear local stats instead of attributing another character's readings");
         var store = new FightStore(Path.Combine(temp, "readings")); store.Save(saved);
         check(store.Load(Path.Combine(store.Root, saved.Id + ".json")).LocalStats!.Values[19] == 1234 && JsonSerializer.Deserialize<Fight>("{}")!.LocalStats == null,
@@ -51,7 +53,7 @@ internal static class ReadingTests
         check(new EuGameDecoder().Decode(Payload(hp)).Events.Single().Network!.Fields.GetProperty("CurrentHp").GetUInt64() == 5000000000UL,
             "HP readings preserve all 64 bits instead of silently truncating large health values");
         check(new EuGameDecoder().Decode(Payload(Frame(4, 0x8d, [..Var(12)]))).Events.Single().Network?.Kind == "entity-death",
-            "Short death records remain distinct from long identity records on the shared EU opcode");
+            "Short death records identify the deceased entity");
         var linking = new CombatEngine(new EuGameDecoder());
         linking.Process(Payload(Frame(0x20, 0x36, [0, 0, ..Var(12), ..new byte[4], ..BitConverter.GetBytes(9001u)])));
         linking.Apply(new("party-profiles", Profiles: [new("Member", 2301, 33000, 0) { CharacterId = 9001 }]));

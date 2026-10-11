@@ -44,19 +44,20 @@ public static class PvpAnalysis
         return new(start, end, fight.LocalPlayer, combatants, opponents);
     }
 
-    public static MeterData Meter(Fight fight, PvpData pvp, bool healing = false)
+    public static MeterData Meter(Fight fight, PvpData pvp, bool healing = false, bool pinLocal = false)
     {
         long Value(PvpCombatant actor) => healing ? actor.Healing : actor.Damage;
         long total = pvp.Combatants.Sum(Value), maximum = pvp.Combatants.Select(Value).DefaultIfEmpty(0).Max();
         // Keep every opponent, including outgoing-only encounters and zero-damage
         // opponents in healing mode. There is no top-ten cutoff for PvP.
-        var rows = pvp.Combatants.OrderByDescending(c => c.Id == fight.LocalPlayer).ThenBy(c => c.Friendly).ThenByDescending(Value).ThenBy(c => c.Id).Select(c => {
+        var deathCounts = fight.Deaths.GroupBy(d => d.EntityId).ToDictionary(g => g.Key, g => g.Count());
+        var rows = pvp.Combatants.OrderByDescending(c => pinLocal && c.Id == fight.LocalPlayer).ThenByDescending(Value).ThenBy(c => c.Id).Select(c => {
             long amount = Value(c);
             string color = c.Friendly ? MeterPresentation.ColorFor(new Actor(c.Id, c.Name, true, false, 0, c.Job, 0)) : "#EF8792";
             return new MeterRow(c.Id, c.Name, c.Job, amount, amount / pvp.Seconds,
                 total == 0 ? 0 : 100d * amount / total, maximum == 0 ? 0 : (double)amount / maximum,
                 color, c.Id == fight.LocalPlayer, true) { Detail = (c.Friendly ? "Your side" : "Opponent") + (c.Identity == "Named" ? "" : " · name pending; class inferred from skills"),
-                    CombatPower = fight.Actors.GetValueOrDefault(c.Id)?.Cp ?? 0,
+                    Deaths = deathCounts.GetValueOrDefault(c.Id), CombatPower = fight.Actors.GetValueOrDefault(c.Id)?.Cp ?? 0,
                     CombatPowerSource = fight.Actors.GetValueOrDefault(c.Id)?.CpSource ?? "Unknown", LocalPingMs = PlayerTelemetry.PingFor(fight, c.Id) };
         }).ToArray();
         return new(rows, total, total / pvp.Seconds, "PvP");

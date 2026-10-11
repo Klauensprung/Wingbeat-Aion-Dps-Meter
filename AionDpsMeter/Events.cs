@@ -35,4 +35,6 @@ public sealed record CapturedPayload(int SourcePort, int DestinationPort, byte[]
     public long? CounterTimestampMs { get; init; }
 }
 
+public sealed record DeathEvent(int EntityId, long Timestamp);
+
 public sealed record NetworkEvent(string Kind, long Timestamp, string Opcode, JsonElement Fields);

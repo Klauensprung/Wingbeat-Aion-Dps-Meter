@@ -27,8 +27,8 @@ internal static class PvpTests
             "Blank and absent actor names fall back to entity IDs without claiming a captured name");
         check(pvp.Opponents.Single() is { Id: 2, Identity: "Name pending", DamageToUs: 3000, DamageFromUs: 100, DPS: 300, Healing: 500 },
             "PvP retains an unnamed class-skill attacker with correctly directed damage and healing");
-        check(pvp.Seconds == 10 && pvp.YourDamage == 100 && pvp.EnemyDamage == 3000 && meter.Rows[0].Id == 1 && meter.Rows[1].Rate == 300,
-            "Both PvP sides share the exchange duration and the local player remains first when outdamaged");
+        check(pvp.Seconds == 10 && pvp.YourDamage == 100 && pvp.EnemyDamage == 3000 && meter.Rows[0].Id == 2 && meter.Rows[0].Rate == 300,
+            "Both PvP sides share the exchange duration and rows rank by damage by default");
         check(!f.Actors[2].Player && f.Actors[2].Name == "Entity 2" && f.Damage.Count == 3,
             "PvP skill evidence does not invent player identities or mutate raw combat data");
         f.Damage.AddRange([Hit(1, 9, 1, 90000, 17010001), Hit(9, 1, 60000, 99999, 12010001)]);
@@ -47,7 +47,7 @@ internal static class PvpTests
         pets.Damage.AddRange([Hit(3, 1, 10000, 1000, 17150032), Hit(4, 1, 11000, 1000, 15280001), Hit(5, 1, 12000, 1000, 16100001), Hit(6, 1, 13000, 1000, 1229290)]);
         check(!PvpAnalysis.Build(pets).HasOpponents, "Unidentified Divine Aura, summoned wind, spirits and NPC attacks cannot trigger automatic PvP");
         var inbound = Duel(); inbound.Damage.RemoveAll(e => e.ActorId == 1);
-        check(PvpAnalysis.Meter(inbound, PvpAnalysis.Build(inbound)).Rows is [{ Id: 1, Amount: 0 }, { Id: 2, Amount: 3000 }],
+        check(PvpAnalysis.Meter(inbound, PvpAnalysis.Build(inbound)).Rows is [{ Id: 2, Amount: 3000 }, { Id: 1, Amount: 0 }],
             "An incoming-only attack shows the opponent and keeps your zero-DPS row visible");
         var outgoing = Duel(); outgoing.Actors[2] = outgoing.Actors[2] with { Name = "KnownOpponent", Player = true };
         outgoing.Damage.RemoveAll(e => e.ActorId == 2);
@@ -58,14 +58,14 @@ internal static class PvpTests
         var group = PvpAnalysis.Build(party);
         check(group.Opponents.Single() is { DamageToUs: 3250, DamageFromUs: 450 } && group.YourDamage == 100 && group.Combatants.Single(c => c.Id == 3).Friendly,
             "Group PvP includes captured allies and excludes damage between members of your side");
-        check(PvpAnalysis.Meter(party, group).Rows.Select(r => r.Id).SequenceEqual(new[] { 1, 2, 3 }),
-            "PvP places opponents immediately below you before the remaining party rows");
+        check(PvpAnalysis.Meter(party, group).Rows.Select(r => r.Id).SequenceEqual(new[] { 2, 3, 1 }),
+            "PvP ranks opponents and party members together by damage");
         var many = Duel();
         for (int i = 10; i < 26; i++) many.Damage.Add(Hit(i, 1, 18000, i * 10));
         var all = PvpAnalysis.Build(many);
         check(all.Opponents.Length == 17 && PvpAnalysis.Meter(many, all).Rows.Length == 18,
             "PvP displays every simultaneous opponent without the party meter's ten-row cutoff");
-        var healing = PvpAnalysis.Meter(inbound, PvpAnalysis.Build(inbound), healing: true);
+        var healing = PvpAnalysis.Meter(inbound, PvpAnalysis.Build(inbound), healing: true, pinLocal: true);
         check(healing.Rows[0].Id == 1 && healing.Rows[0].Amount == 0 && healing.Rows[1].Amount == 500 && healing.Rows[1].Rate == 50,
             "PvP healing mode preserves opponent identities and the pinned local player");
         var noLocal = Duel(); noLocal.LocalPlayer = 0;
