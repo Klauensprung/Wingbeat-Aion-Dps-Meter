@@ -15,20 +15,52 @@ public sealed class SkillNames
     public int Count => names.Count;
     public string? LoadError { get; }
 
-    public SkillNames(string? path = null)
+    // Explicit paths stay isolated for catalog validation; normal startup layers local
+    // overrides over the embedded defaults without requiring a writable app folder.
+    public SkillNames(string? path = null) : this(path ?? LocalPath, path == null) { }
+
+    internal SkillNames(string path, bool includeBundled)
     {
-        path ??= LocalPath;
-        try { names = Read(path).ToFrozenDictionary(); }
+        var loaded = new Dictionary<int, string>();
+        var errors = new List<string>();
+        if (includeBundled)
+        {
+            try
+            {
+                using var stream = typeof(SkillNames).Assembly.GetManifestResourceStream("Wingbeat.SkillNames.json")
+                    ?? throw new InvalidDataException("Bundled skill names are missing.");
+                loaded = Read(stream, "Bundled skill names");
+            }
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or JsonException or InvalidDataException)
+            {
+                errors.Add(ex.Message);
+            }
+        }
+        try
+        {
+            // Read validates the complete override before merging any entries.
+            foreach (var pair in Read(path)) loaded[pair.Key] = pair.Value;
+        }
+        catch (Exception ex) when (includeBundled && (ex is FileNotFoundException or DirectoryNotFoundException))
+        {
+            // A fresh installation needs no local catalog.
+        }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or JsonException or InvalidDataException)
         {
-            names = FrozenDictionary<int, string>.Empty;
-            LoadError = ex.Message;
+            errors.Add(ex.Message);
         }
+        names = loaded.ToFrozenDictionary();
+        LoadError = errors.Count == 0 ? null : string.Join("; ", errors);
     }
 
     public static Dictionary<int, string> Read(string path, string catalog = "Skill names")
     {
         using var stream = File.OpenRead(path);
+        return Read(stream, catalog);
+    }
+
+    internal static Dictionary<int, string> Read(Stream stream, string catalog)
+    {
         if (stream.Length > 16 * 1024 * 1024) throw new InvalidDataException($"{catalog} exceed the 16 MB limit.");
         using var json = JsonDocument.Parse(stream, new JsonDocumentOptions { MaxDepth = 4 });
         if (json.RootElement.ValueKind != JsonValueKind.Object) throw new InvalidDataException($"{catalog}: expected an object mapping IDs to text.");

@@ -157,8 +157,10 @@ public static class SelfTest
             Check(NpcapSetup.IsLoadFailure(new BadImageFormatException()) && NpcapSetup.IsLoadFailure(new EntryPointNotFoundException()), "Incompatible capture libraries offer Npcap repair");
             Check(!NpcapSetup.IsLoadFailure(new UnauthorizedAccessException()) && !NpcapSetup.IsLoadFailure(new InvalidOperationException("No adapters")), "Permissions and missing adapters are not misreported as a missing driver");
             WireTests.Run(Check, temp);
+            TelemetryTests.Run(Check, temp);
             DisplayTests.Run(Check, temp);
             AssetTests.Run(Check, temp);
+            ReadingTests.Run(Check, temp);
             PvpTests.Run(Check);
             IngestionTests.Run(Check, temp);
             FeatureTests.Run(Check, temp);

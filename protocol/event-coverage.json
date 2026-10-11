@@ -1,407 +1,362 @@
 {
-    "ReferenceSource":  "Event inventory researched from private reference material; not a claim of verified parity.",
-    "ReferenceEventCount":  44,
-    "FullParityVerified":  false,
-    "Meaning":  "Declared reference interface events; declaration alone does not prove the supplied implementation emits an event. Experimental means implemented subset, not feature parity.",
-    "Events":  [
-                   {
-                       "ReferenceEvent":  "DamageEventParsed",
-                       "Status":  "experimental",
-                       "NormalizedKinds":  [
-                                               "damage"
-                                           ],
-                       "ReferenceParityVerified":  false,
-                       "Notes":  "Direct hits only; no periodic/pool damage, full deduplication or skill classification parity."
-                   },
-                   {
-                       "ReferenceEvent":  "HealTickParsed",
-                       "Status":  "experimental",
-                       "NormalizedKinds":  [
-                                               "heal"
-                                           ],
-                       "ReferenceParityVerified":  false,
-                       "Notes":  "Built-in recovery-family classification for direct self/group heals; bounded 05 38 regeneration ticks use actual recovery rather than remaining pools. Synthetic regression checks cover the supported layouts. Effective healing, potion/pet effects and complete reference parity remain unverified."
-                   },
-                   {
-                       "ReferenceEvent":  "DefenseEventParsed",
-                       "Status":  "experimental",
-                       "NormalizedKinds":  [
-                                               "defense"
-                                           ],
-                       "ReferenceParityVerified":  false,
-                       "Notes":  "Known 06 38 full-mitigation parry only; other avoidance/block variants remain unsupported."
-                   },
-                   {
-                       "ReferenceEvent":  "AbnormalEventParsed",
-                       "Status":  "experimental",
-                       "NormalizedKinds":  [
-                                               "abnormal-apply",
-                                               "abnormal-refresh",
-                                               "abnormal-remove"
-                                           ],
-                       "ReferenceParityVerified":  false,
-                       "Notes":  "Known forms only. Other layouts are rejected."
-                   },
-                   {
-                       "ReferenceEvent":  "HpUpdateEventParsed",
-                       "Status":  "experimental",
-                       "NormalizedKinds":  [
-                                               "hp"
-                                           ],
-                       "ReferenceParityVerified":  false,
-                       "Notes":  "Current HP form only; spawn-derived maximum HP and lifecycle/reset policies absent."
-                   },
-                   {
-                       "ReferenceEvent":  "GroggyGuardEventParsed",
-                       "Status":  "experimental",
-                       "NormalizedKinds":  [
-                                               "guard"
-                                           ],
-                       "ReferenceParityVerified":  false,
-                       "Notes":  "Synthetic fixture passes; live guard behavior remains unverified."
-                   },
-                   {
-                       "ReferenceEvent":  "BossSkillCastEventParsed",
-                       "Status":  "experimental",
-                       "NormalizedKinds":  [
-                                               "boss-cast"
-                                           ],
-                       "ReferenceParityVerified":  false,
-                       "Notes":  "Cast parsing is implemented; in-game cast timeline equivalence remains unverified."
-                   },
-                   {
-                       "ReferenceEvent":  "BossEnrageDetected",
-                       "Status":  "experimental",
-                       "NormalizedKinds":  [
-                                               "boss-enrage"
-                                           ],
-                       "ReferenceParityVerified":  false,
-                       "Notes":  "Known frenzy form implemented; no positive captured sample verified."
-                   },
-                   {
-                       "ReferenceEvent":  "PartyRoomRosterParsed",
-                       "Status":  "not-implemented",
-                       "NormalizedKinds":  [
-
-                                           ],
-                       "ReferenceParityVerified":  false,
-                       "Notes":  "Independent decoder and validation fixtures still required."
-                   },
-                   {
-                       "ReferenceEvent":  "NicknameDiscovered",
-                       "Status":  "experimental",
-                       "NormalizedKinds":  [
-                                               "actor"
-                                           ],
-                       "ReferenceParityVerified":  false,
-                       "Notes":  "Player spawn 45 36 and appearance 04 8D names bind names to combat IDs."
-                   },
-                   {
-                       "ReferenceEvent":  "AbyssGradeDiscovered",
-                       "Status":  "not-implemented",
-                       "NormalizedKinds":  [
-
-                                           ],
-                       "ReferenceParityVerified":  false,
-                       "Notes":  "Independent decoder and validation fixtures still required."
-                   },
-                   {
-                       "ReferenceEvent":  "AbyssSeasonRecordDiscovered",
-                       "Status":  "not-implemented",
-                       "NormalizedKinds":  [
-
-                                           ],
-                       "ReferenceParityVerified":  false,
-                       "Notes":  "Independent decoder and validation fixtures still required."
-                   },
-                   {
-                       "ReferenceEvent":  "LocalPlayerDiscovered",
-                       "Status":  "experimental",
-                       "NormalizedKinds":  [
-                                               "local-player"
-                                           ],
-                       "ReferenceParityVerified":  false,
-                       "Notes":  "Local character 33 36 decoded in three EU records; changed identity resets scene bindings, repeated updates preserve combat."
-                   },
-                   {
-                       "ReferenceEvent":  "LocalServerIdResolved",
-                       "Status":  "not-implemented",
-                       "NormalizedKinds":  [
-
-                                           ],
-                       "ReferenceParityVerified":  false,
-                       "Notes":  "Independent decoder and validation fixtures still required."
-                   },
-                   {
-                       "ReferenceEvent":  "PlayerStatsDiscovered",
-                       "Status":  "not-implemented",
-                       "NormalizedKinds":  [
-
-                                           ],
-                       "ReferenceParityVerified":  false,
-                       "Notes":  "Independent decoder and validation fixtures still required."
-                   },
-                   {
-                       "ReferenceEvent":  "SummonDetected",
-                       "Status":  "not-implemented",
-                       "NormalizedKinds":  [
-
-                                           ],
-                       "ReferenceParityVerified":  false,
-                       "Notes":  "Independent decoder and validation fixtures still required."
-                   },
-                   {
-                       "ReferenceEvent":  "PlayerTargetChanged",
-                       "Status":  "experimental",
-                       "NormalizedKinds":  [
-                                               "target"
-                                           ],
-                       "ReferenceParityVerified":  false,
-                       "Notes":  "Only target embedded in nickname records; standalone 0E 38 reference handler is a stub."
-                   },
-                   {
-                       "ReferenceEvent":  "MobNameDiscovered",
-                       "Status":  "not-implemented",
-                       "NormalizedKinds":  [
-
-                                           ],
-                       "ReferenceParityVerified":  false,
-                       "Notes":  "Independent decoder and validation fixtures still required."
-                   },
-                   {
-                       "ReferenceEvent":  "NpcTemplateDiscovered",
-                       "Status":  "experimental",
-                       "NormalizedKinds":  [
-                                               "actor", "npc-spawn"
-                                           ],
-                       "ReferenceParityVerified":  false,
-                       "Notes":  "41 36 binds entity ID to uint32 NPC/template ID; optional local exact-ID catalog supplies display names. Bounded synthetic fixtures cover named and unnamed forms."
-                   },
-                   {
-                       "ReferenceEvent":  "NpcAppeared",
-                       "Status":  "experimental",
-                       "NormalizedKinds":  [
-                                               "actor", "npc-spawn"
-                                           ],
-                       "ReferenceParityVerified":  false,
-                       "Notes":  "41 36 spawn identity only. No spawn HP/position, complete despawn lifecycle or summon-owner attribution. Missing templates remain explicit NPC IDs."
-                   },
-                   {
-                       "ReferenceEvent":  "SummonAppeared",
-                       "Status":  "not-implemented",
-                       "NormalizedKinds":  [
-
-                                           ],
-                       "ReferenceParityVerified":  false,
-                       "Notes":  "Independent decoder and validation fixtures still required."
-                   },
-                   {
-                       "ReferenceEvent":  "EntityRemoved",
-                       "Status":  "not-implemented",
-                       "NormalizedKinds":  [
-
-                                           ],
-                       "ReferenceParityVerified":  false,
-                       "Notes":  "Independent decoder and validation fixtures still required."
-                   },
-                   {
-                       "ReferenceEvent":  "ZoneChanged",
-                       "Status":  "not-implemented",
-                       "NormalizedKinds":  [
-
-                                           ],
-                       "ReferenceParityVerified":  false,
-                       "Notes":  "Independent decoder and validation fixtures still required."
-                   },
-                   {
-                       "ReferenceEvent":  "ServerTransferred",
-                       "Status":  "not-implemented",
-                       "NormalizedKinds":  [
-
-                                           ],
-                       "ReferenceParityVerified":  false,
-                       "Notes":  "Independent decoder and validation fixtures still required."
-                   },
-                   {
-                       "ReferenceEvent":  "DungeonRunStateChanged",
-                       "Status":  "experimental",
-                       "NormalizedKinds":  [
-                                               "dungeon-state"
-                                           ],
-                       "ReferenceParityVerified":  false,
-                       "Notes":  "Synthetic fixture only; no captured dungeon transition verified."
-                   },
-                   {
-                       "ReferenceEvent":  "DungeonRunResultReceived",
-                       "Status":  "experimental",
-                       "NormalizedKinds":  [
-                                               "dungeon-result"
-                                           ],
-                       "ReferenceParityVerified":  false,
-                       "Notes":  "Synthetic fixture only; no captured clear/failure verified."
-                   },
-                   {
-                       "ReferenceEvent":  "LootEnergyUpdated",
-                       "Status":  "experimental",
-                       "NormalizedKinds":  [
-                                               "energy"
-                                           ],
-                       "ReferenceParityVerified":  false,
-                       "Notes":  "Synthetic ticket list/update fixtures only; no captured energy change verified."
-                   },
-                   {
-                       "ReferenceEvent":  "SkillSpecsDetected",
-                       "Status":  "not-implemented",
-                       "NormalizedKinds":  [
-
-                                           ],
-                       "ReferenceParityVerified":  false,
-                       "Notes":  "Independent decoder and validation fixtures still required."
-                   },
-                   {
-                       "ReferenceEvent":  "SkillLoadoutDecoded",
-                       "Status":  "not-implemented",
-                       "NormalizedKinds":  [
-
-                                           ],
-                       "ReferenceParityVerified":  false,
-                       "Notes":  "Independent decoder and validation fixtures still required."
-                   },
-                   {
-                       "ReferenceEvent":  "GameServerDiscovered",
-                       "Status":  "not-implemented",
-                       "NormalizedKinds":  [
-
-                                           ],
-                       "ReferenceParityVerified":  false,
-                       "Notes":  "Independent decoder and validation fixtures still required."
-                   },
-                   {
-                       "ReferenceEvent":  "LatencyMeasured",
-                       "Status":  "not-implemented",
-                       "NormalizedKinds":  [
-
-                                           ],
-                       "ReferenceParityVerified":  false,
-                       "Notes":  "Independent decoder and validation fixtures still required."
-                   },
-                   {
-                       "ReferenceEvent":  "PetRosterDiscovered",
-                       "Status":  "not-implemented",
-                       "NormalizedKinds":  [
-
-                                           ],
-                       "ReferenceParityVerified":  false,
-                       "Notes":  "Independent decoder and validation fixtures still required."
-                   },
-                   {
-                       "ReferenceEvent":  "CharacterIdentityDiscovered",
-                       "Status":  "experimental",
-                       "NormalizedKinds":  [
-                                               "actor",
-                                               "local-player"
-                                           ],
-                       "ReferenceParityVerified":  false,
-                       "Notes":  "Name and combat ID from spawn; name/ID/server from local character or inspection. Full class, CP and account identity remain incomplete."
-                   },
-                   {
-                       "ReferenceEvent":  "GenusInsightDiscovered",
-                       "Status":  "not-implemented",
-                       "NormalizedKinds":  [
-
-                                           ],
-                       "ReferenceParityVerified":  false,
-                       "Notes":  "Independent decoder and validation fixtures still required."
-                   },
-                   {
-                       "ReferenceEvent":  "EquippedTitlesDiscovered",
-                       "Status":  "not-implemented",
-                       "NormalizedKinds":  [
-
-                                           ],
-                       "ReferenceParityVerified":  false,
-                       "Notes":  "Independent decoder and validation fixtures still required."
-                   },
-                   {
-                       "ReferenceEvent":  "DaevanionDiscovered",
-                       "Status":  "not-implemented",
-                       "NormalizedKinds":  [
-
-                                           ],
-                       "ReferenceParityVerified":  false,
-                       "Notes":  "Independent decoder and validation fixtures still required."
-                   },
-                   {
-                       "ReferenceEvent":  "WingRosterDiscovered",
-                       "Status":  "not-implemented",
-                       "NormalizedKinds":  [
-
-                                           ],
-                       "ReferenceParityVerified":  false,
-                       "Notes":  "Independent decoder and validation fixtures still required."
-                   },
-                   {
-                       "ReferenceEvent":  "EquippedWingForCharacterDiscovered",
-                       "Status":  "not-implemented",
-                       "NormalizedKinds":  [
-
-                                           ],
-                       "ReferenceParityVerified":  false,
-                       "Notes":  "Independent decoder and validation fixtures still required."
-                   },
-                   {
-                       "ReferenceEvent":  "EquippedWingForLocalPlayerDiscovered",
-                       "Status":  "not-implemented",
-                       "NormalizedKinds":  [
-
-                                           ],
-                       "ReferenceParityVerified":  false,
-                       "Notes":  "Independent decoder and validation fixtures still required."
-                   },
-                   {
-                       "ReferenceEvent":  "LoginGearBundleDecoded",
-                       "Status":  "not-implemented",
-                       "NormalizedKinds":  [
-
-                                           ],
-                       "ReferenceParityVerified":  false,
-                       "Notes":  "Independent decoder and validation fixtures still required."
-                   },
-                   {
-                       "ReferenceEvent":  "GearDetailDecoded",
-                       "Status":  "not-implemented",
-                       "NormalizedKinds":  [
-
-                                           ],
-                       "ReferenceParityVerified":  false,
-                       "Notes":  "Independent decoder and validation fixtures still required."
-                   },
-                   {
-                       "ReferenceEvent":  "GearChangeDetected",
-                       "Status":  "not-implemented",
-                       "NormalizedKinds":  [
-
-                                           ],
-                       "ReferenceParityVerified":  false,
-                       "Notes":  "Independent decoder and validation fixtures still required."
-                   },
-                   {
-                       "ReferenceEvent":  "EquippedGearForCharacterDiscovered",
-                       "Status":  "not-implemented",
-                       "NormalizedKinds":  [
-
-                                           ],
-                       "ReferenceParityVerified":  false,
-                       "Notes":  "Independent decoder and validation fixtures still required."
-                   },
-                   {
-                       "ReferenceEvent":  "LobbyGearListDiscovered",
-                       "Status":  "not-implemented",
-                       "NormalizedKinds":  [
-
-                                           ],
-                       "ReferenceParityVerified":  false,
-                       "Notes":  "Independent decoder and validation fixtures still required."
-                   }
-               ]
+    "ReferenceSource": "Event inventory researched from private reference material; not a claim of verified parity.",
+    "ReferenceEventCount": 44,
+    "FullParityVerified": false,
+    "Meaning": "Declared reference interface events; declaration alone does not prove the supplied implementation emits an event. Experimental means implemented subset, not feature parity.",
+    "Events": [
+        {
+            "ReferenceEvent": "DamageEventParsed",
+            "Status": "experimental",
+            "NormalizedKinds": [
+                "damage"
+            ],
+            "ReferenceParityVerified": false,
+            "Notes": "Direct hits only; no periodic/pool damage, full deduplication or skill classification parity."
+        },
+        {
+            "ReferenceEvent": "HealTickParsed",
+            "Status": "experimental",
+            "NormalizedKinds": [
+                "heal"
+            ],
+            "ReferenceParityVerified": false,
+            "Notes": "Built-in recovery-family classification for direct self/group heals; bounded 05 38 regeneration ticks use actual recovery rather than remaining pools. Synthetic regression checks cover the supported layouts. Effective healing, potion/pet effects and complete reference parity remain unverified."
+        },
+        {
+            "ReferenceEvent": "DefenseEventParsed",
+            "Status": "experimental",
+            "NormalizedKinds": [
+                "defense"
+            ],
+            "ReferenceParityVerified": false,
+            "Notes": "Known 06 38 full-mitigation parry only; other avoidance/block variants remain unsupported."
+        },
+        {
+            "ReferenceEvent": "AbnormalEventParsed",
+            "Status": "experimental",
+            "NormalizedKinds": [
+                "abnormal-apply",
+                "abnormal-refresh",
+                "abnormal-remove"
+            ],
+            "ReferenceParityVerified": false,
+            "Notes": "Known forms only. Other layouts are rejected."
+        },
+        {
+            "ReferenceEvent": "HpUpdateEventParsed",
+            "Status": "experimental",
+            "NormalizedKinds": [
+                "hp"
+            ],
+            "ReferenceParityVerified": false,
+            "Notes": "Supported 00 8D form reads full uint64 HP, with legacy uint32 support. Other field layouts and maximum HP remain unsupported."
+        },
+        {
+            "ReferenceEvent": "GroggyGuardEventParsed",
+            "Status": "experimental",
+            "NormalizedKinds": [
+                "guard"
+            ],
+            "ReferenceParityVerified": false,
+            "Notes": "Synthetic fixture passes; live guard behavior remains unverified."
+        },
+        {
+            "ReferenceEvent": "BossSkillCastEventParsed",
+            "Status": "experimental",
+            "NormalizedKinds": [
+                "boss-cast"
+            ],
+            "ReferenceParityVerified": false,
+            "Notes": "Cast parsing is implemented; in-game cast timeline equivalence remains unverified."
+        },
+        {
+            "ReferenceEvent": "BossEnrageDetected",
+            "Status": "experimental",
+            "NormalizedKinds": [
+                "boss-enrage"
+            ],
+            "ReferenceParityVerified": false,
+            "Notes": "Known frenzy form implemented; no positive captured sample verified."
+        },
+        {
+            "ReferenceEvent": "PartyRoomRosterParsed",
+            "Status": "experimental",
+            "NormalizedKinds": [
+                "party-profiles"
+            ],
+            "ReferenceParityVerified": false,
+            "Notes": "Bounded 02 97 party profiles supply CP and raw latency state. Vacant slots and the supported EU trailer are handled. Profiles match unique player identities; this does not establish full roster-event parity."
+        },
+        {
+            "ReferenceEvent": "NicknameDiscovered",
+            "Status": "experimental",
+            "NormalizedKinds": [
+                "actor"
+            ],
+            "ReferenceParityVerified": false,
+            "Notes": "Player spawn 45 36 and appearance 04 8D names bind names to combat IDs."
+        },
+        {
+            "ReferenceEvent": "AbyssGradeDiscovered",
+            "Status": "not-implemented",
+            "NormalizedKinds": [],
+            "ReferenceParityVerified": false,
+            "Notes": "Independent decoder and validation fixtures still required."
+        },
+        {
+            "ReferenceEvent": "AbyssSeasonRecordDiscovered",
+            "Status": "not-implemented",
+            "NormalizedKinds": [],
+            "ReferenceParityVerified": false,
+            "Notes": "Independent decoder and validation fixtures still required."
+        },
+        {
+            "ReferenceEvent": "LocalPlayerDiscovered",
+            "Status": "experimental",
+            "NormalizedKinds": [
+                "local-player"
+            ],
+            "ReferenceParityVerified": false,
+            "Notes": "Local character 33 36 decoded in three EU records; changed identity resets scene bindings, repeated updates preserve combat."
+        },
+        {
+            "ReferenceEvent": "LocalServerIdResolved",
+            "Status": "not-implemented",
+            "NormalizedKinds": [],
+            "ReferenceParityVerified": false,
+            "Notes": "Independent decoder and validation fixtures still required."
+        },
+        {
+            "ReferenceEvent": "PlayerStatsDiscovered",
+            "Status": "experimental",
+            "NormalizedKinds": [
+                "party-profiles",
+                "player-stats"
+            ],
+            "ReferenceParityVerified": false,
+            "Notes": "Local 49 36 stat snapshots, known basis-point labels and unknown raw IDs; local CP and matched party CP. Other-player full stats and complete parity remain unverified."
+        },
+        {
+            "ReferenceEvent": "SummonDetected",
+            "Status": "not-implemented",
+            "NormalizedKinds": [],
+            "ReferenceParityVerified": false,
+            "Notes": "Independent decoder and validation fixtures still required."
+        },
+        {
+            "ReferenceEvent": "PlayerTargetChanged",
+            "Status": "experimental",
+            "NormalizedKinds": [
+                "target"
+            ],
+            "ReferenceParityVerified": false,
+            "Notes": "Only target embedded in nickname records; standalone 0E 38 reference handler is a stub."
+        },
+        {
+            "ReferenceEvent": "MobNameDiscovered",
+            "Status": "not-implemented",
+            "NormalizedKinds": [],
+            "ReferenceParityVerified": false,
+            "Notes": "Independent decoder and validation fixtures still required."
+        },
+        {
+            "ReferenceEvent": "NpcTemplateDiscovered",
+            "Status": "experimental",
+            "NormalizedKinds": [
+                "actor",
+                "npc-spawn"
+            ],
+            "ReferenceParityVerified": false,
+            "Notes": "41 36 binds entity ID to uint32 NPC/template ID; optional local exact-ID catalog supplies display names. Bounded synthetic fixtures cover named and unnamed forms."
+        },
+        {
+            "ReferenceEvent": "NpcAppeared",
+            "Status": "experimental",
+            "NormalizedKinds": [
+                "actor",
+                "npc-spawn"
+            ],
+            "ReferenceParityVerified": false,
+            "Notes": "41 36 spawn identity only. No spawn HP/position, complete despawn lifecycle or summon-owner attribution. Missing templates remain explicit NPC IDs."
+        },
+        {
+            "ReferenceEvent": "SummonAppeared",
+            "Status": "not-implemented",
+            "NormalizedKinds": [],
+            "ReferenceParityVerified": false,
+            "Notes": "Independent decoder and validation fixtures still required."
+        },
+        {
+            "ReferenceEvent": "EntityRemoved",
+            "Status": "not-implemented",
+            "NormalizedKinds": [],
+            "ReferenceParityVerified": false,
+            "Notes": "Independent decoder and validation fixtures still required."
+        },
+        {
+            "ReferenceEvent": "ZoneChanged",
+            "Status": "not-implemented",
+            "NormalizedKinds": [],
+            "ReferenceParityVerified": false,
+            "Notes": "Independent decoder and validation fixtures still required."
+        },
+        {
+            "ReferenceEvent": "ServerTransferred",
+            "Status": "not-implemented",
+            "NormalizedKinds": [],
+            "ReferenceParityVerified": false,
+            "Notes": "Independent decoder and validation fixtures still required."
+        },
+        {
+            "ReferenceEvent": "DungeonRunStateChanged",
+            "Status": "experimental",
+            "NormalizedKinds": [
+                "dungeon-state"
+            ],
+            "ReferenceParityVerified": false,
+            "Notes": "Synthetic fixture only; no captured dungeon transition verified."
+        },
+        {
+            "ReferenceEvent": "DungeonRunResultReceived",
+            "Status": "experimental",
+            "NormalizedKinds": [
+                "dungeon-result"
+            ],
+            "ReferenceParityVerified": false,
+            "Notes": "Synthetic fixture only; no captured clear/failure verified."
+        },
+        {
+            "ReferenceEvent": "LootEnergyUpdated",
+            "Status": "experimental",
+            "NormalizedKinds": [
+                "energy"
+            ],
+            "ReferenceParityVerified": false,
+            "Notes": "Synthetic ticket list/update fixtures only; no captured energy change verified."
+        },
+        {
+            "ReferenceEvent": "SkillSpecsDetected",
+            "Status": "not-implemented",
+            "NormalizedKinds": [],
+            "ReferenceParityVerified": false,
+            "Notes": "Independent decoder and validation fixtures still required."
+        },
+        {
+            "ReferenceEvent": "SkillLoadoutDecoded",
+            "Status": "not-implemented",
+            "NormalizedKinds": [],
+            "ReferenceParityVerified": false,
+            "Notes": "Independent decoder and validation fixtures still required."
+        },
+        {
+            "ReferenceEvent": "GameServerDiscovered",
+            "Status": "not-implemented",
+            "NormalizedKinds": [],
+            "ReferenceParityVerified": false,
+            "Notes": "Independent decoder and validation fixtures still required."
+        },
+        {
+            "ReferenceEvent": "LatencyMeasured",
+            "Status": "experimental",
+            "NormalizedKinds": [
+                "ping"
+            ],
+            "ReferenceParityVerified": false,
+            "Notes": "03 36 client-clock echoes estimate only the local connection latency. Live counter timestamps are required for current clients. Invalid samples do not become zero ping; remote player ping is unavailable."
+        },
+        {
+            "ReferenceEvent": "PetRosterDiscovered",
+            "Status": "not-implemented",
+            "NormalizedKinds": [],
+            "ReferenceParityVerified": false,
+            "Notes": "Independent decoder and validation fixtures still required."
+        },
+        {
+            "ReferenceEvent": "CharacterIdentityDiscovered",
+            "Status": "experimental",
+            "NormalizedKinds": [
+                "actor",
+                "local-player"
+            ],
+            "ReferenceParityVerified": false,
+            "Notes": "Name and combat ID from spawn; name/ID/server from local character or inspection. Full class, CP and account identity remain incomplete."
+        },
+        {
+            "ReferenceEvent": "GenusInsightDiscovered",
+            "Status": "not-implemented",
+            "NormalizedKinds": [],
+            "ReferenceParityVerified": false,
+            "Notes": "Independent decoder and validation fixtures still required."
+        },
+        {
+            "ReferenceEvent": "EquippedTitlesDiscovered",
+            "Status": "not-implemented",
+            "NormalizedKinds": [],
+            "ReferenceParityVerified": false,
+            "Notes": "Independent decoder and validation fixtures still required."
+        },
+        {
+            "ReferenceEvent": "DaevanionDiscovered",
+            "Status": "not-implemented",
+            "NormalizedKinds": [],
+            "ReferenceParityVerified": false,
+            "Notes": "Independent decoder and validation fixtures still required."
+        },
+        {
+            "ReferenceEvent": "WingRosterDiscovered",
+            "Status": "not-implemented",
+            "NormalizedKinds": [],
+            "ReferenceParityVerified": false,
+            "Notes": "Independent decoder and validation fixtures still required."
+        },
+        {
+            "ReferenceEvent": "EquippedWingForCharacterDiscovered",
+            "Status": "not-implemented",
+            "NormalizedKinds": [],
+            "ReferenceParityVerified": false,
+            "Notes": "Independent decoder and validation fixtures still required."
+        },
+        {
+            "ReferenceEvent": "EquippedWingForLocalPlayerDiscovered",
+            "Status": "not-implemented",
+            "NormalizedKinds": [],
+            "ReferenceParityVerified": false,
+            "Notes": "Independent decoder and validation fixtures still required."
+        },
+        {
+            "ReferenceEvent": "LoginGearBundleDecoded",
+            "Status": "not-implemented",
+            "NormalizedKinds": [],
+            "ReferenceParityVerified": false,
+            "Notes": "Independent decoder and validation fixtures still required."
+        },
+        {
+            "ReferenceEvent": "GearDetailDecoded",
+            "Status": "not-implemented",
+            "NormalizedKinds": [],
+            "ReferenceParityVerified": false,
+            "Notes": "Independent decoder and validation fixtures still required."
+        },
+        {
+            "ReferenceEvent": "GearChangeDetected",
+            "Status": "not-implemented",
+            "NormalizedKinds": [],
+            "ReferenceParityVerified": false,
+            "Notes": "Independent decoder and validation fixtures still required."
+        },
+        {
+            "ReferenceEvent": "EquippedGearForCharacterDiscovered",
+            "Status": "not-implemented",
+            "NormalizedKinds": [],
+            "ReferenceParityVerified": false,
+            "Notes": "Independent decoder and validation fixtures still required."
+        },
+        {
+            "ReferenceEvent": "LobbyGearListDiscovered",
+            "Status": "not-implemented",
+            "NormalizedKinds": [],
+            "ReferenceParityVerified": false,
+            "Notes": "Independent decoder and validation fixtures still required."
+        }
+    ]
 }

@@ -32,6 +32,7 @@ public sealed record CapturedPayload(int SourcePort, int DestinationPort, byte[]
 {
     public string Connection { get; init; } = "unknown";
     public long? TimestampMs { get; init; }
+    public long? CounterTimestampMs { get; init; }
 }
 
 public sealed record NetworkEvent(string Kind, long Timestamp, string Opcode, JsonElement Fields);

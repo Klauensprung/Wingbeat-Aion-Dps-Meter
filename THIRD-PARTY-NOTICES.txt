@@ -7,14 +7,29 @@ Copyright (c) 2026 SkeeveTV. License: MIT.
 Adapted recovery family IDs in HealingSkills.cs; no runtime dependency.
 License text: licenses/SkeeveTV-MIT.txt.
 
-Optional local skill artwork and NPC labels
-The explicit Update-GameData.ps1 downloader reads the public game-data snapshot:
+Bundled skill display-name metadata
+Source: https://github.com/SkeeveAN/Aion-DPS-Meter/blob/2051f42745da2cac9768467f2e82ff92f4aa678e/Client/assets/aion2/skills/skill_names.json
+SHA256: 8D5E30EDB81D37F8F0735044A7B6EBF98E82CCDF25055BE00752FF90ABDCBA9F
+The 16,899 ID-to-name entries are embedded from Assets/skill-names.json for offline
+startup. Only display metadata is included; no upstream implementation is bundled.
+Game names and text belong to NCSOFT and their respective owners. The source
+repository's MIT code license does not separately license game content.
+Source repository: Copyright (c) 2026 SkeeveTV; see licenses/SkeeveTV-MIT.txt.
+
+Bundled skill artwork and NPC labels
+The application includes 377 PNGs and a 670-family icon mapping in Assets/skill-icons.
+The mapping derives from skill_icon_tokens.json in the snapshot below; image files
+are from its Client/assets/aion2/skills/icons directory.
+The application also embeds 12,587 English NPC template labels from
+Client/assets/aion2/npcs/npc_names.json, projected to ID-to-English-name pairs.
+The explicit Update-GameData.ps1 downloader reads the same public game-data snapshot:
 https://github.com/SkeeveAN/Aion-DPS-Meter/tree/c668aad9832963d6bf45cd3f8062e7172f5ae95c/Client/assets/aion2
 Source repository code: Copyright (c) 2026 SkeeveTV, MIT; see licenses/SkeeveTV-MIT.txt.
 Game names and artwork belong to NCSOFT and their respective owners; the code's
 MIT license does not establish a separate license for those game assets.
-Downloaded data is stored only in local-data, excluded from source publication,
-with a source manifest. The application does not automatically download it.
+Optional downloads are stored in local-data with a source manifest and excluded
+from source publication. Bundled artwork is included in build and publish outputs.
+The application does not automatically download game data.
 NPC wire layout reference was checked against private captures; no upstream
 decoder code was copied.
 PvP display class prefixes and summon-family exclusions were cross-checked
@@ -64,3 +79,27 @@ https://github.com/taengu/A2Tools-DPS-Meter/blob/bf2f3f351c0323e3e3e774e3fb36e97
 
 A license for the newly written project code has not yet been selected.
 The dependency licenses above do not license the project as a whole.
+
+Party-profile and local clock-echo protocol research references:
+https://github.com/Kuroukihime/AIon2-Dps-Meter/blob/42b0ce1c25751eca00608a0e1250b5f0b4ba0f2e/AionDpsMeter.Services/PacketProcessing/Processors/PartyProcessor.cs
+https://github.com/Kuroukihime/AIon2-Dps-Meter/blob/42b0ce1c25751eca00608a0e1250b5f0b4ba0f2e/AionDpsMeter.Services/PacketProcessing/Processors/ServerTimePacketProcessor.cs
+The reference repository is GPL-3.0 licensed. No source implementation from it
+is bundled or used as a build dependency. Wingbeat's bounded readers implement
+the observed wire fields and reject unsupported layouts. The party latency
+state is not interpreted as another player's ping in milliseconds.
+
+Local-player CP field research:
+RATmeter 1.11.3.320, BasePlayerInfoProcessor.cs and PlayerInfoProcessor.cs:
+https://github.com/Kuroukihime/AIon2-Dps-Meter
+The reference searches for adjacent current/peak CP uint64 fields. Wingbeat uses
+an independently validated EU record-end offset, with range and ordering checks,
+rather than importing that implementation. Other-player spawn records do not
+supply CP in this reference; party profiles remain the source for other players.
+
+Additional wire-field research from RATmeter 1.11.3.320:
+PlayerStatsProcessor.cs, StatIds.cs, SkillCdProcessor.cs, RemainHpProcessor.cs,
+GlobalIdLinkingProcessor.cs and EntityDeathProcessor.cs in the same repository.
+Stat ID labels/units and field layouts are used as protocol facts. The new readers
+are bounded implementations with EU capture checks; upstream source is not bundled.
+The EU stats trailer is retained as opaque, not interpreted as a stat. Only short
+04 8D records are treated as death; longer EU identity responses keep their meaning.

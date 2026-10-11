@@ -109,7 +109,7 @@ internal sealed class CharacterEditor : Window
                 throw new InvalidDataException("Check character class, CP and server values.");
             if (row.Id == original.LocalPlayer && !row.Player) throw new InvalidDataException("Your detected character must remain a player.");
             bool changed = row.Player != actor.Player || row.Class != actor.Job || row.CP != actor.Cp || row.Server != actor.Server;
-            edited.Actors[row.Id] = actor with { Player = row.Player, Party = false, Cp = row.CP, Job = row.Class, Server = row.Server, ProfileSource = changed ? "Entered locally" : actor.ProfileSource };
+            edited.Actors[row.Id] = actor with { Player = row.Player, Party = false, Cp = row.CP, CpSource = row.CP != actor.Cp ? "Entered locally" : actor.CpSource, Job = row.Class, Server = row.Server, ProfileSource = changed ? "Entered locally" : actor.ProfileSource };
             var specs = skills.Where(s => s.ActorId == row.Id).Select(s => new Spec(s.SkillId, s.Level,
                 s.Choices.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).Select(int.Parse).ToArray())).ToArray();
             var equipment = gear.Where(g => g.ActorId == row.Id).ToDictionary(g => g.Slot.Trim(), g => g.Item.Trim());

@@ -8,7 +8,9 @@ public sealed record Actor(int Id, string Name, bool Player, bool Party, int Cp,
 {
     // Optional metadata keeps old saved fights compatible. Id is the live entity ID.
     public int NpcId { get; init; }
+    public uint CharacterId { get; init; }
     public string ProfileSource { get; init; } = "Captured";
+    public string CpSource { get; init; } = "Unknown";
 }
 public sealed record Spec(int Skill, int Level, int[] Choices);
 public sealed class Fight
@@ -29,20 +31,32 @@ public sealed class Fight
     public bool PartyKnown { get; set; }
     public string PartySource { get; set; } = "Not captured";
     public LootEnergyEvent? Energy { get; set; }
+    public PartyProfile[] PartyProfiles { get; set; } = [];
+    public PingReading? LocalPing { get; set; }
+    public PlayerStatReading? LocalStats { get; set; }
     public long Start => Damage.Select(e => e.Timestamp).Concat(Healing.Select(e => e.Timestamp)).Concat(Defense.Select(e => e.Timestamp)).DefaultIfEmpty(0).Min();
     public long End => Damage.Select(e => e.Timestamp).Concat(Healing.Select(e => e.Timestamp)).Concat(Defense.Select(e => e.Timestamp)).DefaultIfEmpty(0).Max();
     public double Seconds => Math.Max(1, (End - Start) / 1000d);
-    public string Name(int id) => Actors.TryGetValue(id, out var a) && !string.IsNullOrWhiteSpace(a.Name) ? a.Name : $"Entity {id}";
+    public string Name(int id)
+    {
+        if (!Actors.TryGetValue(id, out var actor) || string.IsNullOrWhiteSpace(actor.Name)) return $"Entity {id}";
+        if (actor.NpcId > 0 && (actor.Name == $"NPC {actor.NpcId}" || actor.Name == $"Entity {id}"))
+            return NpcNames.Default.GetName(actor.NpcId);
+        return actor.Name;
+    }
     public bool HasEvents => Damage.Count + Healing.Count + Defense.Count > 0;
-    public bool HasRecordedData => HasEvents || Network.Count > 0 || Energy != null || Builds.Count > 0 || PartyKnown || Actors.Values.Any(a => a.ProfileSource == "Entered locally");
+    public bool HasRecordedData => HasEvents || LocalStats != null || Network.Count > 0 || Energy != null || Builds.Count > 0 || PartyKnown || Actors.Values.Any(a => a.ProfileSource == "Entered locally");
     public Fight Copy() => new() { Version = Version, Id = Id, Label = Label, Created = Created, Demo = Demo, LocalPlayer = LocalPlayer,
-        Actors = new(Actors), Damage = new(Damage), Healing = new(Healing), Defense = new(Defense), Network = new(Network),
+        Actors = new(Actors), Damage = new(Damage), Healing = new(Healing), Defense = new(Defense), Network = new(Network), PartyProfiles = [..PartyProfiles], LocalPing = LocalPing, LocalStats = CharacterReadings.Copy(LocalStats),
         Specs = Specs.ToDictionary(p => p.Key, p => p.Value with { Choices = p.Value.Choices.ToArray() }), Energy = Energy,
         Builds = Builds.ToDictionary(p => p.Key, p => FightMetadata.Copy(p.Value)), PartyKnown = PartyKnown, PartySource = PartySource };
 }
 
 public sealed record TotalRow(int Id, string Character, string Role, int CP, long Damage, double DPS, long Healing, double HPS, double CritPercent);
-public sealed record SkillRow(string Character, string Skill, int SkillCode, int Hits, long Damage, double DPS, double CritPercent);
+public sealed record SkillRow(string Character, string Skill, int SkillCode, int Hits, long Damage, double DPS, double CritPercent)
+{
+    public double DamageShare { get; init; }
+}
 public sealed record OpponentRow(int Id, string Opponent, string Identity, long DamageToUs, long DamageFromUs, double DPS, long Healing);
 public sealed record DefenseRow(string Character, int OutgoingHits, int Avoided, double? LandedPercent, int Blocked, int Parried, int Evaded, int Resisted, long DamageTaken, double DamageTakenPerSecond);
 public sealed record TimelineMark(int ActorId, int SkillCode, int Damage, double Seconds, double Fraction, bool Healing = false);
@@ -116,6 +130,9 @@ public sealed class FightStore
         if (f.Network == null || f.Network.Count > 250000 || f.Network.Any(e => e == null || e.Timestamp < 0 || string.IsNullOrWhiteSpace(e.Kind) || string.IsNullOrWhiteSpace(e.Opcode) || e.Fields.ValueKind != JsonValueKind.Object)) throw new InvalidDataException("Invalid network event data.");
         if (f.Actors.Values.Any(a => a.NpcId < 0 || (a.NpcId > 0 && a.Player))) throw new InvalidDataException("Invalid NPC identity metadata.");
         if (f.Builds == null || f.PartySource == null || f.Builds.Count > 512 || f.Actors.Values.Any(a => a.Cp < 0 || a.Server < 0 || a.ProfileSource == null)) throw new InvalidDataException("Invalid character metadata.");
+        PlayerTelemetry.Validate(f.PartyProfiles);
+        if (f.LocalStats != null) CharacterReadings.Validate(f.LocalStats);
+        if (f.LocalPing is { } ping && (ping.Milliseconds is < 0 or > 1000 || ping.Timestamp < 0 || string.IsNullOrWhiteSpace(ping.Source))) throw new InvalidDataException("Invalid local ping metadata.");
         foreach (var (id, build) in f.Builds) { if (build == null || id != build.ActorId || f.Actors.GetValueOrDefault(id)?.Player != true) throw new InvalidDataException("Invalid loadout owner."); FightMetadata.Validate(build); }
         if (f.PartyKnown)
         {

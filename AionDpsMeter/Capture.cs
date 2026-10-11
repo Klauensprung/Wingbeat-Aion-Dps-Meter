@@ -57,7 +57,9 @@ public sealed class LocalCapture : IDisposable
                             if (recordedBytes + raw.Data.Length + 16 <= 256L * 1024 * 1024) { recorder.Write(raw); recordedBytes += raw.Data.Length + 16; }
                             else { recorder.Close(); recorder = null; LastError = "Sample reached 256 MB; recording stopped. Capture diagnostics continue."; }
                         }
-                        Process(raw);
+                        // Driver timestamps can be a fraction ahead of wall time.
+                        // Fall back to callback arrival, never discard the live clock.
+                        Process(raw, (long)(Stopwatch.GetElapsedTime(0, queued.Arrived).TotalMilliseconds - Math.Max(0, queued.CaptureAgeMs)));
                     }
                     catch (Exception ex) { LastError = ex.Message; Interlocked.Increment(ref errors); }
                     finally {
@@ -83,7 +85,7 @@ public sealed class LocalCapture : IDisposable
         if (!queue.Writer.TryWrite(new(raw, arrived, age))) Interlocked.Increment(ref dropped);
         else Interlocked.Exchange(ref peakQueued, Math.Max(Volatile.Read(ref peakQueued), queue.Reader.Count));
     }
-    void Process(RawCapture raw)
+    void Process(RawCapture raw, long? counterTimestampMs)
     {
         var packet = Packet.ParsePacket(raw.LinkLayerType, raw.Data);
         var tcp = packet.Extract<TcpPacket>();
@@ -105,7 +107,7 @@ public sealed class LocalCapture : IDisposable
             streams[key] = stream = new TcpAssembler();
         }
         foreach (var bytes in stream.Push(tcp.SequenceNumber, tcp.PayloadData))
-            consume(new CapturedPayload(tcp.SourcePort, tcp.DestinationPort, bytes, device.Name) { Connection = key, TimestampMs = new DateTimeOffset(raw.Timeval.Date.ToUniversalTime()).ToUnixTimeMilliseconds() });
+            consume(new CapturedPayload(tcp.SourcePort, tcp.DestinationPort, bytes, device.Name) { Connection = key, TimestampMs = new DateTimeOffset(raw.Timeval.Date.ToUniversalTime()).ToUnixTimeMilliseconds(), CounterTimestampMs = counterTimestampMs });
     }
     public void Dispose()
     {

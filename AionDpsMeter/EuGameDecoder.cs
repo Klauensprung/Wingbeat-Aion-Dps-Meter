@@ -40,14 +40,14 @@ public sealed class EuGameDecoder(int serverPort = 13328, IReadOnlySet<int>? hea
         var events = new List<DecodedCombatEvent>();
         try
         {
-            foreach (var record in stream.Push(payload.Data)) DecodeRecord(record, payload.TimestampMs ?? DateTimeOffset.UtcNow.ToUnixTimeMilliseconds(), events, 0);
+            foreach (var record in stream.Push(payload.Data)) DecodeRecord(record, payload.TimestampMs ?? DateTimeOffset.UtcNow.ToUnixTimeMilliseconds(), events, 0, payload.CounterTimestampMs);
         }
         catch (InvalidDataException ex) { FramingErrors++; streams.Remove(key); return new(DecodeState.Rejected, [], ex.Message); }
         foreach (var e in events) eventsByKind[e.Network?.Kind ?? e.Kind] = eventsByKind.GetValueOrDefault(e.Network?.Kind ?? e.Kind) + 1;
         return new(DecodeState.Recognized, events, "Experimental bounded record decoding.");
     }
 
-    void DecodeRecord(byte[] record, long time, List<DecodedCombatEvent> events, int depth)
+    void DecodeRecord(byte[] record, long time, List<DecodedCombatEvent> events, int depth, long? counterTime)
     {
         if (depth == 0) { expandedBudget = 8 * GameRecordStream.Limit; nestedBudget = 32768; }
         if (depth > 4 || --nestedBudget < 0) { RejectedRecords++; return; }
@@ -72,12 +72,45 @@ public sealed class EuGameDecoder(int serverPort = 13328, IReadOnlySet<int>? hea
                 var inner = new GameRecordStream(); var children = inner.Push(body);
                 if (inner.PendingBytes != 0) throw new InvalidDataException("Incomplete records in bundle.");
                 Bundles++;
-                foreach (var child in children) DecodeRecord(child, time, staged, depth + 1);
+                foreach (var child in children) DecodeRecord(child, time, staged, depth + 1, counterTime);
             }
             else
             {
                 switch (opcode)
                 {
+                    case 0x4936:
+                    {
+                        var stats = CharacterReadings.Stats(ref reader, time);
+                        staged.Add(new("player-stats", Stats: stats));
+                        Emit(staged, "player-stats", time, hex, new { stats.Values });
+                        break;
+                    }
+                    case 0x2036:
+                    {
+                        reader.Take(2); int entity = Positive(reader.Var()); reader.Take(4); uint character = reader.U32();
+                        if (character == 0) throw new InvalidDataException("Empty global character ID.");
+                        staged.Add(new("character-link", Link: new(entity, character)));
+                        Emit(staged, "character-link", time, hex, new { EntityId = entity, CharacterId = character });
+                        break;
+                    }
+                    case 0x4738:
+                    {
+                        int count = reader.Byte();
+                        var seen = new HashSet<uint>();
+                        for (int i = 0; i < count; i++) {
+                            uint skill = reader.U32(); int remaining = reader.Var();
+                            if (skill is 0 or > int.MaxValue || remaining > 86400000 || !seen.Add(skill)) throw new InvalidDataException("Invalid skill cooldown.");
+                            Emit(staged, "skill-cooldown", time, hex, new { SkillCode = (int)skill, RemainingMs = remaining });
+                        }
+                        if (reader.Remaining != 0) throw new InvalidDataException("Unknown cooldown trailer.");
+                        break;
+                    }
+                    case 0x0297:
+                        staged.Add(new("party-profiles", Profiles: PlayerTelemetry.ReadParty(ref reader)));
+                        break;
+                    case 0x0336:
+                        if (PlayerTelemetry.ReadPing(ref reader, time, counterTime) is { } ping) staged.Add(new("ping", Ping: ping));
+                        break;
                     case 0x0438: Hit(ref reader, time, staged, hex); break;
                     case 0x0538: RecoveryTick(ref reader, time, staged, hex); break;
                     case 0x4136:
@@ -97,7 +130,8 @@ public sealed class EuGameDecoder(int serverPort = 13328, IReadOnlySet<int>? hea
                     {
                         int entity = Positive(reader.Var());
                         if (!reader.Take(3).SequenceEqual(new byte[] { 2, 1, 0 })) throw new InvalidDataException("Unknown HP layout.");
-                        uint hp = reader.U32();
+                        ulong hp = reader.Remaining switch { 4 => reader.U32(), 8 => reader.U64(), _ => throw new InvalidDataException("Unknown HP value width.") };
+                        if (hp > long.MaxValue) throw new InvalidDataException("Invalid HP value.");
                         Emit(staged, "hp", time, hex, new { EntityId = entity, CurrentHp = hp }); break;
                     }
                     case 0x0638:
@@ -109,7 +143,11 @@ public sealed class EuGameDecoder(int serverPort = 13328, IReadOnlySet<int>? hea
                     }
                     case 0x048d:
                     {
-                        int target = reader.Var(); reader.Take(4); int actor = reader.Var(); int server = reader.U16();
+                        int target = reader.Var();
+                        if (reader.Remaining == 0) {
+                            Emit(staged, "entity-death", time, hex, new { EntityId = Positive(target) }); break;
+                        }
+                        reader.Take(4); int actor = reader.Var(); int server = reader.U16();
                         // Empty target/appearance responses are not malformed player names.
                         if (actor == 0 || server == 0) break;
                         string name = PlayerIdentity.Name(ref reader);

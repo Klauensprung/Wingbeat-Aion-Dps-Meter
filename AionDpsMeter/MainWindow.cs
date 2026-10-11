@@ -155,7 +155,7 @@ public sealed class MainWindow : Window
         party.Children.Add(new Expander { Header = "Full breakdown · all actors", Content = grids["Party"], Margin = new(8, 2, 8, 12) });
         party.Children.Insert(1, CharacterDetailsHeader(partySummary));
         overview.ActorSelected += FocusActor;
-        AddTab("Skills", "Damage per skill for every observed actor. Pet damage is attributed when its owner was discovered. Hits are damage events, not cast counts.");
+        AddTab("Skills", "Damage per skill for every observed actor. Bar width and Damage % show the share of damage in the current character filter. Pet damage is attributed when its owner was discovered. Hits are damage events, not cast counts.");
         var pvp = AddTab("PvP", "Damage exchanged with you or your captured party. Opponents appear before their name arrives when their character skills identify them; these rows are marked name pending. Known NPCs and summon-only skills are excluded. Both sides use the same PvP damage window. Party membership and pet ownership must be captured to attribute their exchanges.");
         var pvpHeader = new DockPanel { LastChildFill = true };
         var lastPvp = Button("Last saved PvP fight", ShowLastPvp); DockPanel.SetDock(lastPvp, Dock.Right);
@@ -164,7 +164,7 @@ public sealed class MainWindow : Window
         pvp.Children.Insert(2, new ScrollViewer { Content = pvpMeter, MaxHeight = 300, VerticalScrollBarVisibility = ScrollBarVisibility.Auto, HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled });
         pvpMeter.ActorSelected += FocusActor;
         AddTab("Defense", "Observed hits and avoided outcomes. Landed % is an event-based estimate, not a game accuracy stat; block/parry events are shown separately.");
-        AddTab("Healing", "Beta: observed healing per healer, skill and recipient. Overhealing and effective healing are unavailable unless the protocol provides them.");
+        AddTab("Healing", "Beta: observed healing per healer, skill and recipient. Bars and Healing % show each row's share within the current character filter. Overhealing and effective healing are unavailable unless the protocol provides them.");
         var rotation = AddTab("Rotations", "Zoom with + / − or Ctrl + mouse wheel over the timeline; Fit fight shows everything. Inspect damage and healing anywhere across a player's lane. Click an event to pin details, then step with Left/Right. Zooming holds the view while capture continues; Follow latest / Escape resumes live updates. Each mark is an event, not an inferred cast.");
         rotation.Children.Remove(grids["Rotations"]);
         rotationView = new(grids["Rotations"], code => skills.GetSkillName(code), skillIcons.Find); rotation.Children.Add(rotationView);
@@ -188,6 +188,8 @@ public sealed class MainWindow : Window
         AddDetail(cohortPanel, "Cohort specs", "Skill levels and choices · complete supplied loadouts");
         AddDetail(cohortPanel, "Cohort equipment", "Equipment · supplied loadouts");
         AddDetail(cohortPanel, "Cohort openers", "First recorded skills · damage and healing");
+        AddTab("Player stats", "Latest captured stats for your local character, saved with the fight. Unknown stat IDs retain their raw values. These packets do not describe every nearby player.");
+        AddTab("Cooldowns", "Last reported skill cooldowns for your local character. Remaining time is the value when the packet arrived, not a running countdown.");
         AddTab("Network events", "Latest decoded HP, buffs, casts, guard and dungeon events. These are stored with the fight. Unsupported records do not appear as decoded events.");
         tabs.SelectionChanged += (_, e) => { if (ReferenceEquals(e.Source, tabs)) Refresh(); };
         character.TextChanged += (_, _) => Refresh();
@@ -329,13 +331,19 @@ public sealed class MainWindow : Window
         var panel = new StackPanel();
         panel.Children.Add(new Expander { Header = "About this view", Foreground = UiTheme.Brush("#93A2B8"), FontSize = 11, Margin = new(8, 4, 8, 8), Content = new TextBlock { Text = help, TextWrapping = TextWrapping.Wrap, Margin = new(6, 10, 6, 6) } });
         var grid = new LiveTable { IsReadOnly = true, AutoGenerateColumns = true, CanUserAddRows = false, CanUserDeleteRows = false, EnableRowVirtualization = true, EnableColumnVirtualization = true, MaxHeight = 550, MinHeight = 120, RowHeight = 38, HeadersVisibility = DataGridHeadersVisibility.Column, Margin = new(8), GridLinesVisibility = DataGridGridLinesVisibility.None, BorderThickness = new(0) };
+        if (title == "Player stats") grid.RowHeight = 58;
         grid.ColumnWidth = new DataGridLength(1, DataGridLengthUnitType.Star);
         grid.AutoGeneratingColumn += (_, e) => {
+            if (title == "Player stats") {
+                if (e.PropertyName is "Stat" or "Value") e.Column = StatPresentation.Column(e.PropertyName);
+                else e.Cancel = true;
+                return;
+            }
             e.Column.Header = ColumnHeader(e.PropertyName);
             if (e.PropertyName is "Id" or "FightId" or "ActorId") e.Cancel = true;
             if (title == "Trends" && e.PropertyName is "Character" or "Job" or "Server") e.Cancel = true;
             if (title == "Report card" && e.PropertyName == "Encounter" || title == "Top 5%" && e.PropertyName == "Tier" || title == "Top cohort" && e.PropertyName == "Code") e.Cancel = true;
-            if (e.PropertyName == "SkillCode" && title is "Healing" or "Rotations") e.Cancel = true;
+            if (e.PropertyName == "SkillCode" && title is "Skills" or "Healing" or "Rotations") e.Cancel = true;
             if (e.PropertyName == "Skill" && title is "Skills" or "Healing" or "Specs" or "Openers" or "Rotations")
             {
                 var row = new FrameworkElementFactory(typeof(DockPanel));
@@ -366,6 +374,8 @@ public sealed class MainWindow : Window
             if (title == "Top 5%") { e.Column.MinWidth = 65; e.Column.Width = e.PropertyName switch { "Metric" => 270, "Unit" => 105, "Samples" => 70, _ => 110 }; }
             if (title == "Top cohort" && e.PropertyName == "Skill") e.Column.Width = 230;
             if (title == "Report card") { e.Column.MinWidth = 75; e.Column.Width = e.PropertyName switch { "Character" => 150, "Status" => 370, "DPS" => 75, _ => 115 }; }
+            if (e.PropertyName == "HealingShare") { e.Column.Header = "Healing %"; e.Column.Width = 100; e.Column.DisplayIndex = 5; }
+            if (e.PropertyName == "DamageShare") { e.Column.Header = "Damage %"; e.Column.Width = 100; }
             if (e.PropertyName == "LandedPercent") e.Column.Header = "Observed landed %";
             if (e.PropertyName == "HealerShare") e.Column.Header = "Healer share %";
             if (e.PropertyName == "LocalPercentile") e.Column.Header = "Local percentile";
@@ -379,6 +389,7 @@ public sealed class MainWindow : Window
             if (e.Column is DataGridTextColumn textColumn && textColumn.Binding is System.Windows.Data.Binding binding)
             {
                 if (e.PropertyType == typeof(double) || e.PropertyType == typeof(double?)) binding.StringFormat = "N1";
+                if (e.PropertyName is "DamageShare" or "HealingShare") binding.StringFormat = "{0:0.0}%";
                 if (e.PropertyName is "Damage" or "Healing" or "Dealt" or "Received" or "DamageTaken" or "DamageToUs" or "DamageFromUs") binding.StringFormat = "N0";
             }
         };
@@ -583,6 +594,8 @@ public sealed class MainWindow : Window
             grid.Background = UiTheme.Brush("#121B28"); grid.Foreground = Foreground;
             grid.RowBackground = UiTheme.Brush("#182231"); grid.AlternatingRowBackground = UiTheme.Brush("#121B28");
         }
+        if (grids.TryGetValue("Skills", out var skillGrid)) SkillDamageDisplay.Apply(skillGrid, preferences.Accent);
+        if (grids.TryGetValue("Healing", out var healingGrid)) SkillDamageDisplay.Apply(healingGrid, preferences.Accent, nameof(HealingRow.HealingShare));
     }
     internal static SolidColorBrush Brush(string color) => new((Color)ColorConverter.ConvertFromString(color));
     bool Matches(string name) => name.Contains(character.Text, StringComparison.OrdinalIgnoreCase);
@@ -621,7 +634,7 @@ public sealed class MainWindow : Window
                 overview.Update(meterData.Rows.Where(r => Matches(r.Name)).ToArray(), compact: true, hasEvents: f.HasEvents, emptyText: character.Text.Length > 0 ? "No matching players" : null);
                 partySummary.Text = f.PartyKnown || f.Actors.Values.Any(a => a.Party) ? $"{f.Actors.Values.Count(a => a.Party || a.Id == f.LocalPlayer)} party players" : "Known players · party roster not set";
                 partySummary.ToolTip = "Idle and healing-only party members stay visible. Roster: " + f.PartySource; break;
-            case "Skills": Set(tab, Analysis.Skills(f, skills.GetSkillName).Where(r => Matches(r.Character)).ToArray()); break;
+            case "Skills": Set(tab, SkillDamageDisplay.Shares(Analysis.Skills(f, skills.GetSkillName).Where(r => Matches(r.Character)))); break;
             case "PvP":
                 var pvp = displayedPvp;
                 Set(tab, pvp.Opponents);
@@ -632,7 +645,7 @@ public sealed class MainWindow : Window
                 dpsValue.Text = MeterPresentation.Number(pvp.YourDamage / pvp.Seconds); dpsValue.ToolTip = "Your DPS over the shared PvP window";
                 durationValue.Text = MeterPresentation.Duration(pvp.HasOpponents ? pvp.Seconds : 0); break;
             case "Defense": Set(tab, Analysis.Defense(f).Where(r => Matches(r.Character)).ToArray()); break;
-            case "Healing": Set(tab, DetailedAnalysis.Healing(f, skills.GetSkillName).Where(r => Matches(r.Healer))); break;
+            case "Healing": Set(tab, SkillDamageDisplay.Shares(DetailedAnalysis.Healing(f, skills.GetSkillName).Where(r => Matches(r.Healer)))); break;
             case "Rotations":
                 DrawTimeline(f, totals); break;
             case "Openers": Set(tab, DetailedAnalysis.Openers(f, skills.GetSkillName).Where(r => Matches(r.Character))); break;
@@ -640,6 +653,8 @@ public sealed class MainWindow : Window
             case "Saved fights": Set(tab, archive.Where(a => Matches(a.Label) || a.Actors.Values.Any(p => p.Player && Matches(p.Name))).Select(a => new SavedRow(a.Id, a.Created.ToLocalTime(), a.Label, a.Demo, a.Damage.Count + a.Healing.Count, Math.Round(a.Seconds, 1))).ToArray()); break;
             case "Trends": RefreshTrends(); break;
             case "Report card": Set(tab, Benchmarks.Report(f, archive).Where(r => Matches(r.Character)).ToArray()); break;
+            case "Player stats": Set(tab, CharacterReadings.Rows(f.LocalStats)); break;
+            case "Cooldowns": Set(tab, CharacterReadings.Cooldowns(f.Network, skills)); break;
             case "Network events": Set(tab, f.Network.TakeLast(500).Reverse().Select(e => new { e.Timestamp, e.Kind, e.Opcode, Fields = e.Fields.GetRawText() }).ToArray()); break;
             case "Top cohort":
                 var focus = ComparisonActor(f, totals); var cohortPeers = focus == null ? [] : Benchmarks.Peers(f, focus, archive);
@@ -685,6 +700,10 @@ public sealed class MainWindow : Window
     internal void RunVisualSmokeTest()
     {
         Directory.CreateDirectory("test-artifacts");
+        if (viewed?.Demo == true) {
+            viewed.LocalStats = new(1000, new() { [19] = 1234, [425] = 1250, [65000] = -20 });
+            viewed.Network.Add(new("skill-cooldown", 1000, "47 38", System.Text.Json.JsonSerializer.SerializeToElement(new { SkillCode = 17100000, RemainingMs = 3500 })));
+        }
         var setupDialog = NpcapSetup.CreateDialog(this);
         try { setupDialog.Show(); setupDialog.UpdateLayout(); Render(setupDialog, "test-artifacts/Npcap-setup.png"); }
         finally { setupDialog.Close(); }
@@ -706,7 +725,9 @@ public sealed class MainWindow : Window
                 var content = skillColumn.GetCellContent(grid.Items[0]);
                 if (content == null || !VisualImages(content).Any(i => i.Source != null)) throw new Exception("Skill cell did not render its icon or fallback.");
             }
-            if (tab.Header.ToString() is "Party" or "Rotations" or "Skills" or "Healing" or "PvP") Render(this, System.IO.Path.Combine("test-artifacts", tab.Header + ".png"));
+            if (tab.Header.ToString() == "Player stats" && grids["Player stats"].Items.Count != 3) throw new Exception("Player stats view did not populate.");
+            if (tab.Header.ToString() == "Cooldowns" && grids["Cooldowns"].Items.Count != 1) throw new Exception("Cooldown view did not populate.");
+            if (tab.Header.ToString() is "Party" or "Rotations" or "Skills" or "Healing" or "PvP" or "Player stats" or "Cooldowns") Render(this, System.IO.Path.Combine("test-artifacts", tab.Header + ".png"));
         }
         if (grids["Party"].Items.Count != 13 || grids["PvP"].Items.Count != 3) throw new Exception("Demo grids failed to populate.");
         string oldTheme = preferences.Theme;

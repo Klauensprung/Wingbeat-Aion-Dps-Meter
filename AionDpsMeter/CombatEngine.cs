@@ -47,7 +47,7 @@ public sealed class CombatEngine
                     {
                         if (Fight.HasRecordedData) completed.Enqueue(Snapshot());
                         NewFight(Fight.Label);
-                        Fight.Actors.Clear(); Fight.Specs.Clear(); Fight.Builds.Clear(); Fight.PartyKnown = false; Fight.PartySource = "Not captured"; Fight.LocalPlayer = local.Id;
+                        Fight.Actors.Clear(); Fight.Specs.Clear(); Fight.Builds.Clear(); Fight.PartyProfiles = []; Fight.LocalPing = null; Fight.LocalStats = null; Fight.PartyKnown = false; Fight.PartySource = "Not captured"; Fight.LocalPlayer = local.Id;
                     }
                     UpdateActor(local); break;
                 case "damage" when item.Damage != null: RecordDamage(item.Damage, false); break;
@@ -55,6 +55,24 @@ public sealed class CombatEngine
                 case "defense" when item.Defense != null:
                     BeginEvent(item.Defense.Timestamp); EnsureActor(item.Defense.ActorId); EnsureActor(item.Defense.TargetId); Fight.Defense.Add(item.Defense); revision++; break;
                 case "energy" when item.Energy != null: Fight.Energy = item.Energy; revision++; break;
+                case "player-stats" when item.Stats != null:
+                    CharacterReadings.Validate(item.Stats);
+                    if (Fight.LocalStats == null || item.Stats.Timestamp >= Fight.LocalStats.Timestamp) {
+                        Fight.LocalStats = CharacterReadings.Copy(item.Stats); revision++;
+                    }
+                    break;
+                case "character-link" when item.Link is { EntityId: > 0, CharacterId: > 0 } link:
+                    EnsureActor(link.EntityId);
+                    if (Fight.Actors[link.EntityId].NpcId == 0) {
+                        Fight.Actors[link.EntityId] = Fight.Actors[link.EntityId] with { CharacterId = link.CharacterId };
+                        PlayerTelemetry.ApplyProfiles(Fight); revision++;
+                    }
+                    break;
+                case "party-profiles" when item.Profiles != null:
+                    PlayerTelemetry.Validate(item.Profiles); Fight.PartyProfiles = [..item.Profiles]; PlayerTelemetry.ApplyProfiles(Fight); revision++; break;
+                case "ping" when item.Ping is { Milliseconds: >= 0 and <= 1000, Timestamp: >= 0, Source.Length: > 0 } ping:
+                    if (Fight.LocalPing == null || ping.Timestamp >= Fight.LocalPing.Timestamp) { Fight.LocalPing = ping; revision++; }
+                    break;
                 case "party" when item.Party != null: FightMetadata.SetRoster(Fight, item.Party); revision++; break;
                 case "build" when item.Build != null: FightMetadata.SetBuild(Fight, item.Build); revision++; break;
                 case "network" when item.Network != null:
@@ -79,12 +97,19 @@ public sealed class CombatEngine
                 Fight.Builds.Remove(actor.Id);
             }
             else
+            {
+                if (previous.Cp > 0 && (previous.CpSource == "Entered locally" ||
+                    (previous.CpSource == "Unknown" && previous.ProfileSource == "Entered locally")))
+                    actor = actor with { Cp = previous.Cp, CpSource = previous.CpSource };
                 actor = actor with { Player = actor.Player || previous.Player, Party = actor.Party || previous.Party,
                     Cp = actor.Cp > 0 ? actor.Cp : previous.Cp, Job = actor.Job == "Unknown" ? previous.Job : actor.Job,
+                    CpSource = actor.Cp > 0 ? actor.CpSource : previous.CpSource,
+                    CharacterId = actor.CharacterId > 0 ? actor.CharacterId : previous.CharacterId,
                     Server = actor.Server > 0 ? actor.Server : previous.Server, NpcId = actor.NpcId > 0 ? actor.NpcId : previous.NpcId,
                     ProfileSource = actor.Cp == 0 && actor.Job == "Unknown" ? previous.ProfileSource : actor.ProfileSource };
+            }
         }
-        Fight.Actors[actor.Id] = actor; identityEvents++; revision++;
+        Fight.Actors[actor.Id] = actor; PlayerTelemetry.ApplyProfiles(Fight); identityEvents++; revision++;
     }
     internal void RecordDamage(DamageEvent damage, bool healing)
     {
@@ -133,7 +158,7 @@ public sealed class CombatEngine
         lock (Gate)
         {
             var previous = Fight;
-            Fight = new() { Label = label, LocalPlayer = previous.LocalPlayer, Actors = new(previous.Actors), Specs = new(previous.Specs), Energy = previous.Energy,
+            Fight = new() { Label = label, LocalPlayer = previous.LocalPlayer, Actors = new(previous.Actors), Specs = new(previous.Specs), Energy = previous.Energy, PartyProfiles = [..previous.PartyProfiles], LocalPing = previous.LocalPing, LocalStats = CharacterReadings.Copy(previous.LocalStats),
                 Builds = previous.Builds.ToDictionary(p => p.Key, p => FightMetadata.Copy(p.Value)), PartyKnown = previous.PartyKnown, PartySource = previous.PartySource };
             lastEvent = 0;
             revision++;

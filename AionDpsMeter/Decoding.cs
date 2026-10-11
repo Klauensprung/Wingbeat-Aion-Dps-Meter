@@ -5,7 +5,7 @@ using System.Text.Json;
 namespace AionDpsMeter.Local;
 
 public enum DecodeState { Unsupported, Recognized, Rejected }
-public sealed record DecodedCombatEvent(string Kind, Actor? Actor = null, DamageEvent? Damage = null, DefenseEvent? Defense = null, LootEnergyEvent? Energy = null, NetworkEvent? Network = null, PartyRoster? Party = null, ActorBuild? Build = null);
+public sealed record DecodedCombatEvent(string Kind, Actor? Actor = null, DamageEvent? Damage = null, DefenseEvent? Defense = null, LootEnergyEvent? Energy = null, NetworkEvent? Network = null, PartyRoster? Party = null, ActorBuild? Build = null, PartyProfile[]? Profiles = null, PingReading? Ping = null, PlayerStatReading? Stats = null, CharacterLink? Link = null);
 public sealed record DecodeResult(DecodeState State, IReadOnlyList<DecodedCombatEvent> Events, string Detail);
 
 public interface IGamePacketDecoder
@@ -42,12 +42,18 @@ public static class CombatEventFile
                 "defense" => item.Defense is { Timestamp: >= 0 } d && Enum.IsDefined(d.Outcome),
                 "energy" => item.Energy is { Daily: >= 0, Bonus: >= 0, TimestampMs: >= 0 },
                 "network" => item.Network is { Timestamp: >= 0, Kind.Length: > 0, Opcode.Length: > 0 } n && n.Fields.ValueKind == JsonValueKind.Object,
+                "player-stats" => item.Stats != null,
+                "character-link" => item.Link is { EntityId: > 0, CharacterId: > 0 },
                 "party" => item.Party != null,
                 "build" => item.Build != null,
+                "party-profiles" => item.Profiles != null,
+                "ping" => item.Ping is { Milliseconds: >= 0 and <= 1000, Timestamp: >= 0, Source.Length: > 0 },
                 _ => false
             };
             if (!valid) throw new InvalidDataException($"Invalid normalized event at record {events.Count + 1}.");
+            if (item.Stats != null) CharacterReadings.Validate(item.Stats);
             if (item.Party != null) FightMetadata.Validate(item.Party);
+            if (item.Profiles != null) PlayerTelemetry.Validate(item.Profiles);
             if (item.Build != null) FightMetadata.Validate(item.Build);
             events.Add(item);
         }

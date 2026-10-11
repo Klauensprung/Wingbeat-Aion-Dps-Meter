@@ -10,6 +10,13 @@ internal ref struct WireReader(ReadOnlySpan<byte> bytes)
     readonly ReadOnlySpan<byte> bytes = bytes;
     public int Position { get; private set; }
     public int Remaining => bytes.Length - Position;
+    byte bitBuffer;
+    int bitsLeft;
+    public bool Bit()
+    {
+        if (bitsLeft == 0) { bitBuffer = Byte(); bitsLeft = 8; }
+        bool value = (bitBuffer & 1) != 0; bitBuffer >>= 1; bitsLeft--; return value;
+    }
     public ReadOnlySpan<byte> Take(int length)
     {
         if (length < 0 || length > Remaining) throw new InvalidDataException("Truncated game record.");

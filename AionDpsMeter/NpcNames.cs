@@ -13,13 +13,25 @@ public sealed class NpcNames
     public int Count => names.Count;
     public string? LoadError { get; }
 
-    public NpcNames(string? path = null)
+    public NpcNames(string? path = null) : this(path ?? LocalPath, path == null) { }
+
+    internal NpcNames(string path, bool includeBundled)
     {
-        try { names = SkillNames.Read(path ?? LocalPath, "NPC names").ToFrozenDictionary(); }
-        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or JsonException or InvalidDataException)
-        {
-            names = FrozenDictionary<int, string>.Empty; LoadError = ex.Message;
+        var loaded = new Dictionary<int, string>(); var errors = new List<string>();
+        if (includeBundled) {
+            try {
+                using var stream = typeof(NpcNames).Assembly.GetManifestResourceStream("Wingbeat.NpcNames.json")
+                    ?? throw new InvalidDataException("Bundled NPC names are missing.");
+                loaded = SkillNames.Read(stream, "Bundled NPC names");
+            }
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or JsonException or InvalidDataException) { errors.Add(ex.Message); }
         }
+        try {
+            foreach (var entry in SkillNames.Read(path, "NPC names")) loaded[entry.Key] = entry.Value;
+        }
+        catch (Exception ex) when (includeBundled && (ex is FileNotFoundException or DirectoryNotFoundException)) { }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or JsonException or InvalidDataException) { errors.Add(ex.Message); }
+        names = loaded.ToFrozenDictionary(); LoadError = errors.Count == 0 ? null : string.Join("; ", errors);
     }
 
     public string GetName(int npcId) => names.GetValueOrDefault(npcId) ?? $"NPC {npcId}";

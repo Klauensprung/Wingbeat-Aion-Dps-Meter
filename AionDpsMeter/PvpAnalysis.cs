@@ -55,7 +55,9 @@ public static class PvpAnalysis
             string color = c.Friendly ? MeterPresentation.ColorFor(new Actor(c.Id, c.Name, true, false, 0, c.Job, 0)) : "#EF8792";
             return new MeterRow(c.Id, c.Name, c.Job, amount, amount / pvp.Seconds,
                 total == 0 ? 0 : 100d * amount / total, maximum == 0 ? 0 : (double)amount / maximum,
-                color, c.Id == fight.LocalPlayer, true) { Detail = (c.Friendly ? "Your side" : "Opponent") + (c.Identity == "Named" ? "" : " · name pending; class inferred from skills") };
+                color, c.Id == fight.LocalPlayer, true) { Detail = (c.Friendly ? "Your side" : "Opponent") + (c.Identity == "Named" ? "" : " · name pending; class inferred from skills"),
+                    CombatPower = fight.Actors.GetValueOrDefault(c.Id)?.Cp ?? 0,
+                    CombatPowerSource = fight.Actors.GetValueOrDefault(c.Id)?.CpSource ?? "Unknown", LocalPingMs = PlayerTelemetry.PingFor(fight, c.Id) };
         }).ToArray();
         return new(rows, total, total / pvp.Seconds, "PvP");
     }

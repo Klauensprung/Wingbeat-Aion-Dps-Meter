@@ -48,6 +48,25 @@ public static class DisplayTests
         }
         check(new SkillNames(Path.Combine(temp, "absent.json")).Resolve(100).Match == "unknown", "Missing catalog does not prevent offline analysis");
 
+        var bundled = new SkillNames(Path.Combine(temp, "no-local-data", "skill-names.json"), includeBundled: true);
+        check(bundled.Count == 16899 && bundled.LoadError == null && bundled.GetSkillName(17100000) == "Healing Light",
+            "Fresh installations load the embedded skill catalog without local data or network access");
+        check(bundled.Resolve(17010001) is { Name: "Earth's Retribution", Match: "family" },
+            "Bundled names resolve player skill variants");
+        File.WriteAllText(catalog, """{"17100000":"Custom healing","2147483647":"Custom skill"}""");
+        var overridden = new SkillNames(catalog, includeBundled: true);
+        check(overridden.Count == bundled.Count + 1 && overridden.GetSkillName(17100000) == "Custom healing" &&
+            overridden.GetSkillName(2147483647) == "Custom skill" && overridden.GetSkillName(17010000) == bundled.GetSkillName(17010000),
+            "Partial local catalogs override and extend defaults without losing other bundled names");
+        File.WriteAllText(catalog, """{"17100000":"Must not leak","2":false}""");
+        var fallback = new SkillNames(catalog, includeBundled: true);
+        check(fallback.Count == bundled.Count && fallback.LoadError != null && fallback.GetSkillName(17100000) == "Healing Light",
+            "Invalid local catalogs fall back atomically to bundled names with a diagnostic");
+        File.WriteAllText(catalog, "{");
+        check(new SkillNames(catalog, includeBundled: true).GetSkillName(17100000) == "Healing Light" &&
+            overridden.GetSkillName(17100000) == "Custom healing",
+            "Malformed JSON preserves bundled defaults and loaded catalogs stay cached");
+
         check(MeterPresentation.ClassColorFor("cleric", "#123456") == MeterPresentation.ClassColorFor("Cleric", "#654321") &&
             MeterPresentation.ClassColorFor("Unknown", "#123456") == "#123456", "Class colours ignore case and preserve fallback colours for unknown actors");
         var classes = new[] { "Gladiator", "Templar", "Assassin", "Ranger", "Sorcerer", "Spiritmaster", "Cleric", "Chanter", "Brawler" };

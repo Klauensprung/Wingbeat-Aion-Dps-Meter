@@ -18,6 +18,7 @@ public sealed class OverlayWindow : Window
     readonly TextBlock encounter = new() { FontSize = 11, TextTrimming = TextTrimming.CharacterEllipsis, Margin = new(7, 0, 0, 0), VerticalAlignment = VerticalAlignment.Center };
     readonly TextBlock total = new() { FontSize = 11, FontWeight = FontWeights.SemiBold, Margin = new(10, 7, 10, 4) };
     readonly TextBlock energy = new() { FontSize = 10, Margin = new(10, 0, 20, 8) };
+    readonly TextBlock pingStatus = new() { FontSize = 10, Margin = new(10, 0, 20, 4), ToolTip = "Last observed local client-clock echo estimate. Other players' ping is not supplied by this protocol." };
     readonly Button mode, moveLock;
     readonly Action? reset;
     readonly Action? saveSettings;
@@ -66,7 +67,7 @@ public sealed class OverlayWindow : Window
         // stays visible even when the overlay only has room for a single row.
         DockPanel.SetDock(ownMeter, Dock.Top); root.Children.Add(ownMeter);
         var footer = new Grid { Background = UiTheme.Brush("#6010151F") }; DockPanel.SetDock(footer, Dock.Bottom); root.Children.Add(footer);
-        var footerText = new StackPanel(); footerText.Children.Add(total); footerText.Children.Add(energy); footer.Children.Add(footerText);
+        var footerText = new StackPanel(); footerText.Children.Add(total); footerText.Children.Add(pingStatus); footerText.Children.Add(energy); footer.Children.Add(footerText);
         footer.Children.Add(resizeGrip);
         actorScroll = new ScrollViewer { Content = meter, VerticalScrollBarVisibility = ScrollBarVisibility.Auto, HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled };
         root.Children.Add(actorScroll);
@@ -149,6 +150,8 @@ public sealed class OverlayWindow : Window
             data = data with { Rows = data.Rows.Select(r => !showPvp || friendly.Contains(r.Id) ? r with { Color = preferences.Accent } : r).ToArray() };
         }
         CurrentScope = data.Scope;
+        pingStatus.Text = fight.LocalPing is { } sample ? $"Local ping (last estimate)   ~{sample.Milliseconds} ms" : "Local ping   --";
+        pingStatus.Foreground = UiTheme.Brush(fight.LocalPing?.Milliseconds switch { < 60 => "#55D6BE", < 100 => "#EABF70", < 200 => "#EFAB78", >= 200 => "#EF8792", _ => "#93A2B8" });
         mode.Content = (showPvp ? "PVP · " : "") + (preferences.OverlayHealing ? "HEALING" : "DAMAGE") + "  ▾";
         moveLock.Content = preferences.OverlayLocked ? "◆" : "◇";
         moveLock.ToolTip = preferences.OverlayLocked ? "Unlock overlay position" : "Lock overlay position";
