@@ -26,6 +26,40 @@ internal static class WireTests
         byte[] hit = Frame(4, 0x38, [..Var(301), 4, 0, ..Var(300), ..BitConverter.GetBytes(11000001u), 7, 3, ..new byte[8], 0, ..Var(4321), 1]);
         var damage = new EuGameDecoder().Decode(Payload(hit)).Events.Single().Damage;
         check(damage is { ActorId: 300, TargetId: 301, SkillCode: 11000001, Damage: 4321, IsCritical: true, Timestamp: 1700000000000 }, "Wire direct hit fields and timestamp");
+        foreach (int form in new[] { 5, 7 }) foreach (byte direction in new byte[] { 0, 1, 2, 3 }) {
+            var flags = new byte[form == 5 ? 13 : 15]; flags[2] = direction;
+            var directional = Frame(4, 0x38, [..Var(301), (byte)form, 0, ..Var(300), ..BitConverter.GetBytes(11000001u), 7, 3, ..flags, 0, ..Var(4321), 1]);
+            var directionResult = new EuGameDecoder().Decode(Payload(directional)).Events.Single().Damage!;
+            check(directionResult.IsBackAttack == (direction == 1) && directionResult.IsFrontAttack == (direction == 2),
+                $"Wire direction form {form}, bits {direction}: only unambiguous flags classify hits");
+        }
+        foreach (int prefix in new[] { 0, 128, 16384 }) foreach (byte direction in new byte[] { 0, 1, 2, 3 }) {
+            byte[] variableFlags = [0, ..Var(prefix), direction, ..new byte[8]];
+            var variableHit = Frame(4, 0x38, [..Var(301), 6, 0, ..Var(300), ..BitConverter.GetBytes(11000001u), 7, 3, ..variableFlags, 0, ..Var(4321), 1]);
+            var variableResult = new EuGameDecoder().Decode(Payload(variableHit)).Events.Single().Damage!;
+            check(variableResult.Damage == 4321 && variableResult.IsBackAttack == (direction == 1) && variableResult.IsFrontAttack == (direction == 2),
+                $"Variable hit direction survives prefix {prefix} and direction bits {direction}");
+        }
+        var directionFight = new Fight { LocalPlayer = 300 };
+        var indicator = new BackAttackIndicator();
+        var backHit = damage! with { IsBackAttack = true };
+        directionFight.Damage.Add(backHit);
+        indicator.Observe(directionFight, 0, backHit.Timestamp);
+        check(indicator.Active(999) && !indicator.Active(1000), "Back hit holds the border for exactly one second");
+        directionFight.Damage.Add(backHit with { IsBackAttack = false, IsFrontAttack = true });
+        indicator.Observe(directionFight, 100, backHit.Timestamp);
+        check(indicator.Active(999), "Front hits in a burst do not cancel the back-hit hold");
+        directionFight.Damage.Add(backHit with { Timestamp = backHit.Timestamp + 800 });
+        indicator.Observe(directionFight, 800, backHit.Timestamp + 800);
+        indicator.Observe(directionFight, 1700, backHit.Timestamp + 1700);
+        check(indicator.Active(1799) && !indicator.Active(1800), "New back hits refresh the hold; repeated snapshots do not");
+        directionFight.Damage.Add(backHit with { ActorId = 301, Timestamp = backHit.Timestamp + 1800 });
+        indicator.Observe(directionFight, 1800, backHit.Timestamp + 1800);
+        check(!indicator.Active(1800), "Other players cannot refresh the back-hit border");
+        indicator.Observe(new Fight { LocalPlayer = 300 }, 1801, backHit.Timestamp + 1801);
+        check(!indicator.Active(1801), "Fight reset clears the hold immediately");
+        indicator.Observe(directionFight, 5000, backHit.Timestamp + 5000);
+        check(!indicator.Active(5000), "Old saved or recovered hits cannot flash the border");
         check(new EuGameDecoder(13328, new HashSet<int> { 11000001 }).Decode(Payload(hit)).Events.Single().Kind == "heal", "Explicit healing classification separates healing from damage");
         Healing(check, temp);
         NpcIdentities(check, temp);

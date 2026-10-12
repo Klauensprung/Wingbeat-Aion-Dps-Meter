@@ -54,7 +54,11 @@ internal sealed class LiveTable : DataGrid
             else if (!Equals(rows[i], next[i])) rows[i] = next[i];
         }
         while (rows.Count > next.Length) rows.RemoveAt(rows.Count - 1);
-        if (selectedKeys.Count > 0)
+        // Single-selection grids reject mutations of SelectedItems. Restore the
+        // current row synchronously so rendering never sees the cleared selection.
+        if (SelectionMode == DataGridSelectionMode.Single)
+            SelectedItem = rows.FirstOrDefault(item => selectedKeys.Contains(Key(item)));
+        else if (selectedKeys.Count > 0)
         {
             foreach (var item in rows.Where(item => selectedKeys.Contains(Key(item))))
                 if (!SelectedItems.Contains(item)) SelectedItems.Add(item);
@@ -65,6 +69,8 @@ internal sealed class LiveTable : DataGrid
     }
     static object Key(object row) => row switch {
         TotalRow r => r.Id,
+        EncounterParticipant r => r.Id,
+        EncounterSkill r => (r.ActorId, r.SkillCode),
         OpponentRow r => r.Id,
         SkillRow r => (r.Character, r.SkillCode),
         HealingRow r => (r.Healer, r.SkillCode, r.Target),

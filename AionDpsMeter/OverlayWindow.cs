@@ -4,6 +4,7 @@ using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
 using System.Windows.Input;
 using System.Windows.Media;
+using System.Windows.Threading;
 
 namespace AionDpsMeter.Local;
 
@@ -12,6 +13,10 @@ public sealed class OverlayWindow : Window
     readonly MeterView meter = new() { Margin = new(7, 4, 7, 2), RowBackground = UiTheme.Brush("#801A2230") };
     readonly MeterView ownMeter = new() { Margin = new(7, 4, 7, 0), Visibility = Visibility.Collapsed, RowBackground = UiTheme.Brush("#801A2230") };
     readonly ScrollViewer actorScroll;
+    readonly BackAttackIndicator backAttack = new();
+    readonly DispatcherTimer backAttackTimer = new() { Interval = TimeSpan.FromMilliseconds(50) };
+    readonly Border backAttackBorder = new() { BorderBrush = UiTheme.Brush("#88E7CF7D"), BorderThickness = new(2),
+        CornerRadius = new(4), IsHitTestVisible = false, Visibility = Visibility.Collapsed };
     readonly ParticipantColors participantColors = new();
     readonly StackPanel header = new() { Background = UiTheme.Brush("#6010151F") };
     readonly TextBlock moveGrip = new() { Text = "⋮⋮", FontSize = 15, VerticalAlignment = VerticalAlignment.Center, Foreground = UiTheme.Brush("#93A2B8") };
@@ -29,6 +34,7 @@ public sealed class OverlayWindow : Window
     TotalRow[]? totals;
     PvpData? pvp;
     string lastTheme = "", lastAccent = "";
+    string? lastBackAttackColor;
     bool positioned;
     public int RowCount => ownMeter.RowCount + meter.RowCount;
     internal string CurrentScope { get; private set; } = "";
@@ -40,7 +46,8 @@ public sealed class OverlayWindow : Window
         Topmost = true; ShowInTaskbar = false; WindowStyle = WindowStyle.None; ResizeMode = ResizeMode.CanResizeWithGrip;
         AllowsTransparency = true; Background = Brushes.Transparent;
         FontFamily = new("Segoe UI"); UseLayoutRounding = true; SnapsToDevicePixels = true;
-        var shell = new Border { Padding = new(1, 3, 1, 1) }; Content = shell;
+        var shell = new Border { Padding = new(1, 3, 1, 1) };
+        var layers = new Grid(); layers.Children.Add(shell); layers.Children.Add(backAttackBorder); Content = layers;
         var root = new DockPanel(); shell.Child = root;
         // Tint only the controls and bars: unused space stays clear and text
         // retains full opacity. The header's tint also keeps it easy to drag.
@@ -74,7 +81,10 @@ public sealed class OverlayWindow : Window
         root.Children.Add(actorScroll);
         meter.ActorSelected += id => actorSelected?.Invoke(id);
         ownMeter.ActorSelected += id => actorSelected?.Invoke(id);
+        backAttackTimer.Tick += (_, _) => RefreshBackAttackBorder();
+        backAttackTimer.Start();
         Closed += (_, _) => {
+            backAttackTimer.Stop();
             preferences.OverlayWidth = Width; preferences.OverlayHeight = Height;
             preferences.OverlayLeft = Left; preferences.OverlayTop = Top; saveSettings?.Invoke();
         };
@@ -115,6 +125,10 @@ public sealed class OverlayWindow : Window
     public void Update(Fight value, Preferences settings, string unusedEnergy = "", TotalRow[]? rows = null, PvpData? pvpData = null)
     {
         bool changed = !ReferenceEquals(fight, value);
+        if (lastBackAttackColor != settings.BackAttackColor) {
+            var brush = new SolidColorBrush(BackAttackColour(settings.BackAttackColor)); brush.Freeze();
+            backAttackBorder.BorderBrush = brush; lastBackAttackColor = settings.BackAttackColor;
+        }
         preferences = settings; fight = value; totals = rows ?? (changed ? Analysis.Totals(value) : totals) ?? [];
         pvp = pvpData ?? (changed ? PvpAnalysis.Build(value) : pvp) ?? PvpAnalysis.Build(value);
         if (!positioned)
@@ -140,6 +154,8 @@ public sealed class OverlayWindow : Window
     void RefreshMeter()
     {
         if (fight == null || totals == null || pvp == null) return;
+        backAttack.Observe(fight, Environment.TickCount64, DateTimeOffset.UtcNow.ToUnixTimeMilliseconds());
+        RefreshBackAttackBorder();
         string scope = preferences.OverlayAllActors ? "All" : preferences.OverlayScope;
         bool showPvp = scope == "PvP" || (scope is not ("All" or "Party") && pvp.HasOpponents);
         var data = showPvp ? PvpAnalysis.Meter(fight, pvp, preferences.OverlayHealing, pinLocal: preferences.OverlayPinLocal) :
@@ -170,6 +186,20 @@ public sealed class OverlayWindow : Window
             $"TOTAL   {MeterPresentation.Number(data.Amount)}     ·     {MeterPresentation.Number(data.Rate)} {(preferences.OverlayHealing ? "HPS" : "DPS")}";
         energy.Text = fight.Energy == null ? "Wingbeat  ·  local" : $"Loot energy   {fight.Energy.Daily:N0} daily  /  {fight.Energy.Bonus:N0} bonus";
     }
+    static Color BackAttackColour(string? value)
+    {
+        Color colour;
+        try { colour = (Color)ColorConverter.ConvertFromString(value ?? "#E7CF7D"); }
+        catch { colour = Color.FromRgb(231, 207, 125); }
+        return Color.FromArgb(136, colour.R, colour.G, colour.B);
+    }
+    void RefreshBackAttackBorder() => backAttackBorder.Visibility = backAttack.Active(Environment.TickCount64) ? Visibility.Visible : Visibility.Collapsed;
+    internal void CheckBackAttackBorder(bool expected)
+    {
+        if ((backAttackBorder.Visibility == Visibility.Visible) != expected || backAttackBorder.IsHitTestVisible ||
+            backAttackBorder.BorderBrush is not SolidColorBrush brush || brush.Color.A is 0 or 255 || brush.Color != BackAttackColour(preferences.BackAttackColor))
+            throw new InvalidOperationException("Back-attack border state or transparency is incorrect.");
+    }
     internal void CheckModes()
     {
         bool previousPin = preferences.OverlayPinLocal;
@@ -196,6 +226,7 @@ public sealed class OverlayWindow : Window
     }
     internal void CheckPinnedScrolling()
     {
+        foreach (var bar in ownMeter.Children.OfType<MeterBar>().Concat(meter.Children.OfType<MeterBar>())) bar.CheckPresentation();
         var before = ownMeter.TranslatePoint(new Point(), this);
         actorScroll.ScrollToEnd(); UpdateLayout();
         var after = ownMeter.TranslatePoint(new Point(), this);

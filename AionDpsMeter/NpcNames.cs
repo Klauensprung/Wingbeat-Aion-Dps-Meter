@@ -34,7 +34,7 @@ public sealed class NpcNames
         names = loaded.ToFrozenDictionary(); LoadError = errors.Count == 0 ? null : string.Join("; ", errors);
     }
 
-    public string GetName(int npcId) => names.GetValueOrDefault(npcId) ?? $"NPC {npcId}";
+    public string GetName(int npcId) => names.GetValueOrDefault(npcId) ?? BossCatalogue.Default.Find(npcId)?.Name ?? $"NPC {npcId}";
 
     internal Actor Spawn(ref WireReader reader)
     {

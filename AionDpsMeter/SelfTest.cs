@@ -159,6 +159,7 @@ public static class SelfTest
             Check(!NpcapSetup.IsLoadFailure(new UnauthorizedAccessException()) && !NpcapSetup.IsLoadFailure(new InvalidOperationException("No adapters")), "Permissions and missing adapters are not misreported as a missing driver");
             WireTests.Run(Check, temp);
             TelemetryTests.Run(Check, temp);
+            PlayerProfileCacheTests.Run(Check, temp);
             DisplayTests.Run(Check, temp);
             AssetTests.Run(Check, temp);
             ReadingTests.Run(Check, temp);
@@ -166,6 +167,8 @@ public static class SelfTest
             PvpTests.Run(Check);
             IngestionTests.Run(Check, temp);
             EncounterTests.Run(Check, temp);
+            BossCatalogueTests.Run(Check);
+            EncounterOverviewTests.Run(Check);
             FeatureTests.Run(Check, temp);
             RotationTests.Run(Check);
             File.WriteAllLines(Path.Combine(AppContext.BaseDirectory, "self-test-results.txt"), results.Append($"Passed {results.Count} checks."));

@@ -101,5 +101,24 @@ PlayerStatsProcessor.cs, StatIds.cs, SkillCdProcessor.cs, RemainHpProcessor.cs,
 GlobalIdLinkingProcessor.cs and EntityDeathProcessor.cs in the same repository.
 Stat ID labels/units and field layouts are used as protocol facts. The new readers
 are bounded implementations with EU capture checks; upstream source is not bundled.
-The EU stats trailer is retained as opaque, not interpreted as a stat. Only short
-04 8D records are treated as death; longer EU identity responses keep their meaning.
+The EU stats trailer is retained as opaque, not interpreted as a stat. Short
+04 8D death records identify the victim. Longer records with positive killer and
+skill IDs also identify the victim and may supply the killer identity. This layout
+was checked against preceding hits in EU captures. Empty appearance responses
+without killer/skill evidence are not counted as deaths.
+
+Boss and dungeon catalogue
+-------------------------
+Assets/bosses.json contains factual game names, NPC template IDs, variant
+labels and dungeon associations obtained from https://aion2data.com/bosses
+and https://aion2data.com/dungeons, including their linked detail pages.
+Source: Global client 2.0.6.0 hotfix 1, Steam build 25800038 (2026-10-09),
+as identified by the source. Source methodology: https://aion2data.com/about
+The bundled JSON records retrieval time, source URLs and source-page hashes.
+Game names and data belong to NCSOFT and their respective owners. The source
+website is an independent fan reference. Its prose, layouts and artwork are
+not included. The application's source-code license does not relicense game
+data or imply endorsement by NCSOFT or Aion2Data. All associations are supplied
+as catalogue evidence, not independently verified live protocol coverage.
+The optional maintainer importer uses Beautiful Soup (MIT license), which is
+not a runtime dependency of the application: https://www.crummy.com/software/BeautifulSoup/

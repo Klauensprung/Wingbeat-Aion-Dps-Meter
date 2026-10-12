@@ -11,6 +11,7 @@ public sealed record MeterRow(int Id, string Name, string Job, long Amount, doub
     public string Detail { get; init; } = "";
     public int Deaths { get; init; }
     public int CombatPower { get; init; }
+    public int LocalCombatPower { get; init; }
     public string CombatPowerSource { get; init; } = "Unknown";
     public int? LocalPingMs { get; init; }
 }
@@ -26,6 +27,20 @@ public static class MeterPresentation
         ["Sorcerer"] = "#B087E9", ["Spiritmaster"] = "#C365C4", ["Cleric"] = "#E7CF7D", ["Chanter"] = "#E2A45A", ["Brawler"] = "#F74647"
     };
     static readonly string[] PlayerColors = ["#65CBE9", "#AE91EF", "#65D6AF", "#EABF70", "#EA8EA7", "#82B1F0", "#B5CE75", "#DA9CE9"];
+    public static string CombatPowerColor(int cp, int localCp, bool local = false)
+    {
+        if (local || cp <= 0 || localCp <= 0) return "#CED5E1";
+        double difference = Math.Clamp(((double)cp - localCp) / (localCp * 0.10), -1, 1);
+        // Blend from equal-power gold towards green or red, saturating at +/-10%.
+        var equal = Color.FromRgb(231, 207, 125);
+        var end = difference < 0 ? Color.FromRgb(101, 214, 175) : Color.FromRgb(255, 146, 146);
+        double weight = Math.Abs(difference);
+        byte Blend(byte a, byte b) => (byte)Math.Round(a + (b - a) * weight, MidpointRounding.AwayFromZero);
+        return $"#{Blend(equal.R, end.R):X2}{Blend(equal.G, end.G):X2}{Blend(equal.B, end.B):X2}";
+    }
+    public static string CombatPowerComparison(int cp, int localCp, bool local = false) =>
+        local || cp <= 0 || localCp <= 0 ? "" :
+        $"\n{100d * (cp - localCp) / localCp:+0.0;-0.0;0.0}% relative to your CP ({localCp:N0}). Colour scale: green at -10%, gold at equal CP, red at +10%; capped beyond this range.";
     public static string ClassColorFor(string job, string fallback) => ClassColors.GetValueOrDefault(job, fallback);
     public static string ColorFor(Actor? actor)
     {
@@ -67,6 +82,7 @@ public static class MeterPresentation
             string job = ClassEvidence.Resolve(actor, r.Id, inferredClasses);
             return new MeterRow(r.Id, r.Character, job, amount, amount / seconds,
                 total == 0 ? 0 : 100d * amount / total, maximum == 0 ? 0 : (double)amount / maximum, ClassColorFor(job, ColorFor(actor)), r.Id == fight.LocalPlayer, actor?.Player == true) {
+                    LocalCombatPower = fight.Actors.GetValueOrDefault(fight.LocalPlayer)?.Cp ?? 0,
                     Deaths = deathCounts.GetValueOrDefault(r.Id), CombatPower = actor?.Cp ?? 0, CombatPowerSource = actor?.CpSource ?? "Unknown", LocalPingMs = PlayerTelemetry.PingFor(fight, r.Id)
                 };
         }).ToArray();
@@ -162,7 +178,10 @@ sealed class MeterBar : Border
         if (classSymbol.Stroke is not SolidColorBrush icon || icon.Color != expected ||
             stripe.Background is not SolidColorBrush edge || edge.Color != expected ||
             fill.Background is not LinearGradientBrush gradient || gradient.GradientStops.Any(s => s.Color.R != expected.R || s.Color.G != expected.G || s.Color.B != expected.B) ||
-            deaths.Text != "\u2620 " + current.Deaths || deaths.Visibility != Visibility.Visible)
+            metadata.Foreground is not SolidColorBrush cpBrush || cpBrush.Color != (Color)ColorConverter.ConvertFromString(MeterPresentation.CombatPowerColor(current.CombatPower, current.LocalCombatPower, current.Local)) ||
+            deaths.Text != "\u2620 " + current.Deaths || deaths.Visibility != Visibility.Visible ||
+            (current.CombatPower == 0 && metadata.Text.Contains("CP ")) ||
+            (current.CombatPower == 0 && !current.Local && metadata.Visibility != Visibility.Collapsed))
             throw new InvalidOperationException("Overlay icons, bars or death counts do not match the current row.");
     }
     void SetWidth() => fill.Width = Math.Max(0, canvas.ActualWidth * (current?.Fraction ?? 0));
@@ -184,13 +203,15 @@ sealed class MeterBar : Border
             var gradient = new LinearGradientBrush(Color.FromArgb(130, color.R, color.G, color.B), Color.FromArgb(55, color.R, color.G, color.B), 0);
             gradient.Freeze(); fill.Background = gradient; stripe.Background = UiTheme.Brush(row.Color);
         }
-        bool showMetadata = showClassSymbols || row.CombatPower > 0;
+        bool showCp = row.CombatPower > 0, showPing = showClassSymbols && row.Local;
+        bool showMetadata = showCp || showPing;
         current = row; Height = (compact ? 35 : 48) + (showMetadata ? 12 : 0);
         metadata.Visibility = showMetadata ? Visibility.Visible : Visibility.Collapsed;
-        metadata.Text = "CP " + (row.CombatPower > 0 ? row.CombatPower.ToString("N0") : "--") +
-            (showClassSymbols && row.Local ? "  |  Ping " + (row.LocalPingMs is int ping ? $"~{ping} ms" : "--") : "");
-        metadata.Foreground = UiTheme.Brush("#CED5E1");
+        metadata.Text = (showCp ? "CP " + row.CombatPower.ToString("N0") : "") +
+            (showPing ? (showCp ? "  |  " : "") + "Ping " + (row.LocalPingMs is int ping ? $"~{ping} ms" : "--") : "");
+        metadata.Foreground = UiTheme.Brush(MeterPresentation.CombatPowerColor(row.CombatPower, row.LocalCombatPower, row.Local));
         metadata.ToolTip = (row.CombatPower > 0 ? $"Combat power: {row.CombatPower:N0} ({row.CombatPowerSource})" : "Combat power not captured. Party profile packets can supply it; character details also allow manual entry.") +
+            MeterPresentation.CombatPowerComparison(row.CombatPower, row.LocalCombatPower, row.Local) +
             (showClassSymbols && row.Local ? "\nPing is the last local client-clock echo estimate." : "");
         BorderBrush = row.Local ? UiTheme.Brush(row.Color) : Brushes.Transparent;
         rank.Text = position.ToString(); rank.Foreground = UiTheme.Brush("#CED5E1");

@@ -14,6 +14,8 @@ public sealed record DamageEvent
     public int Damage { get; init; }
     public bool IsHeal { get; init; }
     public bool IsCritical { get; init; }
+    public bool IsBackAttack { get; init; }
+    public bool IsFrontAttack { get; init; }
     [JsonExtensionData] public Dictionary<string, JsonElement>? AdditionalData { get; init; }
 }
 

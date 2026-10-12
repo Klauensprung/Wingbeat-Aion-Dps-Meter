@@ -8,6 +8,7 @@ internal static class LiveTableTests
     internal static void Check(LiveTable grid, Action layout)
     {
         var original = grid.ItemsSource.Cast<object>().ToArray();
+        var selectionMode = grid.SelectionMode;
         var widths = grid.Columns.Select(c => c.Width).ToArray();
         try
         {
@@ -35,6 +36,26 @@ internal static class LiveTableTests
                     throw new Exception("Updating table shifted its viewport.");
                 if (columns.Where((c, i) => Math.Abs(c.ActualWidth - columnWidths[i]) > 1).Any()) throw new Exception("Live values changed column widths.");
             }
+            // The Encounter grids use Single, unlike the older analysis tables.
+            grid.SelectedItem = null;
+            grid.SelectionMode = DataGridSelectionMode.Single;
+            grid.SetRows(Data(150, 0));
+            grid.SelectedItem = grid.ItemsSource.Cast<SkillRow>().Single(r => r.SkillCode == 17010072);
+            for (int tick = 1; tick <= 20; tick++) {
+                grid.SetRows(Data(150, tick).Reverse()); layout();
+                if (grid.SelectedItem is not SkillRow { SkillCode: 17010072 } selected || selected.Hits != tick + 1 || grid.SelectedItems.Count != 1)
+                    throw new Exception("Single selection was lost during changing values and row reordering.");
+            }
+            grid.SetRows(Data(1, 22)); layout();
+            if (grid.SelectedItem != null) throw new Exception("Removing a selected row selected an unrelated row.");
+            grid.SetRows(Data(150, 23)); layout();
+            if (grid.SelectedItem != null) throw new Exception("A cleared selection returned during refresh.");
+            grid.SelectionMode = DataGridSelectionMode.Extended;
+            grid.SelectedItems.Add(grid.ItemsSource.Cast<SkillRow>().Single(r => r.SkillCode == 17010002));
+            grid.SelectedItems.Add(grid.ItemsSource.Cast<SkillRow>().Single(r => r.SkillCode == 17010072));
+            grid.SetRows(Data(150, 24).Reverse()); layout();
+            if (!grid.SelectedItems.Cast<SkillRow>().Select(r => r.SkillCode).Order().SequenceEqual(new[] { 17010002, 17010072 }))
+                throw new Exception("Multiple selection was lost during refresh.");
             foreach (int count in new[] { 1, 150, 0, 150 })
             {
                 grid.SetRows(Data(count, 25)); layout();
@@ -44,7 +65,7 @@ internal static class LiveTableTests
         }
         finally
         {
-            grid.Items.SortDescriptions.Clear(); grid.SelectedItem = null;
+            grid.Items.SortDescriptions.Clear(); grid.UnselectAll(); grid.SelectionMode = selectionMode;
             grid.SetRows(original);
             for (int i = 0; i < grid.Columns.Count; i++) { grid.Columns[i].Width = widths[i]; grid.Columns[i].DisplayIndex = i; }
             var scroll = LiveTable.FindScroll(grid); scroll?.ScrollToHorizontalOffset(0); scroll?.ScrollToVerticalOffset(0); layout();

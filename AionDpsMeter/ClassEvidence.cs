@@ -5,6 +5,7 @@ namespace AionDpsMeter.Local;
 internal static class ClassEvidence
 {
     static readonly string[] Jobs = ["Gladiator", "Templar", "Assassin", "Ranger", "Sorcerer", "Spiritmaster", "Cleric", "Chanter", "Brawler"];
+    internal static bool Known(string? job) => job != null && Jobs.Contains(job, StringComparer.OrdinalIgnoreCase);
     static bool CharacterSkill(int code) => code is >= 11000000 and < 20000000 &&
         code / 10000 is not (1528 or 1600 or 1610 or 1611 or 1612 or 1613 or 1615 or 1625 or 1699 or 1715);
 
@@ -17,6 +18,6 @@ internal static class ClassEvidence
     {
         if (actor?.NpcId is > 0) return "Unknown";
         return !string.IsNullOrWhiteSpace(actor?.Job) && !actor.Job.Equals("Unknown", StringComparison.OrdinalIgnoreCase)
-            ? actor.Job : inferred.GetValueOrDefault(id, "Unknown");
+            ? actor.Job : inferred.GetValueOrDefault(id, Known(actor?.CachedJob) ? actor!.CachedJob : "Unknown");
     }
 }

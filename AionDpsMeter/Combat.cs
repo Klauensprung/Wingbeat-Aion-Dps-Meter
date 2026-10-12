@@ -8,6 +8,7 @@ public sealed record Actor(int Id, string Name, bool Player, bool Party, int Cp,
 {
     // Archived identities use a separate key when the game reuses their entity ID.
     public int OriginalEntityId { get; init; }
+    public string CachedJob { get; init; } = "Unknown";
     public int NpcId { get; init; }
     public uint CharacterId { get; init; }
     public string ProfileSource { get; init; } = "Captured";

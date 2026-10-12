@@ -6,6 +6,8 @@ public sealed class CombatEngine
 {
     public readonly object Gate = new();
     readonly IGamePacketDecoder decoder;
+    readonly PlayerProfileCache profiles;
+    bool cachedLocalIdentity;
     readonly Queue<Fight> completed = new();
     readonly object saveGate = new();
     readonly Dictionary<int, long> lastDeaths = new();
@@ -28,7 +30,15 @@ public sealed class CombatEngine
         get { lock (Gate) return decoder is EuGameDecoder eu ? $"records {eu.Records:N0}, unsupported {eu.UnknownRecords:N0}, rejected {eu.RejectedRecords:N0}, framing errors {eu.FramingErrors:N0}" : $"undecoded payloads {UnsupportedPayloads:N0}"; }
     }
     public Fight Fight { get; private set; } = new();
-    public CombatEngine(IGamePacketDecoder? decoder = null) { this.decoder = decoder ?? new UnconfiguredGameDecoder(); }
+    public CombatEngine(IGamePacketDecoder? decoder = null, PlayerProfileCache? profiles = null) { this.decoder = decoder ?? new UnconfiguredGameDecoder(); this.profiles = profiles ?? new(); }
+    void RefreshProfiles()
+    {
+        PlayerTelemetry.ApplyProfiles(Fight); profiles.Update(Fight);
+        if (Fight.LocalPlayer == 0 || cachedLocalIdentity) {
+            Fight.LocalPlayer = profiles.MatchLocal(Fight);
+            cachedLocalIdentity = Fight.LocalPlayer > 0;
+        }
+    }
 
     public void Process(CapturedPayload payload)
     {
@@ -57,7 +67,7 @@ public sealed class CombatEngine
                     {
                         Fight.Actors.Clear(); Fight.Specs.Clear(); Fight.Builds.Clear(); Fight.PartyProfiles = []; Fight.LocalPing = null; Fight.LocalStats = null; Fight.PartyKnown = false; Fight.PartySource = "Not captured"; Fight.LocalPlayer = local.Id;
                     }
-                    Fight.LocalPlayer = local.Id;
+                    Fight.LocalPlayer = local.Id; cachedLocalIdentity = false; profiles.RememberLocal(local);
                     UpdateActor(local); break;
                 case "damage" when item.Damage != null: RecordDamage(item.Damage, false); break;
                 case "heal" when item.Damage != null: RecordDamage(item.Damage, true); break;
@@ -75,11 +85,11 @@ public sealed class CombatEngine
                     EnsureActor(link.EntityId);
                     if (Fight.Actors[link.EntityId].NpcId == 0) {
                         Fight.Actors[link.EntityId] = Fight.Actors[link.EntityId] with { CharacterId = link.CharacterId };
-                        PlayerTelemetry.ApplyProfiles(Fight); revision++;
+                        RefreshProfiles(); revision++;
                     }
                     break;
                 case "party-profiles" when item.Profiles != null:
-                    PlayerTelemetry.Validate(item.Profiles); Fight.PartyProfiles = [..item.Profiles]; PlayerTelemetry.ApplyProfiles(Fight); revision++; break;
+                    PlayerTelemetry.Validate(item.Profiles); Fight.PartyProfiles = [..item.Profiles]; RefreshProfiles(); revision++; break;
                 case "ping" when item.Ping is { Milliseconds: >= 0 and <= 1000, Timestamp: >= 0, Source.Length: > 0 } ping:
                     if (Fight.LocalPing == null || ping.Timestamp >= Fight.LocalPing.Timestamp) { Fight.LocalPing = ping; revision++; }
                     break;
@@ -106,7 +116,7 @@ public sealed class CombatEngine
         if (actor.Id <= 0 || actor.NpcId < 0 || (actor.NpcId > 0 && actor.Player) || string.IsNullOrWhiteSpace(actor.Name)) throw new ArgumentException("Invalid actor identity.");
         if (Fight.Actors.TryGetValue(actor.Id, out var previous))
         {
-            bool replaced = previous.Player && actor.Player && previous.Name != actor.Name ||
+            bool replaced = previous.Server > 0 && actor.Server > 0 && previous.Server != actor.Server || previous.Player && actor.Player && previous.Name != actor.Name ||
                 previous.NpcId > 0 && actor.NpcId > 0 && previous.NpcId != actor.NpcId ||
                 previous.Player && actor.NpcId > 0 || previous.NpcId > 0 && actor.Player;
             if (replaced)
@@ -131,7 +141,7 @@ public sealed class CombatEngine
                     ProfileSource = actor.Cp == 0 && actor.Job == "Unknown" ? previous.ProfileSource : actor.ProfileSource };
             }
         }
-        Fight.Actors[actor.Id] = actor; PlayerTelemetry.ApplyProfiles(Fight); identityEvents++; revision++;
+        Fight.Actors[actor.Id] = actor; RefreshProfiles(); identityEvents++; revision++;
     }
     void ArchiveActor(int id)
     {
@@ -169,7 +179,7 @@ public sealed class CombatEngine
     void EnsureActor(int id) { if (id > 0) Fight.Actors.TryAdd(id, new(id, $"Entity {id}", false, false, 0, "Unknown", 0)); }
     public Fight Snapshot()
     {
-        lock (Gate) return Fight.Copy();
+        lock (Gate) { profiles.Update(Fight, inferClasses: true); return Fight.Copy(); }
     }
     // UI-owned snapshots are read-only. Reuse one until the engine changes instead of
     // copying every event list every refresh, including when nothing was captured.
@@ -202,6 +212,7 @@ public sealed class CombatEngine
     {
         lock (Gate)
         {
+            profiles.Update(Fight, inferClasses: true);
             var previous = Fight;
             Fight = new() { Label = label, LocalPlayer = previous.LocalPlayer, Actors = previous.Actors.Where(p => p.Value.OriginalEntityId == 0).ToDictionary(), Specs = new(previous.Specs), Energy = previous.Energy, PartyProfiles = [..previous.PartyProfiles], LocalPing = previous.LocalPing, LocalStats = CharacterReadings.Copy(previous.LocalStats),
                 Builds = previous.Builds.Where(p => previous.Actors.GetValueOrDefault(p.Key)?.OriginalEntityId == 0).ToDictionary(p => p.Key, p => FightMetadata.Copy(p.Value)), PartyKnown = previous.PartyKnown, PartySource = previous.PartySource };
@@ -257,7 +268,7 @@ public sealed class CombatEngine
                 "boss-cast" => NetworkEntity(e, "CasterId"), "boss-enrage" => NetworkEntity(e, "EntityId"), _ => 0
             }).Where(id => id > 0).ToHashSet();
             phaseAnchors = targets.Where(id => previous.Actors.GetValueOrDefault(id) is { NpcId: > 0 } &&
-                (sustained || hints.Contains(id))).ToHashSet();
+                (sustained || hints.Contains(id) || BossCatalogue.Default.IsEncounterBoss(previous.Actors[id].NpcId))).ToHashSet();
         }
     }
     static int NetworkEntity(NetworkEvent e, string key) =>
@@ -274,7 +285,11 @@ public sealed class CombatEngine
         {
             long gap = timestamp - resumeStoppedAt;
             int hostile = Friendly(target) ? actor : target;
-            bool possibleAdd = phaseAnchors.Count > 0 && gap <= AddPhaseWindowMs &&
+            var catalog = BossCatalogue.Default;
+            int hostileNpc = Fight.Actors.GetValueOrDefault(hostile)?.NpcId ?? 0;
+            var nextBoss = catalog.IsEncounterBoss(hostileNpc) ? catalog.Find(hostileNpc) : null;
+            bool differentBoss = nextBoss != null && !phaseAnchors.Any(id => catalog.Find(resumable.Actors.GetValueOrDefault(id)?.NpcId ?? 0)?.Key == nextBoss.Key);
+            bool possibleAdd = !differentBoss && phaseAnchors.Count > 0 && gap <= AddPhaseWindowMs &&
                 (Friendly(actor) || Friendly(target)) && !Friendly(hostile) &&
                 Fight.Actors.GetValueOrDefault(hostile)?.Player != true;
             if (gap <= RecoveryWindowMs && ((!Friendly(actor) && resumeTargets.Contains(actor)) || (!Friendly(target) && resumeTargets.Contains(target)) || possibleAdd))

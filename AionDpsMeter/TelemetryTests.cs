@@ -106,7 +106,7 @@ internal static class TelemetryTests
         var old = JsonSerializer.Deserialize<Fight>("{}")!;
         check(old.LocalPing == null && old.PartyProfiles.Length == 0, "Older fight files default to unavailable telemetry");
         engine.Apply(new("party-profiles", Profiles: []));
-        check(engine.Fight.Actors[300].Cp == 0 && fight.Actors[300].Cp == 16000, "New party snapshots clear removed CP without changing saved snapshots");
+        check(engine.Fight.Actors[300] is { Cp: 16000, CpSource: PlayerProfileCache.CachedSource } && fight.Actors[300].Cp == 16000, "Missing party CP falls back to the last known value without changing saved snapshots");
         engine.Apply(new("actor", Actor: engine.Fight.Actors[300] with { Cp = 22000, CpSource = "Entered locally" }));
         engine.Apply(new("party-profiles", Profiles: profiles));
         check(engine.Fight.Actors[300].Cp == 22000, "Manual CP overrides remain explicit and survive party metadata updates");

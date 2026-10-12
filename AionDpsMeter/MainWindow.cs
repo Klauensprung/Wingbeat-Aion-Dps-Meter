@@ -17,6 +17,7 @@ public sealed class Preferences
 {
     public string Theme { get; set; } = "Midnight";
     public string Accent { get; set; } = "#55D6BE";
+    public string BackAttackColor { get; set; } = "#E7CF7D";
     public string Filter { get; set; } = "tcp and not port 443 and not port 80 and not port 53 and not port 22";
     public string Adapter { get; set; } = "";
     public bool OverlayHealing { get; set; }
@@ -44,12 +45,14 @@ public sealed class MainWindow : Window
     readonly TextBlock viewTitle = new() { FontSize = 18, FontWeight = FontWeights.SemiBold, VerticalAlignment = VerticalAlignment.Center, Margin = new(178, 0, 0, 0) };
     readonly Expander renamePanel = new() { Header = "Encounter name", Visibility = Visibility.Collapsed, Margin = new(24, 0, 24, 10) };
     readonly Button showLive, clearFilter;
+    readonly EncounterView encounterView;
     readonly MeterView overview = new() { Margin = new(8, 8, 8, 12) };
     readonly MeterView pvpMeter = new() { Margin = new(8, 8, 8, 12) };
     readonly TextBlock pvpSummary = new() { Margin = new(8, 6, 8, 10), FontSize = 12, TextWrapping = TextWrapping.Wrap };
     readonly Expander settingsPanel = new() { Header = "Settings & diagnostics", IsExpanded = false, Margin = new(20, 0, 20, 12), Visibility = Visibility.Collapsed };
     readonly ComboBox adapters = new() { Width = 330, DisplayMemberPath = "Description", Margin = new(4) };
     readonly ComboBox themes = new() { Width = 110, Margin = new(4), ItemsSource = new[] { "Midnight", "Slate", "Forest", "Ember", "Violet" } };
+    readonly ComboBox backAttackColor = new() { Width = 110, Margin = new(4), IsEditable = true, ItemsSource = new[] { "#E7CF7D", "#FF6464", "#55D6BE", "#7C9EF7", "#B087E9" }, ToolTip = "Back-attack border colour: choose a preset or enter a hex colour. Transparency is preserved." };
     readonly TextBox accent = new() { Width = 90, Margin = new(4) };
     readonly TextBox filter = new() { Width = 455, Margin = new(4) };
     readonly TextBox encounter = new() { Text = "Local fight", Width = 180, Margin = new(4) };
@@ -75,6 +78,7 @@ public sealed class MainWindow : Window
     readonly CheckBox recordSample = new() { Content = "Save PCAP sample", Margin = new(8), VerticalAlignment = VerticalAlignment.Center };
     readonly CheckBox decodeEu = new() { Content = "Experimental EU decoding", IsChecked = true, Margin = new(8), VerticalAlignment = VerticalAlignment.Center };
     CombatEngine engine;
+    readonly PlayerProfileCache playerProfiles;
     SkillNames skills = new();
     readonly SkillIcons skillIcons = new();
     CombatEngine? snapshotOwner;
@@ -103,12 +107,13 @@ public sealed class MainWindow : Window
     {
         Title = "Wingbeat \u2665 Aion 2 DPS Meter"; Width = 1150; Height = 870; MinWidth = 980; MinHeight = 650;
         FontFamily = new("Segoe UI"); FontSize = 13; UseLayoutRounding = true; SnapsToDevicePixels = true;
-        engine = new();
+        playerProfiles = new(demo ? null : System.IO.Path.Combine(AppContext.BaseDirectory, "local-data", "player-profiles.json"));
+        engine = new(profiles: playerProfiles);
         LocalLog.Write($"Application started; skill catalog entries {skills.Count}; " + (skills.LoadError ?? "catalog loaded"));
         LocalLog.Write($"Display metadata: {skillIcons.Count} icon families, {NpcNames.Default.Count} NPC names; " +
             (skillIcons.LoadError ?? "icons loaded") + "; " + (NpcNames.Default.LoadError ?? "NPC names loaded"));
         try { if (File.Exists(PreferencePath)) preferences = JsonSerializer.Deserialize<Preferences>(File.ReadAllText(PreferencePath)) ?? new(); } catch { }
-        filter.Text = preferences.Filter; accent.Text = preferences.Accent; themes.SelectedItem = preferences.Theme; customBars.IsChecked = preferences.OverlayCustomBars; pinLocal.IsChecked = preferences.OverlayPinLocal;
+        filter.Text = preferences.Filter; accent.Text = preferences.Accent; backAttackColor.Text = preferences.BackAttackColor; themes.SelectedItem = preferences.Theme; customBars.IsChecked = preferences.OverlayCustomBars; pinLocal.IsChecked = preferences.OverlayPinLocal;
         character.Tag = "Filter characters…";
         var root = new DockPanel(); Content = root;
         var header = new StackPanel(); DockPanel.SetDock(header, Dock.Top); root.Children.Add(header);
@@ -128,7 +133,7 @@ public sealed class MainWindow : Window
         stats.ColumnDefinitions.Add(new() { Width = new GridLength(1.4, GridUnitType.Star) });
         for (int i = 0; i < 3; i++) stats.ColumnDefinitions.Add(new() { Width = new GridLength(1, GridUnitType.Star) });
         var current = new StackPanel { VerticalAlignment = VerticalAlignment.Center, Margin = new(0, 0, 15, 0) };
-        current.Children.Add(new TextBlock { Text = "CURRENT FIGHT", FontSize = 10, Foreground = UiTheme.Brush("#93A2B8"), Margin = new(0, 0, 0, 5) }); current.Children.Add(summary);
+        current.Children.Add(new TextBlock { Text = "CURRENT ENCOUNTER", FontSize = 10, Foreground = UiTheme.Brush("#93A2B8"), Margin = new(0, 0, 0, 5) }); current.Children.Add(summary);
         var fightActions = new StackPanel { Orientation = Orientation.Horizontal };
         var rename = Button("Rename", () => { renamePanel.Visibility = renamePanel.Visibility == Visibility.Visible ? Visibility.Collapsed : Visibility.Visible; renamePanel.IsExpanded = renamePanel.Visibility == Visibility.Visible; if (renamePanel.IsExpanded) { encounter.Text = Current.Label; encounter.Focus(); encounter.SelectAll(); } });
         rename.Padding = new(8, 4, 8, 4); rename.Margin = new(0, 3, 6, 0); rename.Background = Brushes.Transparent; fightActions.Children.Add(rename);
@@ -144,7 +149,7 @@ public sealed class MainWindow : Window
         renamePanel.Content = labelControls; header.Children.Add(renamePanel); header.Children.Add(search);
         var settings = new StackPanel();
         var captureSettings = new WrapPanel { Margin = new(4) }; captureSettings.Children.Add(Label("Adapter")); captureSettings.Children.Add(adapters); captureSettings.Children.Add(Button("Refresh adapters", RefreshAdapters)); captureSettings.Children.Add(Button("Install Npcap", () => NpcapSetup.CreateDialog(this).ShowDialog())); settings.Children.Add(SettingsSection("Capture", captureSettings));
-        var appearance = new WrapPanel { Margin = new(4) }; appearance.Children.Add(Label("Theme")); appearance.Children.Add(themes); appearance.Children.Add(Label("Accent")); appearance.Children.Add(accent); appearance.Children.Add(Button("Apply", ApplyPreferences)); settings.Children.Add(SettingsSection("Appearance", appearance));
+        var appearance = new WrapPanel { Margin = new(4) }; appearance.Children.Add(Label("Theme")); appearance.Children.Add(themes); appearance.Children.Add(Label("Accent")); appearance.Children.Add(accent); appearance.Children.Add(Label("Back-attack border")); appearance.Children.Add(backAttackColor); appearance.Children.Add(Button("Apply", ApplyPreferences)); settings.Children.Add(SettingsSection("Appearance", appearance));
         appearance.Children.Add(customBars); appearance.Children.Add(pinLocal);
         pinLocal.IsChecked = preferences.OverlayPinLocal;
         pinLocal.Checked += (_, _) => SetPinLocal(); pinLocal.Unchecked += (_, _) => SetPinLocal();
@@ -154,6 +159,10 @@ public sealed class MainWindow : Window
         settings.Children.Add(new Expander { Header = "Advanced capture & diagnostics", Content = diagnostics, Margin = new(10, 6, 10, 10) });
         settingsPanel.Content = new ScrollViewer { Content = settings, MaxHeight = 240, VerticalScrollBarVisibility = ScrollBarVisibility.Auto }; header.Children.Add(settingsPanel);
         DockPanel.SetDock(footer, Dock.Bottom); root.Children.Add(footer); root.Children.Add(tabs);
+        var encounterPanel = AddTab("Encounter", "Select a recorded encounter on the left. Current capture is first; saved encounters follow newest first. Participants and attributed skill damage are shown together. Select a participant to focus their skills. Adds remain in encounter totals. Each existing saved fight remains a separate entry; no inferred instance-run merging.");
+        encounterPanel.Children.Remove(grids["Encounter"]);
+        encounterView = new(code => skills.GetSkillName(code), skillIcons); encounterPanel.Children.Add(encounterView);
+        encounterView.Selected += selected => { viewed = selected; encounter.Text = Current.Label; Refresh(); };
         var party = AddTab("Party", "Bars show captured party members, or named players when no roster is available. Click a bar for skills. Player names arrive when entering a zone. The full table below includes every observed actor.");
         party.Children.Remove(grids["Party"]); party.Children.Add(overview);
         party.Children.Add(new Expander { Header = "Full breakdown · all actors", Content = grids["Party"], Margin = new(8, 2, 8, 12) });
@@ -176,6 +185,13 @@ public sealed class MainWindow : Window
         var specsPanel = AddTab("Specs", "Per-character skill levels, choices and equipment from imported or locally entered loadouts. Observed skills without a supplied loadout have unknown levels. Complete means the supplier marked the loadout complete.");
         specsPanel.Children.Insert(1, CharacterDetailsHeader(new TextBlock { Text = "Skill loadouts and equipment for every player", Margin = new(8) }));
         AddDetail(specsPanel, "Equipment", "Equipment · supplied loadouts");
+        AddTab("Boss analysis", "Bosses identified by captured NPC template IDs. Damage is directly to/from the boss; adds stay in the full fight. Possible instances are catalogue candidates, not proof of instance or difficulty. Double-click a boss to inspect its catalogue entry.");
+        AddTab("Boss catalogue", "Offline boss and hero/legend catalogue. Search by name, NPC ID or possible instance. Family variants may span difficulties and locations; unassigned hero/legend entries are not automatically treated as bosses. Source client: " + BossCatalogue.Default.ClientVersion);
+        grids["Boss analysis"].MouseDoubleClick += (_, _) => {
+            if (grids["Boss analysis"].SelectedItem is BossAnalysisRow boss) {
+                character.Text = boss.Boss; tabs.SelectedItem = tabs.Items.Cast<TabItem>().First(t => t.Header?.ToString() == "Boss catalogue"); Refresh();
+            }
+        };
         AddTab("Saved fights", "Double-click a row to inspect it. Capturing continues in the background while browsing. Demo fights are marked and excluded from trends and comparisons.");
         grids["Saved fights"].MouseDoubleClick += (_, _) => { if (grids["Saved fights"].SelectedItem is SavedRow row) { viewed = archive.First(f => f.Id == row.Id); encounter.Text = viewed.Label; tabs.SelectedIndex = 0; Refresh(); } };
         var trendsPanel = AddTab("Trends", "Choose a character and DPS or HPS. Different servers and classes stay separate. The chart shows the last 100 observations; the table retains all matching saved fights. Double-click a row to inspect its fight.");
@@ -214,6 +230,7 @@ public sealed class MainWindow : Window
                     if (saveCurrent) nextAutosave = now + 30000;
                     autosave = Task.Run(() => {
                         var saved = FightPersistence.Save(activeEngine, snapshot, f => SaveFightCore(f, names));
+                        playerProfiles.Save();
                         if (saveCurrent) LogCapture(activeCapture, activeEngine);
                         return saved;
                     });
@@ -224,7 +241,7 @@ public sealed class MainWindow : Window
         timer.Start();
         Closing += (_, e) => {
             if (shuttingDown) return;
-            try { capture?.Dispose(); LogCapture(); capture = null; FinishAutosave(); engine.SaveCompleted(store); var f = LiveSnapshot(); if (f.HasRecordedData) SaveFight(f); }
+            try { capture?.Dispose(); LogCapture(); capture = null; FinishAutosave(); engine.SaveCompleted(store); var f = LiveSnapshot(); if (f.HasRecordedData) SaveFight(f); playerProfiles.Save(); }
             catch (Exception ex) { e.Cancel = true; notice = "Could not save before closing: " + ex.Message; Refresh(); return; }
             shuttingDown = true; timer.Stop(); overlay?.Close(); LocalLog.Write("Application closed.");
         };
@@ -384,6 +401,12 @@ public sealed class MainWindow : Window
             if (e.PropertyName == "LandedPercent") e.Column.Header = "Observed landed %";
             if (e.PropertyName == "HealerShare") e.Column.Header = "Healer share %";
             if (e.PropertyName == "LocalPercentile") e.Column.Header = "Local percentile";
+            if (title is "Boss analysis" or "Boss catalogue") {
+                e.Column.Header = e.PropertyName switch { "PossibleInstances" => "Possible instances", "NpcIds" => "NPC IDs", "DamageToBoss" => "To boss", "DamageFromBoss" => "From boss", "ObservedDeaths" => "Deaths", "FirstSeen" => "First seen (s)", "LastSeen" => "Last seen (s)", _ => e.Column.Header };
+                if (e.PropertyName is "Boss" or "PossibleInstances") { e.Column.MinWidth = 185; e.Column.Width = new DataGridLength(1.5, DataGridLengthUnitType.Star); }
+                if (e.PropertyName is "Hits" or "Entities" or "ObservedDeaths") { e.Column.MinWidth = 65; e.Column.Width = 65; }
+                if (e.PropertyName is "DamageToBoss" or "DamageFromBoss") { e.Column.MinWidth = 100; e.Column.Width = 100; }
+            }
             if (title == "PvP")
             {
                 e.Column.Header = e.PropertyName switch { "DamageToUs" => "Enemy damage", "DamageFromUs" => "Our damage", "DPS" => "Enemy DPS", _ => e.PropertyName };
@@ -399,7 +422,7 @@ public sealed class MainWindow : Window
             }
         };
         grids[title] = grid; panel.Children.Add(grid);
-        tabs.Items.Add(new TabItem { Header = title, Tag = title switch { "Party" => "COMBAT", "Rotations" => "ANALYSIS", "Saved fights" => "LIBRARY", "Report card" => "INSIGHTS", "Network events" => "ADVANCED", _ => null }, Content = new ScrollViewer { Content = panel, VerticalScrollBarVisibility = ScrollBarVisibility.Visible, HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled } });
+        tabs.Items.Add(new TabItem { Header = title, Tag = title switch { "Encounter" => "COMBAT", "Rotations" => "ANALYSIS", "Saved fights" => "LIBRARY", "Report card" => "INSIGHTS", "Network events" => "ADVANCED", _ => null }, Content = new ScrollViewer { Content = panel, VerticalScrollBarVisibility = ScrollBarVisibility.Visible, HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled } });
         return panel;
     }
     static string ColumnHeader(string property) => property switch {
@@ -440,7 +463,7 @@ public sealed class MainWindow : Window
         if (string.IsNullOrWhiteSpace(filter.Text)) throw new InvalidOperationException("Enter a TCP capture filter.");
         var label = EncounterLabel();
         FinishAutosave(); engine.SaveCompleted(store); var previous = LiveSnapshot(); if (previous.HasRecordedData) SaveFight(previous);
-        engine = new(decodeEu.IsChecked == true ? new EuGameDecoder() : null); engine.NewFight(label); viewed = null;
+        engine = new(decodeEu.IsChecked == true ? new EuGameDecoder() : null, playerProfiles); engine.NewFight(label); viewed = null;
         var newCapture = new LocalCapture(device, engine.Process);
         string? samplePath = null;
         if (recordSample.IsChecked == true)
@@ -464,7 +487,7 @@ public sealed class MainWindow : Window
     void StopAndSave()
     {
         capture?.Dispose(); LogCapture(); capture = null; start.Content = "Start capture"; adapters.IsEnabled = true; filter.IsEnabled = true; decodeEu.IsEnabled = true;
-        FinishAutosave(); engine.SaveCompleted(store); var f = LiveSnapshot(); if (f.HasRecordedData) SaveFight(f); ReloadArchive(); notice = "Capture stopped. Recorded events saved locally."; Refresh();
+        FinishAutosave(); engine.SaveCompleted(store); var f = LiveSnapshot(); if (f.HasRecordedData) SaveFight(f); playerProfiles.Save(); ReloadArchive(); notice = "Capture stopped. Recorded events saved locally."; Refresh();
     }
     void NewFight()
     {
@@ -581,6 +604,8 @@ public sealed class MainWindow : Window
     void ApplyPreferences()
     {
         _ = (Color)ColorConverter.ConvertFromString(accent.Text);
+        _ = (Color)ColorConverter.ConvertFromString(backAttackColor.Text);
+        preferences.BackAttackColor = backAttackColor.Text;
         preferences.Theme = themes.SelectedItem?.ToString() ?? "Midnight"; preferences.Accent = accent.Text; preferences.Filter = filter.Text;
         preferences.OverlayCustomBars = customBars.IsChecked == true;
         preferences.Adapter = (adapters.SelectedItem as LibPcapLiveDevice)?.Name ?? preferences.Adapter;
@@ -629,6 +654,10 @@ public sealed class MainWindow : Window
         dpsValue.Text = MeterPresentation.Number(meterData.Rate); dpsValue.ToolTip = $"{meterData.Rate:N1} DPS · {meterData.Scope}";
         durationValue.Text = MeterPresentation.Duration(f);
         string tab = (tabs.SelectedItem as TabItem)?.Header?.ToString() ?? "Party";
+        bool bossSearch = tab is "Boss analysis" or "Boss catalogue";
+        character.Tag = bossSearch ? "Search bosses, IDs, instances..." : tab == "Encounter" ? "Search encounters or participants..." : tab == "Saved fights" ? "Search fights, bosses, players..." : "Filter characters...";
+        character.ToolTip = bossSearch ? "Search boss names, NPC template IDs or possible instances" : "Filter details by character name; blank shows everyone";
+        clearFilter.ToolTip = "Clear search";
         viewTitle.Text = tab; clearFilter.Visibility = character.Text.Length > 0 ? Visibility.Visible : Visibility.Hidden;
         showLive.Visibility = viewed != null ? Visibility.Visible : Visibility.Hidden;
         bool comparison = tab is "Trends" or "Report card" or "Top cohort" or "Top 5%";
@@ -638,6 +667,7 @@ public sealed class MainWindow : Window
         if (updateDetails)
         switch (tab)
         {
+            case "Encounter": encounterView.Update(f, LiveSnapshot(), archive, capture != null, character.Text); break;
             case "Party":
                 Set(tab, totals.Where(r => Matches(r.Character)).ToArray());
                 overview.Update(meterData.Rows.Where(r => Matches(r.Name)).ToArray(), compact: true, hasEvents: f.HasEvents, emptyText: character.Text.Length > 0 ? "No matching players" : null);
@@ -659,7 +689,9 @@ public sealed class MainWindow : Window
                 DrawTimeline(f, totals); break;
             case "Openers": Set(tab, DetailedAnalysis.Openers(f, skills.GetSkillName).Where(r => Matches(r.Character))); break;
             case "Specs": Set(tab, DetailedAnalysis.Specs(f, skills.GetSkillName).Where(r => Matches(r.Character))); SetDetail("Equipment", DetailedAnalysis.Equipment(f).Where(r => Matches(r.Character))); break;
-            case "Saved fights": Set(tab, archive.Where(a => Matches(a.Label) || a.Actors.Values.Any(p => p.Player && Matches(p.Name))).Select(a => new SavedRow(a.Id, a.Created.ToLocalTime(), a.Label, a.Demo, a.Damage.Count + a.Healing.Count, Math.Round(a.Seconds, 1))).ToArray()); break;
+            case "Boss analysis": Set(tab, BossAnalysis.Build(f).Where(b => Matches(b.Boss) || Matches(b.PossibleInstances) || Matches(b.NpcIds))); break;
+            case "Boss catalogue": Set(tab, BossCatalogue.Default.Rows().Where(b => Matches(b.Boss) || Matches(b.PossibleInstances) || Matches(b.NpcIds))); break;
+            case "Saved fights": Set(tab, archive.Where(a => Matches(a.Label) || Matches(BossAnalysis.Summary(a)) || a.Actors.Values.Any(p => p.Player && Matches(p.Name))).Select(a => new SavedRow(a.Id, a.Created.ToLocalTime(), a.Label, a.Demo, a.Damage.Count + a.Healing.Count, Math.Round(a.Seconds, 1)) { Bosses = BossAnalysis.Summary(a) }).ToArray()); break;
             case "Trends": RefreshTrends(); break;
             case "Report card": Set(tab, Benchmarks.Report(f, archive).Where(r => Matches(r.Character)).ToArray()); break;
             case "Player stats": Set(tab, CharacterReadings.Rows(f.LocalStats)); break;
@@ -705,7 +737,7 @@ public sealed class MainWindow : Window
         var ids = actors.OrderByDescending(r => r.Id == f.LocalPlayer).ThenBy(r => r.Character, StringComparer.OrdinalIgnoreCase).ThenBy(r => r.Id).Take(10).Select(r => r.Id).ToArray();
         rotationView.Update(f, ids, (viewed == null ? "live" : "saved:" + f.Id) + "|" + character.Text);
     }
-    sealed record SavedRow(string Id, DateTime Date, string Encounter, bool Demo, int Events, double Seconds);
+    sealed record SavedRow(string Id, DateTime Date, string Encounter, bool Demo, int Events, double Seconds) { public string Bosses { get; init; } = ""; }
     internal void RunVisualSmokeTest()
     {
         Directory.CreateDirectory("test-artifacts");
@@ -726,6 +758,7 @@ public sealed class MainWindow : Window
                 Refresh(skipUnchanged: true);
                 if (!ReferenceEquals(items, grids["Rotations"].ItemsSource) || builds != rotationView.ModelBuilds || scenes != rotationView.Plot.SceneBuilds) throw new Exception("Idle refresh rebuilt the timeline.");
             }
+            if (tab.Header.ToString() == "Encounter") { encounterView.CheckPresentation(Current); UpdateLayout(); Render(this, "test-artifacts/Encounter.png"); }
             if (tab.Header.ToString() is "Skills" or "Healing")
             {
                 var grid = grids[tab.Header.ToString()!];
@@ -771,13 +804,35 @@ public sealed class MainWindow : Window
         duelOverlay.Update(duel, new Preferences { OverlayPinLocal = true }); duelOverlay.Show(); duelOverlay.UpdateLayout();
         if (duelOverlay.CurrentScope != "PvP" || duelOverlay.RowCount != 2) throw new Exception("Unnamed PvP opponent is hidden in the overlay.");
         duelOverlay.CheckPinnedScrolling(); Render(duelOverlay, "test-artifacts/Overlay-pvp-unnamed.png");
+        var backDemo = duel.Copy();
+        backDemo.Damage.Add(new() { ActorId = backDemo.LocalPlayer, TargetId = 2, SkillCode = 11000001, Timestamp = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds(), Damage = 10, IsBackAttack = true });
+        duelOverlay.Update(backDemo, new Preferences()); duelOverlay.CheckBackAttackBorder(true); duelOverlay.UpdateLayout();
+        Render(duelOverlay, "test-artifacts/Overlay-back-attack.png");
+        var frontDemo = backDemo.Copy();
+        frontDemo.Damage.Add(new() { ActorId = frontDemo.LocalPlayer, TargetId = 2, SkillCode = 11000001, Timestamp = frontDemo.End + 1, Damage = 10, IsFrontAttack = true });
+        duelOverlay.Update(frontDemo, new Preferences { BackAttackColor = "#7C9EF7" }); duelOverlay.CheckBackAttackBorder(true);
         duelOverlay.Update(new Fight { LocalPlayer = 1, Actors = new(duel.Actors) }, new Preferences());
+        duelOverlay.CheckBackAttackBorder(false);
         if (duelOverlay.CurrentScope == "PvP") throw new Exception("Automatic PvP scope did not reset for the next fight.");
         duelOverlay.Close();
         var previousView = viewed; viewed = duel;
         tabs.SelectedItem = tabs.Items.Cast<TabItem>().First(t => t.Header?.ToString() == "PvP"); Refresh(); UpdateLayout();
         if (grids["PvP"].Items.Count != 1 || pvpMeter.RowCount != 2) throw new Exception("Unnamed opponent is hidden in the PvP tab.");
         Render(this, "test-artifacts/PvP-duel.png"); viewed = previousView; tabs.SelectedIndex = 0; Refresh();
+        var beforeBossView = viewed; var beforeBossFilter = character.Text;
+        var bossDemo = new Fight { Demo = true, LocalPlayer = 1, Label = "Catalogue demo" };
+        bossDemo.Actors[1] = new(1, "Example", true, true, 42000, "Cleric", 1);
+        bossDemo.Actors[2] = new(2, "Kromede's Desire", false, false, 0, "Unknown", 0) { NpcId = 2300371 };
+        bossDemo.Damage.Add(new() { ActorId = 1, TargetId = 2, Timestamp = 1000, Damage = 1234 });
+        viewed = bossDemo; character.Text = "";
+        tabs.SelectedItem = tabs.Items.Cast<TabItem>().Single(t => t.Header?.ToString() == "Boss analysis"); Refresh(); UpdateLayout();
+        if (grids["Boss analysis"].Items.Count != 1) throw new Exception("Boss analysis did not identify the embedded catalogue NPC.");
+        Render(this, "test-artifacts/Boss-analysis.png");
+        character.Text = "2310371";
+        tabs.SelectedItem = tabs.Items.Cast<TabItem>().Single(t => t.Header?.ToString() == "Boss catalogue"); Refresh(); UpdateLayout();
+        if (grids["Boss catalogue"].Items.Count != 1) throw new Exception("Boss catalogue variant-ID search failed.");
+        Render(this, "test-artifacts/Boss-catalogue.png");
+        viewed = beforeBossView; character.Text = beforeBossFilter; tabs.SelectedIndex = 0; Refresh();
         CheckFeatureViews();
         Width = MinWidth; Height = MinHeight; UpdateLayout(); Render(this, "test-artifacts/Main-small.png");
         File.WriteAllText("smoke-test-results.txt", $"PASS: all {tabs.Items.Count} WPF tabs, immediate rotation inspection, hover hold, pinned damage/healing stepping, scrubbing/resume and retained drawing, populated CP report/top-five/cohort/trends/specs/openers, character editor, delayed comparison refresh, unnamed PvP opponents, automatic PvP overlay, skill/healing icon cells, ten ranked bars, five themes, custom bars, dark dropdowns/file menus/overlay menu, damage/healing overlay, move lock and minimum sizes rendered on .NET 10.\n" + notice);

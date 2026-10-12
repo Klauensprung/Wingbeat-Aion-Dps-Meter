@@ -19,7 +19,8 @@ publish/
 *.suo
 *.userosscache
 *.sln.docstates
-**/Properties/PublishProfiles/
+**/Properties/PublishProfiles/*
+!AionDpsMeter/Properties/PublishProfiles/FolderProfile.pubxml
 
 # Private fights, packet captures, diagnostics and downloaded game assets
 local-data/
@@ -78,3 +79,8 @@ Desktop.ini
 *.txt
 !/THIRD-PARTY-NOTICES.txt
 !/licenses/*.txt
+
+# Downloaded boss catalogue source pages (maintainer input only).
+.cache/boss-catalogue/
+/AionDpsMeter/Properties/PublishProfiles/FolderProfile.pubxml
+/.github/copilot-instructions.md

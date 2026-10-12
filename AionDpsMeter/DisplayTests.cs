@@ -75,6 +75,9 @@ public static class DisplayTests
         var restoredPreferences = JsonSerializer.Deserialize<Preferences>(JsonSerializer.Serialize(new Preferences { OverlayCustomBars = true }))!;
         check(restoredPreferences.OverlayCustomBars && !JsonSerializer.Deserialize<Preferences>("{}")!.OverlayCustomBars, "Overlay colour choice persists and existing default settings retain class colours");
 
+        check(JsonSerializer.Deserialize<Preferences>("{}")!.BackAttackColor == "#E7CF7D" &&
+            JsonSerializer.Deserialize<Preferences>(JsonSerializer.Serialize(new Preferences { BackAttackColor = "#7C9EF7" }))!.BackAttackColor == "#7C9EF7",
+            "Back-attack border defaults to gold for existing settings and persists a chosen colour");
         var engine = new CombatEngine(); long revision = -1;
         var initial = engine.SnapshotIfChanged(null, ref revision);
         check(ReferenceEquals(initial, engine.SnapshotIfChanged(initial, ref revision)), "Idle capture reuses UI snapshot");

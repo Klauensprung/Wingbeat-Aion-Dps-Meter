@@ -57,6 +57,7 @@ public static class PvpAnalysis
             return new MeterRow(c.Id, c.Name, c.Job, amount, amount / pvp.Seconds,
                 total == 0 ? 0 : 100d * amount / total, maximum == 0 ? 0 : (double)amount / maximum,
                 color, c.Id == fight.LocalPlayer, true) { Detail = (c.Friendly ? "Your side" : "Opponent") + (c.Identity == "Named" ? "" : " · name pending; class inferred from skills"),
+                    LocalCombatPower = fight.Actors.GetValueOrDefault(fight.LocalPlayer)?.Cp ?? 0,
                     Deaths = deathCounts.GetValueOrDefault(c.Id), CombatPower = fight.Actors.GetValueOrDefault(c.Id)?.Cp ?? 0,
                     CombatPowerSource = fight.Actors.GetValueOrDefault(c.Id)?.CpSource ?? "Unknown", LocalPingMs = PlayerTelemetry.PingFor(fight, c.Id) };
         }).ToArray();

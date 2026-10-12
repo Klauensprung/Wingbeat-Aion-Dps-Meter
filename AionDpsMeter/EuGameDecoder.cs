@@ -234,6 +234,13 @@ public sealed class EuGameDecoder(int serverPort = 13328, IReadOnlySet<int>? hea
         int flagsLength = form switch { 0 => 8, 1 => 13, 3 => 15, _ => 0 };
         if (form == 2) { var peek = reader; peek.Byte(); int at = peek.Position; peek.Var(); flagsLength = 10 + peek.Position - at; }
         byte[] flags = reader.Take(flagsLength).ToArray();
+        int direction = 0;
+        if (form is 1 or 3) direction = flags[2] & 3;
+        else if (form == 2) {
+            var directionReader = new WireReader(flags);
+            directionReader.Byte(); directionReader.Var();
+            direction = directionReader.Byte() & 3;
+        }
         int unknown = reader.Var(), amount = reader.Var();
         int loop = reader.Remaining > 0 ? reader.Var() : 0;
         if (amount is < 1 or > 10000000) throw new InvalidDataException("Invalid hit amount.");
@@ -251,6 +258,10 @@ public sealed class EuGameDecoder(int serverPort = 13328, IReadOnlySet<int>? hea
         {
             Timestamp = time, ActorId = actor, TargetId = target, SkillCode = (int)rawSkill,
             Damage = amount, IsHeal = heal, IsCritical = !heal && type <= 35 && ((type / 3) & 1) != 0,
+            // Extended forms carry bit 0 back / bit 1 front after their prefix.
+            // Short forms and contradictory flags remain unclassified.
+            IsBackAttack = !heal && direction == 1,
+            IsFrontAttack = !heal && direction == 2,
             AdditionalData = new() {
                 ["WireOpcode"] = JsonSerializer.SerializeToElement(hex),
                 ["WireType"] = JsonSerializer.SerializeToElement(type), ["Counter"] = JsonSerializer.SerializeToElement(counter),
