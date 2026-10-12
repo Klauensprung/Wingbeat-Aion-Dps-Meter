@@ -47,14 +47,14 @@ public sealed class CombatEngine
             {
                 case "actor" when item.Actor != null: UpdateActor(item.Actor); break;
                 case "local-player" when item.Actor is { Player: true } local:
-                    // A changed known local identity starts a scene/session.
-                    // Repeated records for the same character are updates, and
-                    // must not discard other players' names or split their fight.
-                    if (Fight.LocalPlayer > 0 && (Fight.LocalPlayer != local.Id || !Fight.Actors.TryGetValue(local.Id, out var knownLocal) ||
-                        knownLocal.Name != local.Name || (knownLocal.Server > 0 && local.Server > 0 && knownLocal.Server != local.Server)))
+                    // The local character/CP packet (33 36) is an explicit reset
+                    // boundary, even if the server, entity ID and CP are unchanged.
+                    bool changedIdentity = Fight.LocalPlayer > 0 && (Fight.LocalPlayer != local.Id || !Fight.Actors.TryGetValue(local.Id, out var knownLocal) ||
+                        knownLocal.Name != local.Name || (knownLocal.Server > 0 && local.Server > 0 && knownLocal.Server != local.Server));
+                    if (Fight.HasRecordedData) completed.Enqueue(Snapshot());
+                    NewFight(Fight.Label); // Also invalidates any idle/add-phase recovery.
+                    if (changedIdentity)
                     {
-                        if (Fight.HasRecordedData) completed.Enqueue(Snapshot());
-                        NewFight(Fight.Label);
                         Fight.Actors.Clear(); Fight.Specs.Clear(); Fight.Builds.Clear(); Fight.PartyProfiles = []; Fight.LocalPing = null; Fight.LocalStats = null; Fight.PartyKnown = false; Fight.PartySource = "Not captured"; Fight.LocalPlayer = local.Id;
                     }
                     Fight.LocalPlayer = local.Id;

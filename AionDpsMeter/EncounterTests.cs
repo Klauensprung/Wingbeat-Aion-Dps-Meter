@@ -78,6 +78,26 @@ internal static class EncounterTests
         var scene = Engine(true); string sceneId = scene.Fight.Id;
         scene.AdvanceTime(46000); scene.Apply(new("local-player", Actor: new(2, "Other character", true, true, 0, "Cleric", 1))); Hit(scene, 50000);
         check(scene.Fight.Id != sceneId, "Character/session changes cannot recover an old encounter");
+        foreach (bool idle in new[] { false, true }) {
+            var transition = Engine(true); string oldId = transition.Fight.Id;
+            var identity = transition.Fight.Actors[1];
+            if (idle) transition.AdvanceTime(46000);
+            transition.Apply(new("local-player", Actor: identity));
+            check(transition.Fight.Id != oldId && !transition.Fight.HasEvents && transition.Fight.Deaths.Count == 0,
+                "Unchanged local character/CP packet resets " + (idle ? "idle" : "active") + " combat");
+            Hit(transition, 50000);
+            check(transition.Fight.Id != oldId && transition.Fight.Damage.Count == 1,
+                "Same target cannot revive the pre-transition encounter after " + (idle ? "idle" : "active") + " reset");
+            var archived = transition.SaveCompleted(_ => { });
+            check(archived.Any(f => f.Id == oldId && f.Damage.Count == 2), "Transition preserves the completed encounter for saving");
+        }
+        var server = Engine(true); string serverId = server.Fight.Id;
+        server.Apply(new("local-player", Actor: server.Fight.Actors[1] with { Server = 2, Cp = 45000 }));
+        check(server.Fight.Id != serverId && !server.Fight.HasEvents && server.Fight.Actors.Count == 1 && server.Fight.Actors[1].Cp == 45000,
+            "Server changes clear stale scene identities and keep the newly captured local CP");
+        var partyCp = Engine(true); string partyId = partyCp.Fight.Id;
+        partyCp.Apply(new("party-profiles", Profiles: [new("You", 2301, 45000, 0)]));
+        check(partyCp.Fight.Id == partyId && partyCp.Fight.Damage.Count == 2, "Party CP refreshes do not trigger the local session reset");
         var expired = Engine(true); string expiredId = expired.Fight.Id;
         Hit(expired, 400000);
         check(expired.Fight.Id != expiredId, "Recovery expires so an entity ID cannot join arbitrarily distant pulls");

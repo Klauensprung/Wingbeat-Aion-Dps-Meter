@@ -52,8 +52,8 @@ internal static class TelemetryTests
             .All(bytes => new EuGameDecoder().Decode(Payload(bytes)).Events.Single().Actor is { Cp: 0, Name: "LocalCP" }),
             "Invalid or shifted CP fields preserve identity without guessing unrelated packet values");
         var beforeCpUpdate = solo.Snapshot(); solo.Process(Payload(Local(44500, 45000)));
-        check(solo.Fight.Id == beforeCpUpdate.Id && solo.Fight.Actors[400].Cp == 44500 && beforeCpUpdate.Actors[400].Cp == 44000,
-            "Repeated local CP updates refresh the current fight and preserve prior snapshots");
+        check(solo.Fight.Id != beforeCpUpdate.Id && solo.Fight.Actors[400].Cp == 44500 && beforeCpUpdate.Actors[400].Cp == 44000,
+            "Local CP packets start a new fight, refresh CP and preserve prior snapshots");
         solo.Apply(new("party-profiles", Profiles: [new("LocalCP", 2301, 42000, 0)]));
         check(solo.Fight.Actors[400].Cp == 44500, "Party metadata cannot replace the local character's direct CP reading");
         solo.Apply(new("actor", Actor: solo.Fight.Actors[400] with { Cp = 48000, CpSource = "Entered locally" }));

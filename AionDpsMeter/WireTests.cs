@@ -58,9 +58,9 @@ internal static class WireTests
         check(identities.Snapshot().Actors[300] is { Party: true, Cp: 12000, Job: "Cleric", Server: 2301 }, "Spawn-only names do not erase previously known character metadata");
         identities.Process(Payload(character)); var scene = identities.Snapshot();
         identities.SaveCompleted(new FightStore(temp));
-        check(scene.LocalPlayer == 302 && scene.Name(302) == "OwnName" && scene.Actors.ContainsKey(300) && scene.Id == afterIdentity.Id && scene.Damage.Count == 1, "First local identity preserves the ongoing fight and existing names");
+        check(scene.LocalPlayer == 302 && scene.Name(302) == "OwnName" && scene.Actors.ContainsKey(300) && scene.Id != afterIdentity.Id && scene.Damage.Count == 0, "First local character packet resets combat while preserving captured names");
         identities.Process(Payload(spawn)); identities.Process(Payload(hit)); identities.Process(Payload(character));
-        check(identities.Snapshot().Id == scene.Id && identities.Snapshot().Name(300) == "TesterA" && identities.Snapshot().Damage.Count == 2, "Repeated local character updates preserve party names and the active fight");
+        check(identities.Snapshot().Id != scene.Id && identities.Snapshot().Name(300) == "TesterA" && identities.Snapshot().Damage.Count == 0, "Repeated local character packets reset combat even for an unchanged identity");
         bool identitySplits = true;
         foreach (var frame in new[] { spawn, character })
         for (int split = 1; split < frame.Length; split++)
