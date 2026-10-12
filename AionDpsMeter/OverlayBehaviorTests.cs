@@ -22,6 +22,17 @@ internal static class OverlayBehaviorTests
         check(coloured.Rows.All(r => reordered.Rows.Single(x => x.Id == r.Id).Color == r.Color && joined.Rows.Single(x => x.Id == r.Id).Color == r.Color) &&
             colours.Apply(roster, data with { Rows = [rows[7]] }).Rows[0].Color == coloured.Rows[7].Color,
             "Participant colours survive rank changes, new arrivals, identity updates and filtered damage/healing views");
+        var crowded = new Fight();
+        for (int id = 1; id <= 10000; id++) crowded.Actors[id] = new(id, $"Entity {id}", false, false, 0, "Unknown", 0);
+        var fresh = new ParticipantColors();
+        check(fresh.Apply(crowded, data).Rows.Select(r => r.Color).SequenceEqual(new ParticipantColors().Apply(new Fight(), data).Rows.Select(r => r.Color)),
+            "Unrelated captured entities do not consume overlay participant colours");
+        var many = Enumerable.Range(1, 10000).Select(id => rows[0] with { Id = id }).ToArray();
+        var manyColours = fresh.Apply(crowded, data with { Rows = many });
+        check(manyColours.Rows.Select(r => r.Color).Distinct().Count() == many.Length,
+            "Large sessions exhaust the rounded palette safely without hanging or duplicating participant colours");
+        check(fresh.Apply(new Fight(), data).Rows.Select(r => r.Color).SequenceEqual(coloured.Rows.Select(r => r.Color)),
+            "Switching encounters resets participant colours after a large session");
         var duel = PvpTests.Duel();
         check(PvpAnalysis.Meter(duel, PvpAnalysis.Build(duel), pinLocal: true).Rows[0].Id == 1 &&
             PvpAnalysis.Meter(duel, PvpAnalysis.Build(duel)).Rows[0].Id == 2,

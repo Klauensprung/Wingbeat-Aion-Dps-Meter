@@ -31,6 +31,7 @@ internal sealed class EncounterView : Grid
     readonly Func<int, string> skillName;
     Dictionary<string, Fight> choices = new();
     Fight? selected;
+    EncounterParticipant[] currentPeople = [];
     string liveId = "", search = "";
     int? participantId;
     bool updating;
@@ -119,7 +120,7 @@ internal sealed class EncounterView : Grid
                 .Select(f => new Entry(f.Id, EncounterOverview.Title(f), (f.Id == live.Id ? capturing ? "LIVE" : "CURRENT" : f.Demo ? "DEMO" : "SAVED") + "  |  " + f.Created.ToLocalTime().ToString("dd MMM HH:mm") + "  |  " + MeterPresentation.Duration(f))).ToArray();
             encounters.SetRows(entries); encounters.SelectedItem = encounters.Items.Cast<Entry>().FirstOrDefault(e => e.Id == current.Id);
             heading.Text = EncounterOverview.Title(current); heading.ToolTip = heading.Text;
-            var people = EncounterOverview.Participants(current);
+            var people = currentPeople = EncounterOverview.Participants(current);
             subtitle.Text = $"{people.Length} players  |  {MeterPresentation.Duration(current)}  |  {people.Sum(p => p.Damage):N0} damage  |  {people.Sum(p => p.Healing):N0} healing";
             empty.Visibility = current.HasEvents ? Visibility.Collapsed : Visibility.Visible;
             participants.SetRows(people);
@@ -131,7 +132,7 @@ internal sealed class EncounterView : Grid
     void RefreshSkills()
     {
         if (selected == null) return;
-        var people = EncounterOverview.Participants(selected).Where(p => participantId == null || p.Id == participantId).ToArray();
+        var people = currentPeople.Where(p => participantId == null || p.Id == participantId).ToArray();
         skills.SetRows(EncounterOverview.Skills(selected, people.Select(p => p.Id), skillName));
         skillHeading.Text = participantId == null ? "Skill damage - all participants" : "Skill damage - " + selected.Name(participantId.Value);
     }

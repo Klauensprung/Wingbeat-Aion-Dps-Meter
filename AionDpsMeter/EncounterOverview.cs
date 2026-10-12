@@ -33,11 +33,11 @@ internal static class EncounterOverview
     {
         var included = actors.Where(id => IsNamedPlayer(fight, id)).ToHashSet();
         var hits = fight.Damage.Where(h => included.Contains(h.ActorId)).ToArray();
-        double total = hits.Sum(h => (long)h.Damage);
+        double total = hits.Sum(h => (long)h.Damage), seconds = fight.Seconds;
         return hits.GroupBy(h => (h.ActorId, h.SkillCode)).Select(g => {
             long damage = g.Sum(h => (long)h.Damage);
             return new EncounterSkill(g.Key.ActorId, fight.Name(g.Key.ActorId), name(g.Key.SkillCode), g.Key.SkillCode, g.Count(), damage,
-                damage / fight.Seconds, total == 0 ? 0 : 100d * damage / total, 100d * g.Count(h => h.IsCritical) / g.Count());
+                damage / seconds, total == 0 ? 0 : 100d * damage / total, 100d * g.Count(h => h.IsCritical) / g.Count());
         }).OrderByDescending(r => r.DPS).ThenByDescending(r => r.Damage).ThenBy(r => r.ActorId).ThenBy(r => r.SkillCode).ToArray();
     }
 }

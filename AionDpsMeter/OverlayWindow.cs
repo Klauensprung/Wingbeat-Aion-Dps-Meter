@@ -35,7 +35,7 @@ public sealed class OverlayWindow : Window
     PvpData? pvp;
     string lastTheme = "", lastAccent = "";
     string? lastBackAttackColor;
-    bool positioned;
+    bool positioned, closed;
     public int RowCount => ownMeter.RowCount + meter.RowCount;
     internal string CurrentScope { get; private set; } = "";
 
@@ -82,9 +82,9 @@ public sealed class OverlayWindow : Window
         meter.ActorSelected += id => actorSelected?.Invoke(id);
         ownMeter.ActorSelected += id => actorSelected?.Invoke(id);
         backAttackTimer.Tick += (_, _) => RefreshBackAttackBorder();
-        backAttackTimer.Start();
+        Loaded += (_, _) => { if (!closed) backAttackTimer.Start(); };
         Closed += (_, _) => {
-            backAttackTimer.Stop();
+            closed = true; backAttackTimer.Stop();
             preferences.OverlayWidth = Width; preferences.OverlayHeight = Height;
             preferences.OverlayLeft = Left; preferences.OverlayTop = Top; saveSettings?.Invoke();
         };
@@ -124,6 +124,7 @@ public sealed class OverlayWindow : Window
     }
     public void Update(Fight value, Preferences settings, string unusedEnergy = "", TotalRow[]? rows = null, PvpData? pvpData = null)
     {
+        if (closed) return;
         bool changed = !ReferenceEquals(fight, value);
         if (lastBackAttackColor != settings.BackAttackColor) {
             var brush = new SolidColorBrush(BackAttackColour(settings.BackAttackColor)); brush.Freeze();

@@ -8,18 +8,31 @@ internal sealed class ParticipantColors
     readonly Dictionary<int, string> assigned = new();
     readonly HashSet<string> used = new();
     string? encounter;
-    int next;
+    int next, fallback;
 
     public MeterData Apply(Fight fight, MeterData data)
     {
-        if (encounter != fight.Id) { encounter = fight.Id; assigned.Clear(); used.Clear(); next = 0; }
-        foreach (int id in fight.Actors.Keys.Concat(data.Rows.Select(r => r.Id)).Distinct().Order()) {
+        if (encounter != fight.Id) { encounter = fight.Id; assigned.Clear(); used.Clear(); next = fallback = 0; }
+        foreach (int id in data.Rows.Select(r => r.Id).Distinct().Order()) {
             if (assigned.ContainsKey(id)) continue;
-            string color;
-            do { color = Generate(next++); } while (!used.Add(color));
-            assigned[id] = color;
+            assigned[id] = Allocate();
         }
         return data with { Rows = data.Rows.Select(r => r with { Color = assigned[r.Id] }).ToArray() };
+    }
+
+    string Allocate()
+    {
+        // Rounded HSV colours have a finite gamut. Never retry it indefinitely.
+        for (int attempt = 0; attempt < 32; attempt++) {
+            string color = Generate(next++);
+            if (used.Add(color)) return color;
+        }
+        // An odd multiplier permutes the 24-bit RGB space without repetition.
+        while (fallback < 0x1000000) {
+            string color = $"#{(fallback++ * 0x9E3779L & 0xFFFFFF):X6}";
+            if (used.Add(color)) return color;
+        }
+        return Palette[0]; // Safe even if every representable RGB colour was used.
     }
 
     static string Generate(int index)

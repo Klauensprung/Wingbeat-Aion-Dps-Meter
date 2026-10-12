@@ -593,9 +593,18 @@ public sealed class MainWindow : Window
     void ToggleOverlay()
     {
         if (overlay != null) { overlay.Close(); overlay = null; return; }
-        overlay = new OverlayWindow(NewFight, id => FocusActor(id, preferences.OverlayHealing), () => { customBars.IsChecked = preferences.OverlayCustomBars; pinLocal.IsChecked = preferences.OverlayPinLocal; SavePreferences(); }); overlay.Closed += (_, _) => overlay = null;
-        var fight = capture != null ? LiveSnapshot() : Current;
-        overlay.Update(fight, preferences, rows: ReferenceEquals(fight, displayedSnapshot) ? displayedTotals : null); overlay.Show();
+        var opening = new OverlayWindow(NewFight, id => FocusActor(id, preferences.OverlayHealing), () => { customBars.IsChecked = preferences.OverlayCustomBars; pinLocal.IsChecked = preferences.OverlayPinLocal; SavePreferences(); });
+        overlay = opening;
+        opening.Closed += (_, _) => { if (ReferenceEquals(overlay, opening)) overlay = null; };
+        try {
+            var fight = capture != null ? LiveSnapshot() : Current;
+            bool cached = ReferenceEquals(fight, displayedSnapshot);
+            opening.Update(fight, preferences, rows: cached ? displayedTotals : null, pvpData: cached ? displayedPvp : null);
+            opening.Show();
+        } catch {
+            if (ReferenceEquals(overlay, opening)) overlay = null;
+            opening.Close(); throw;
+        }
     }
     void SetPinLocal()
     {
@@ -815,6 +824,29 @@ public sealed class MainWindow : Window
         duelOverlay.CheckBackAttackBorder(false);
         if (duelOverlay.CurrentScope == "PvP") throw new Exception("Automatic PvP scope did not reset for the next fight.");
         duelOverlay.Close();
+        // Exercise the real open/close path while swapping a large and small fight.
+        var beforeStress = viewed;
+        var beforeStressTab = tabs.SelectedItem;
+        tabs.SelectedIndex = 0;
+        var longFight = PvpTests.Duel();
+        for (int id = 100; id < 10100; id++) longFight.Actors[id] = new(id, $"Entity {id}", false, false, 0, "Unknown", 0);
+        var stressHit = longFight.Damage[0];
+        for (int i = 0; i < 60000; i++) longFight.Damage.Add(stressHit with { Timestamp = stressHit.Timestamp + i * 10, SkillCode = 11000000 + i % 400 });
+        bool beforeCustom = preferences.OverlayCustomBars;
+        try {
+            preferences.OverlayCustomBars = true;
+            for (int cycle = 0; cycle < 3; cycle++) {
+                viewed = longFight; Refresh(); ToggleOverlay(); UpdateLayout();
+                if (overlay?.IsVisible != true) throw new Exception("Rapid overlay opening failed.");
+                viewed = duel; Refresh(); overlay.UpdateLayout();
+                if (overlay.RowCount != 2) throw new Exception("Overlay retained rows after switching fights.");
+                ToggleOverlay();
+                if (overlay != null) throw new Exception("Rapid overlay closing retained the window.");
+            }
+        } finally {
+            overlay?.Close(); viewed = beforeStress; preferences.OverlayCustomBars = beforeCustom; tabs.SelectedItem = beforeStressTab; Refresh();
+        }
+
         var previousView = viewed; viewed = duel;
         tabs.SelectedItem = tabs.Items.Cast<TabItem>().First(t => t.Header?.ToString() == "PvP"); Refresh(); UpdateLayout();
         if (grids["PvP"].Items.Count != 1 || pvpMeter.RowCount != 2) throw new Exception("Unnamed opponent is hidden in the PvP tab.");
