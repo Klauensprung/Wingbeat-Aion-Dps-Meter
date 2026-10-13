@@ -43,8 +43,8 @@ public static class PacketReplay
             }
             long time = U32(packetHeader, 0) * 1000L + U32(packetHeader, 4) / (nano ? 1000000 : 1000);
             if (tcp.PayloadData.Length > 0)
-                foreach (var bytes in stream.Push(tcp.SequenceNumber + (tcp.Synchronize ? 1u : 0u), tcp.PayloadData))
-                    yield return new(tcp.SourcePort, tcp.DestinationPort, bytes, "pcap") { Connection = key, TimestampMs = time };
+                foreach (var chunk in stream.PushTimed(tcp.SequenceNumber + (tcp.Synchronize ? 1u : 0u), tcp.PayloadData, time))
+                    yield return new(tcp.SourcePort, tcp.DestinationPort, chunk.Data, "pcap") { Connection = key, TimestampMs = chunk.TimestampMs };
             if (tcp.Finished || tcp.Reset) streams.Remove(key);
         }
         if (streams.Values.Any(s => s.HasPending)) throw new InvalidDataException("Unresolved TCP gaps remain at end of capture.");

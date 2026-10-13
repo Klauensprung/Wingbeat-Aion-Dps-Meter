@@ -20,8 +20,12 @@ internal static class LiveTableTests
             var custom = columns[0]; custom.Width = new DataGridLength(187); custom.DisplayIndex = columns.Length - 1;
             grid.Items.SortDescriptions.Add(new(nameof(SkillRow.Damage), ListSortDirection.Descending));
             grid.SelectedItem = grid.ItemsSource.Cast<SkillRow>().Single(r => r.SkillCode == 17010072);
-            layout(); var scroll = LiveTable.FindScroll(grid)!;
-            scroll.ScrollToHorizontalOffset(40); scroll.ScrollToVerticalOffset(450); layout();
+            // Column reordering schedules width calculation on the dispatcher.
+            // Establish the scroll baseline after that work, just as a user who
+            // finishes dragging a header before the next capture update would.
+            void Settle() { layout(); grid.Dispatcher.Invoke(() => { }, System.Windows.Threading.DispatcherPriority.Loaded); layout(); }
+            Settle(); var scroll = LiveTable.FindScroll(grid)!;
+            scroll.ScrollToHorizontalOffset(40); scroll.ScrollToVerticalOffset(450); Settle();
             double horizontal = scroll.HorizontalOffset, vertical = scroll.VerticalOffset, width = grid.ActualWidth;
             var columnWidths = columns.Select(c => c.ActualWidth).ToArray();
             for (int tick = 1; tick <= 20; tick++)
@@ -33,7 +37,7 @@ internal static class LiveTableTests
                 if (grid.SelectedItem is not SkillRow { SkillCode: 17010072 } selected || selected.Hits != tick + 1)
                     throw new Exception("Table update lost selection or retained stale values.");
                 if (Math.Abs(scroll.HorizontalOffset - horizontal) > 1 || Math.Abs(scroll.VerticalOffset - vertical) > 1 || Math.Abs(grid.ActualWidth - width) > 1)
-                    throw new Exception("Updating table shifted its viewport.");
+                    throw new Exception($"Updating table shifted its viewport at update {tick}: horizontal {horizontal:N1} -> {scroll.HorizontalOffset:N1}, vertical {vertical:N1} -> {scroll.VerticalOffset:N1}, width {width:N1} -> {grid.ActualWidth:N1}.");
                 if (columns.Where((c, i) => Math.Abs(c.ActualWidth - columnWidths[i]) > 1).Any()) throw new Exception("Live values changed column widths.");
             }
             // The Encounter grids use Single, unlike the older analysis tables.

@@ -122,3 +122,9 @@ data or imply endorsement by NCSOFT or Aion2Data. All associations are supplied
 as catalogue evidence, not independently verified live protocol coverage.
 The optional maintainer importer uses Beautiful Soup (MIT license), which is
 not a runtime dependency of the application: https://www.crummy.com/software/BeautifulSoup/
+
+Cooldown base metadata
+Divine Aura: 30 seconds; Bolt: 45 seconds.
+Source: https://aion2data.com/classes/cleric
+Client 2.0.6.0 hotfix 1; checked 2026-10-12. Factual values only, no artwork or
+site prose. These seed editable cast estimates, not server readings.

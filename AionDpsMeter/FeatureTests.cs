@@ -124,6 +124,6 @@ internal static class FeatureTests
         check(Benchmarks.Specs(f, local, peers, id => id.ToString()).Length == 0 && Benchmarks.Equipment(f, local, peers).Length == 0,
             "Missing peer loadouts stay unknown rather than becoming inferred spec or gear recommendations");
         check(Benchmarks.Trends(peers.Concat(peers)).Count(r => r.Character == "Example cleric") == 100,
-            "Character trends retain server identity and deduplicate imported fights");
+            "Trend observations retain source metadata and deduplicate imported fights");
     }
 }

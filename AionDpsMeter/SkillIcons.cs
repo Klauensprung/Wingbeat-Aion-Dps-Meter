@@ -23,7 +23,7 @@ public sealed class SkillIcons : IValueConverter
             ?? throw new InvalidDataException("Bundled skill icons are missing.");
         return SkillNames.Read(stream, "Bundled skill icons");
     }
-    public static string LocalPath => Path.Combine(AppContext.BaseDirectory, "local-data", "skill-icons.json");
+    public static string LocalPath => AppDataPaths.FilePath("skill-icons.json");
     public int Count => files.Count;
     public string? LoadError { get; }
     public static ImageSource Placeholder { get; } = CreatePlaceholder();

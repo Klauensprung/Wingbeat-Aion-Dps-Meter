@@ -15,11 +15,25 @@ namespace AionDpsMeter.Local;
 
 public sealed class Preferences
 {
+    public bool AutoStartConfigured { get; set; } = true;
+    public bool OpenMeterOnStartup { get; set; } = true;
+    public bool OpenCooldownsOnStartup { get; set; } = true;
+    public bool DecodeEu { get; set; } = true;
+    public Dictionary<int, double> CooldownFallbackSeconds { get; set; } = new();
+    public int[] CooldownSkills { get; set; } = [];
+    public bool CooldownShowReady { get; set; } = true;
+    public bool CooldownOneSecondEarly { get; set; } = true;
+    public bool CooldownLocked { get; set; }
+    public double CooldownWidth { get; set; } = 300;
+    public double CooldownHeight { get; set; } = 120;
+    public double? CooldownLeft { get; set; }
+    public double? CooldownTop { get; set; }
     public string Theme { get; set; } = "Midnight";
     public string Accent { get; set; } = "#55D6BE";
     public string BackAttackColor { get; set; } = "#E7CF7D";
     public string Filter { get; set; } = "tcp and not port 443 and not port 80 and not port 53 and not port 22";
     public string Adapter { get; set; } = "";
+    public bool? AutoDetectAdapter { get; set; }
     public bool OverlayHealing { get; set; }
     public bool OverlayAllActors { get; set; }
     public string OverlayScope { get; set; } = "Auto";
@@ -33,9 +47,11 @@ public sealed class Preferences
     public double? OverlayTop { get; set; }
 }
 
-public sealed class MainWindow : Window
+public sealed partial class MainWindow : Window
 {
-    readonly FightStore store = new(System.IO.Path.Combine(AppContext.BaseDirectory, "local-data", "fights"));
+    static readonly string[] MainViews = ["Encounter", "Cooldowns", "Party", "Skills", "Healing", "PvP", "Rotations", "Player stats", "Saved fights", "Trends"];
+    static readonly string[] MoreViews = ["Openers", "Boss analysis", "Boss catalogue", "Report card", "Top 5%", "Top cohort", "Network events"];
+    readonly FightStore store = new(AppDataPaths.FilePath("fights"));
     readonly Dictionary<string, DataGrid> grids = new();
     readonly TextBlock status = new() { Margin = new(10), TextWrapping = TextWrapping.Wrap, FontSize = 11 };
     readonly TextBlock summary = new() { FontSize = 20, FontWeight = FontWeights.SemiBold, Margin = new(0, 0, 0, 4) };
@@ -46,10 +62,12 @@ public sealed class MainWindow : Window
     readonly Expander renamePanel = new() { Header = "Encounter name", Visibility = Visibility.Collapsed, Margin = new(24, 0, 24, 10) };
     readonly Button showLive, clearFilter;
     readonly EncounterView encounterView;
+    readonly BossAnalysisView bossView;
     readonly MeterView overview = new() { Margin = new(8, 8, 8, 12) };
     readonly MeterView pvpMeter = new() { Margin = new(8, 8, 8, 12) };
     readonly TextBlock pvpSummary = new() { Margin = new(8, 6, 8, 10), FontSize = 12, TextWrapping = TextWrapping.Wrap };
-    readonly Expander settingsPanel = new() { Header = "Settings & diagnostics", IsExpanded = false, Margin = new(20, 0, 20, 12), Visibility = Visibility.Collapsed };
+    readonly SettingsWindow settingsWindow;
+    readonly Button meterButton, cooldownButton, settingsButton, moreButton, newFightButton;
     readonly ComboBox adapters = new() { Width = 330, DisplayMemberPath = "Description", Margin = new(4) };
     readonly ComboBox themes = new() { Width = 110, Margin = new(4), ItemsSource = new[] { "Midnight", "Slate", "Forest", "Ember", "Violet" } };
     readonly ComboBox backAttackColor = new() { Width = 110, Margin = new(4), IsEditable = true, ItemsSource = new[] { "#E7CF7D", "#FF6464", "#55D6BE", "#7C9EF7", "#B087E9" }, ToolTip = "Back-attack border colour: choose a preset or enter a hex colour. Transparency is preserved." };
@@ -63,13 +81,17 @@ public sealed class MainWindow : Window
     readonly ComboBox trendCharacter = new() { MinWidth = 250, Margin = new(8), DisplayMemberPath = "Label" };
     readonly ComboBox trendMetric = new() { Width = 110, Margin = new(8), ItemsSource = new[] { "DPS", "HPS" }, SelectedIndex = 0 };
     readonly CheckBox pinLocal = new() { Content = "Pin my character first in the overlay", Margin = new(8), VerticalAlignment = VerticalAlignment.Center };
-    readonly CheckBox customBars = new() { Content = "Unique participant colours (class colours off)", Margin = new(8), VerticalAlignment = VerticalAlignment.Center };
+    readonly CheckBox customBars = new() { Content = "Use class colours", Margin = new(8), VerticalAlignment = VerticalAlignment.Center };
     readonly TextBlock trendSummary = new() { Margin = new(8), TextWrapping = TextWrapping.Wrap };
     readonly TextBlock cohortSummary = new() { Margin = new(8), TextWrapping = TextWrapping.Wrap };
     readonly TextBlock differenceSummary = new() { Margin = new(8), TextWrapping = TextWrapping.Wrap };
     readonly TextBlock partySummary = new() { Margin = new(8), TextWrapping = TextWrapping.Wrap };
+    readonly TextBlock cooldownSummary = new() { Margin = new(8), TextWrapping = TextWrapping.Wrap };
+    readonly TextBlock setupMessage = new() { Margin = new(8), TextWrapping = TextWrapping.Wrap, Visibility = Visibility.Collapsed };
+    readonly CheckBox autoStart = new() { Content = "Resume my configured setup when Wingbeat opens", Margin = new(8) };
     readonly Dictionary<string, DataGrid> detailGrids = new();
     bool updatingTrends;
+    TrendRow[] trendRows = [];
     long nextComparisonRefresh;
     bool detailsPending;
     readonly List<Fight> archive = new();
@@ -90,13 +112,15 @@ public sealed class MainWindow : Window
     LocalCapture? capture;
     Fight? viewed;
     OverlayWindow? overlay;
+    CooldownOverlayWindow? cooldownOverlay;
+    readonly CooldownTracker cooldownTracker = new();
     Preferences preferences = new();
     Task<Fight[]>? autosave;
     long nextMaintenance, nextAutosave = Environment.TickCount64 + 30000;
     bool shuttingDown;
     bool npcapMissing;
     string notice = "Select an adapter, then Start. No account or internet service is used.";
-    string PreferencePath => System.IO.Path.Combine(AppContext.BaseDirectory, "local-data", "preferences.json");
+    string PreferencePath => AppDataPaths.FilePath("preferences.json");
     Fight LiveSnapshot()
     {
         if (!ReferenceEquals(snapshotOwner, engine)) { liveSnapshot = null; snapshotOwner = engine; }
@@ -105,26 +129,29 @@ public sealed class MainWindow : Window
     Fight Current => viewed ?? LiveSnapshot();
     public MainWindow(bool demo)
     {
+        demoMode = demo;
         Title = "Wingbeat \u2665 Aion 2 DPS Meter"; Width = 1150; Height = 870; MinWidth = 980; MinHeight = 650;
         FontFamily = new("Segoe UI"); FontSize = 13; UseLayoutRounding = true; SnapsToDevicePixels = true;
-        playerProfiles = new(demo ? null : System.IO.Path.Combine(AppContext.BaseDirectory, "local-data", "player-profiles.json"));
+        playerProfiles = new(demo ? null : AppDataPaths.FilePath("player-profiles.json"));
         engine = new(profiles: playerProfiles);
         LocalLog.Write($"Application started; skill catalog entries {skills.Count}; " + (skills.LoadError ?? "catalog loaded"));
         LocalLog.Write($"Display metadata: {skillIcons.Count} icon families, {NpcNames.Default.Count} NPC names; " +
             (skillIcons.LoadError ?? "icons loaded") + "; " + (NpcNames.Default.LoadError ?? "NPC names loaded"));
         try { if (File.Exists(PreferencePath)) preferences = JsonSerializer.Deserialize<Preferences>(File.ReadAllText(PreferencePath)) ?? new(); } catch { }
-        filter.Text = preferences.Filter; accent.Text = preferences.Accent; backAttackColor.Text = preferences.BackAttackColor; themes.SelectedItem = preferences.Theme; customBars.IsChecked = preferences.OverlayCustomBars; pinLocal.IsChecked = preferences.OverlayPinLocal;
+        autoStart.IsChecked = preferences.AutoStartConfigured; decodeEu.IsChecked = preferences.DecodeEu;
+        filter.Text = preferences.Filter; accent.Text = preferences.Accent; backAttackColor.Text = preferences.BackAttackColor; themes.SelectedItem = preferences.Theme; customBars.IsChecked = !preferences.OverlayCustomBars; pinLocal.IsChecked = preferences.OverlayPinLocal;
         character.Tag = "Filter characters…";
         var root = new DockPanel(); Content = root;
         var header = new StackPanel(); DockPanel.SetDock(header, Dock.Top); root.Children.Add(header);
         var top = new DockPanel { Margin = new(22, 16, 18, 12), LastChildFill = true }; header.Children.Add(top);
         var controls = new StackPanel { Orientation = Orientation.Horizontal }; DockPanel.SetDock(controls, Dock.Right); top.Children.Add(controls);
-        start = Button("Start capture", () => { if (capture == null) Start(); else StopAndSave(); }); controls.Children.Add(start);
+        start = IconButton(UiIcon.Play, "Start capture", StartRequested); controls.Children.Add(start);
         start.SetResourceReference(Control.BackgroundProperty, "Accent"); start.Foreground = UiTheme.Brush("#10201C"); start.FontWeight = FontWeights.SemiBold;
-        controls.Children.Add(Button("New fight", NewFight));
-        var overlayButton = Button("Open overlay", ToggleOverlay); overlayButton.SetResourceReference(Control.BorderBrushProperty, "Accent"); controls.Children.Add(overlayButton);
-        controls.Children.Add(Button("Files", ShowFiles));
-        controls.Children.Add(Button("Settings", () => { settingsPanel.Visibility = settingsPanel.Visibility == Visibility.Visible ? Visibility.Collapsed : Visibility.Visible; settingsPanel.IsExpanded = settingsPanel.Visibility == Visibility.Visible; }));
+        newFightButton = IconButton(UiIcon.NewFight, "New fight", NewFight); controls.Children.Add(newFightButton);
+        meterButton = IconButton(UiIcon.Meter, "DPS overlay", ToggleOverlay); controls.Children.Add(meterButton);
+        cooldownButton = IconButton(UiIcon.Cooldowns, "Cooldown overlay", ToggleCooldownOverlay); controls.Children.Add(cooldownButton);
+        moreButton = IconButton(UiIcon.More, "More", ShowMore); controls.Children.Add(moreButton);
+        settingsButton = IconButton(UiIcon.Settings, "Settings", ToggleSettings); controls.Children.Add(settingsButton);
         var brand = new StackPanel { Orientation = Orientation.Horizontal, VerticalAlignment = VerticalAlignment.Center };
         var mark = new StackPanel { Orientation = Orientation.Horizontal, VerticalAlignment = VerticalAlignment.Center, Margin = new(0, 0, 10, 0) };
         foreach (int height in new[] { 10, 19, 27 }) { var bar = new Border { Width = 4, Height = height, CornerRadius = new(2), Margin = new(0, 0, 3, 0), VerticalAlignment = VerticalAlignment.Bottom }; bar.SetResourceReference(Border.BackgroundProperty, "Accent"); mark.Children.Add(bar); }
@@ -147,25 +174,16 @@ public sealed class MainWindow : Window
         var labelControls = new StackPanel { Orientation = Orientation.Horizontal };
         labelControls.Children.Add(encounter); labelControls.Children.Add(Button("Apply name", () => { var label = EncounterLabel(); if (viewed != null) viewed.Label = label; else engine.SetLabel(label); renamePanel.Visibility = Visibility.Collapsed; Refresh(); }));
         renamePanel.Content = labelControls; header.Children.Add(renamePanel); header.Children.Add(search);
-        var settings = new StackPanel();
-        var captureSettings = new WrapPanel { Margin = new(4) }; captureSettings.Children.Add(Label("Adapter")); captureSettings.Children.Add(adapters); captureSettings.Children.Add(Button("Refresh adapters", RefreshAdapters)); captureSettings.Children.Add(Button("Install Npcap", () => NpcapSetup.CreateDialog(this).ShowDialog())); settings.Children.Add(SettingsSection("Capture", captureSettings));
-        var appearance = new WrapPanel { Margin = new(4) }; appearance.Children.Add(Label("Theme")); appearance.Children.Add(themes); appearance.Children.Add(Label("Accent")); appearance.Children.Add(accent); appearance.Children.Add(Label("Back-attack border")); appearance.Children.Add(backAttackColor); appearance.Children.Add(Button("Apply", ApplyPreferences)); settings.Children.Add(SettingsSection("Appearance", appearance));
-        appearance.Children.Add(customBars); appearance.Children.Add(pinLocal);
-        pinLocal.IsChecked = preferences.OverlayPinLocal;
-        pinLocal.Checked += (_, _) => SetPinLocal(); pinLocal.Unchecked += (_, _) => SetPinLocal();
-        var localTools = new WrapPanel { Margin = new(4) }; localTools.Children.Add(Button("Load skill names", ImportSkillNames)); localTools.Children.Add(Button("Preview demo", LoadDemo)); settings.Children.Add(SettingsSection("Local data", localTools));
-        var advanced = new WrapPanel { Margin = new(4) }; advanced.Children.Add(Label("Capture filter")); advanced.Children.Add(filter); advanced.Children.Add(recordSample); advanced.Children.Add(decodeEu);
-        var diagnostics = new StackPanel(); diagnostics.Children.Add(advanced); diagnostics.Children.Add(status);
-        settings.Children.Add(new Expander { Header = "Advanced capture & diagnostics", Content = diagnostics, Margin = new(10, 6, 10, 10) });
-        settingsPanel.Content = new ScrollViewer { Content = settings, MaxHeight = 240, VerticalScrollBarVisibility = ScrollBarVisibility.Auto }; header.Children.Add(settingsPanel);
+        settingsWindow = BuildSettings();
+        settingsWindow.IsVisibleChanged += (_, _) => UpdateToolbarState();
         DockPanel.SetDock(footer, Dock.Bottom); root.Children.Add(footer); root.Children.Add(tabs);
         var encounterPanel = AddTab("Encounter", "Select a recorded encounter on the left. Current capture is first; saved encounters follow newest first. Participants and attributed skill damage are shown together. Select a participant to focus their skills. Adds remain in encounter totals. Each existing saved fight remains a separate entry; no inferred instance-run merging.");
         encounterPanel.Children.Remove(grids["Encounter"]);
-        encounterView = new(code => skills.GetSkillName(code), skillIcons); encounterPanel.Children.Add(encounterView);
+        encounterView = new(code => skills.GetSkillName(code), skillIcons); encounterPanel.Children.Add(PageLayout.Fill(encounterView));
         encounterView.Selected += selected => { viewed = selected; encounter.Text = Current.Label; Refresh(); };
         var party = AddTab("Party", "Bars show captured party members, or named players when no roster is available. Click a bar for skills. Player names arrive when entering a zone. The full table below includes every observed actor.");
-        party.Children.Remove(grids["Party"]); party.Children.Add(overview);
-        party.Children.Add(new Expander { Header = "Full breakdown · all actors", Content = grids["Party"], Margin = new(8, 2, 8, 12) });
+        party.Children.Remove(grids["Party"]);
+        party.Children.Add(PageLayout.Fill(new SplitView(SplitView.Scroll(overview), new Expander { Header = "Full breakdown · all actors", Content = grids["Party"], Margin = new(8, 2, 8, 4) }, .6)));
         party.Children.Insert(1, CharacterDetailsHeader(partySummary));
         overview.ActorSelected += FocusActor;
         AddTab("Skills", "Damage per skill for every observed actor. Bar width and Damage % show the share of damage in the current character filter. Pet damage is attributed when its owner was discovered. Hits are damage events, not cast counts.");
@@ -174,47 +192,54 @@ public sealed class MainWindow : Window
         var lastPvp = Button("Last saved PvP fight", ShowLastPvp); DockPanel.SetDock(lastPvp, Dock.Right);
         pvpHeader.Children.Add(lastPvp); pvpHeader.Children.Add(pvpSummary);
         pvp.Children.Insert(1, pvpHeader);
-        pvp.Children.Insert(2, new ScrollViewer { Content = pvpMeter, MaxHeight = 300, VerticalScrollBarVisibility = ScrollBarVisibility.Auto, HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled });
+        pvp.Children.Remove(grids["PvP"]);
+        pvp.Children.Add(PageLayout.Fill(new SplitView(SplitView.Scroll(pvpMeter), grids["PvP"])));
         pvpMeter.ActorSelected += FocusActor;
-        AddTab("Defense", "Observed hits and avoided outcomes. Landed % is an event-based estimate, not a game accuracy stat; block/parry events are shown separately.");
         AddTab("Healing", "Beta: observed healing per healer, skill and recipient. Bars and Healing % show each row's share within the current character filter. Overhealing and effective healing are unavailable unless the protocol provides them.");
         var rotation = AddTab("Rotations", "Zoom with + / − or Ctrl + mouse wheel over the timeline; Fit fight shows everything. Inspect damage and healing anywhere across a player's lane. Click an event to pin details, then step with Left/Right. Zooming holds the view while capture continues; Follow latest / Escape resumes live updates. Each mark is an event, not an inferred cast.");
         rotation.Children.Remove(grids["Rotations"]);
-        rotationView = new(grids["Rotations"], code => skills.GetSkillName(code), skillIcons.Find); rotation.Children.Add(rotationView);
+        rotationView = new(grids["Rotations"], code => skills.GetSkillName(code), skillIcons.Find); rotation.Children.Add(PageLayout.Fill(rotationView));
         AddTab("Openers", "First 15 seconds from each character’s first recorded damage or healing event. Repeated hits are retained; this is an event sequence, not a cast-count estimate.");
-        var specsPanel = AddTab("Specs", "Per-character skill levels, choices and equipment from imported or locally entered loadouts. Observed skills without a supplied loadout have unknown levels. Complete means the supplier marked the loadout complete.");
-        specsPanel.Children.Insert(1, CharacterDetailsHeader(new TextBlock { Text = "Skill loadouts and equipment for every player", Margin = new(8) }));
-        AddDetail(specsPanel, "Equipment", "Equipment · supplied loadouts");
-        AddTab("Boss analysis", "Bosses identified by captured NPC template IDs. Damage is directly to/from the boss; adds stay in the full fight. Possible instances are catalogue candidates, not proof of instance or difficulty. Double-click a boss to inspect its catalogue entry.");
+        var bossPanel = AddTab("Boss analysis", "Inspect each observed boss entity in the selected encounter. Recorded cast signals, hits and defensive outcomes are separate evidence. Adds remain in the full encounter but are excluded from direct boss totals. Locations are catalogue candidates, not proof of difficulty.");
+        bossPanel.Children.Remove(grids["Boss analysis"]); grids.Remove("Boss analysis");
+        bossView = new(code => skills.GetSkillName(code), skillIcons); bossPanel.Children.Add(PageLayout.Fill(bossView));
         AddTab("Boss catalogue", "Offline boss and hero/legend catalogue. Search by name, NPC ID or possible instance. Family variants may span difficulties and locations; unassigned hero/legend entries are not automatically treated as bosses. Source client: " + BossCatalogue.Default.ClientVersion);
-        grids["Boss analysis"].MouseDoubleClick += (_, _) => {
-            if (grids["Boss analysis"].SelectedItem is BossAnalysisRow boss) {
-                character.Text = boss.Boss; tabs.SelectedItem = tabs.Items.Cast<TabItem>().First(t => t.Header?.ToString() == "Boss catalogue"); Refresh();
-            }
-        };
+        bossView.BrowseCatalogue += id => { character.Text = id; tabs.SelectedItem = tabs.Items.Cast<TabItem>().First(t => t.Header?.ToString() == "Boss catalogue"); Refresh(); };
         AddTab("Saved fights", "Double-click a row to inspect it. Capturing continues in the background while browsing. Demo fights are marked and excluded from trends and comparisons.");
         grids["Saved fights"].MouseDoubleClick += (_, _) => { if (grids["Saved fights"].SelectedItem is SavedRow row) { viewed = archive.First(f => f.Id == row.Id); encounter.Text = viewed.Label; tabs.SelectedIndex = 0; Refresh(); } };
-        var trendsPanel = AddTab("Trends", "Choose a character and DPS or HPS. Different servers and classes stay separate. The chart shows the last 100 observations; the table retains all matching saved fights. Double-click a row to inspect its fight.");
+        var trendsPanel = AddTab("Trends", "Select an encounter to follow your DPS across attempts. Average gives each saved attempt equal weight; the chart shows the latest 100 attempts against the all-attempt average. Recognized bosses supply encounter names automatically. Character history stays together across servers. Double-click an encounter to open its latest fight, or a chart point to inspect that attempt. Switch to HPS for healing trends.");
         var trendControls = new WrapPanel(); trendControls.Children.Add(trendCharacter); trendControls.Children.Add(trendMetric);
-        trendsPanel.Children.Insert(1, trendControls); trendsPanel.Children.Insert(2, trendSummary); trendsPanel.Children.Insert(3, trendChart);
-        trendCharacter.SelectionChanged += (_, _) => { if (!updatingTrends) Refresh(); }; trendMetric.SelectionChanged += (_, _) => Refresh();
-        grids["Trends"].MouseDoubleClick += (_, _) => { if (grids["Trends"].SelectedItem is TrendRow row) { viewed = archive.First(f => f.Id == row.FightId); encounter.Text = viewed.Label; tabs.SelectedIndex = 0; Refresh(); } };
+        trendsPanel.Children.Insert(1, trendControls); trendsPanel.Children.Insert(2, trendSummary);
+        trendsPanel.Children.Remove(grids["Trends"]); trendsPanel.Children.Add(PageLayout.Fill(new SplitView(trendChart, grids["Trends"], .45, 145, 90)));
+        trendCharacter.ToolTip = "Character history across all saved encounters";
+        trendCharacter.SelectionChanged += (_, _) => { if (!updatingTrends) Refresh(); }; trendMetric.SelectionChanged += (_, _) => { if (!updatingTrends) Refresh(); };
+        grids["Trends"].SelectionMode = DataGridSelectionMode.Single;
+        grids["Trends"].SetResourceReference(DataGrid.CellStyleProperty, "TrendCell");
+        grids["Trends"].SelectionChanged += (_, _) => { if (!updatingTrends) RefreshTrendChart(); };
+        grids["Trends"].MouseDoubleClick += (_, _) => { if (grids["Trends"].SelectedItem is EncounterTrendRow row) OpenTrendFight(row.FightId); };
+        trendChart.OpenFight += OpenTrendFight;
         var reportPanel = AddTab("Report card", "Local-only comparisons: same encounter label, class, server and 1,000-CP band, with similar durations (−20%/+25%). Requires 20 observations for percentiles and 100 for top 5%. No population dataset is bundled.");
         reportPanel.Children.Insert(1, CharacterDetailsHeader(new TextBlock { Text = "Set class, CP and server to compare matching fights", Margin = new(8), TextWrapping = TextWrapping.Wrap }));
         var differences = AddTab("Top 5%", "Compare your damage, healing, criticals, event rate, opening damage and damage received with the top 5% of matching local fight observations. Requires 100 observations. Differences are descriptive, not proof that a playstyle caused better results.");
         differences.Children.Insert(1, CharacterDetailsHeader(differenceSummary));
-        var cohortPanel = AddTab("Top cohort", "Top quarter needs 20 matching observations; top 5% needs 100. Match encounter, class, server, 1,000-CP band and duration (−20%/+25%). Skill shares include nonusers as zero. Spec rates require loadouts marked complete; equipment rates use known entries for that slot. Missing equipment and specs stay unknown.");
+        var cohortPanel = AddTab("Top cohort", "Top quarter needs 20 matching observations; top 5% needs 100. Match encounter, class, server, 1,000-CP band and duration (−20%/+25%). Skill shares include nonusers as zero.");
         cohortPanel.Children.Insert(1, CharacterDetailsHeader(cohortSummary));
-        AddDetail(cohortPanel, "Cohort specs", "Skill levels and choices · complete supplied loadouts");
-        AddDetail(cohortPanel, "Cohort equipment", "Equipment · supplied loadouts");
         AddDetail(cohortPanel, "Cohort openers", "First recorded skills · damage and healing");
         AddTab("Player stats", "Latest captured stats for your local character, saved with the fight. Unknown stat IDs retain their raw values. These packets do not describe every nearby player.");
-        AddTab("Cooldowns", "Last reported skill cooldowns for your local character. Remaining time is the value when the packet arrived, not a running countdown.");
+        var cooldownPanel = AddTab("Cooldowns", "Live countdowns for your tracked skills, even while browsing saved fights. Choose each skill once to include its charge tiers. Set an in-game duration for cast estimates when the server supplies no cooldown. The separate overlay shows the same countdowns.");
+        var cooldownActions = new WrapPanel { Margin = new(8) };
+        cooldownActions.Children.Add(IconButton(UiIcon.Settings, "Choose tracked skills", ConfigureCooldowns));
+        cooldownActions.Children.Add(IconButton(UiIcon.Cooldowns, "Cooldown overlay", ToggleCooldownOverlay));
+        cooldownPanel.Children.Insert(1, cooldownActions);
+        cooldownPanel.Children.Insert(2, cooldownSummary);
         AddTab("Network events", "Latest decoded HP, buffs, casts, guard and dungeon events. These are stored with the fight. Unsupported records do not appear as decoded events.");
-        tabs.SelectionChanged += (_, e) => { if (ReferenceEquals(e.Source, tabs)) Refresh(); };
+        var orderedViews = MainViews.Concat(MoreViews).Select(name => tabs.Items.Cast<TabItem>().Single(t => t.Header?.ToString() == name)).ToArray();
+        tabs.Items.Clear(); foreach (var view in orderedViews) tabs.Items.Add(view);
+        tabs.SelectedIndex = 0; UpdateNavigation();
+        tabs.SelectionChanged += (_, e) => { if (ReferenceEquals(e.Source, tabs)) { UpdateNavigation(); Refresh(); } };
         character.TextChanged += (_, _) => Refresh();
-        ApplyTheme(); ReloadArchive(); RefreshAdapters();
-        if (!demo) ContentRendered += PromptForMissingNpcap;
+        ApplyTheme(); ReloadArchive(); LoadAdapters();
+        if (!demo) ContentRendered += ResumeConfiguredStartup;
         if (demo) LoadDemo(); else Refresh();
         timer.Tick += (_, _) => {
             try {
@@ -243,14 +268,15 @@ public sealed class MainWindow : Window
             if (shuttingDown) return;
             try { capture?.Dispose(); LogCapture(); capture = null; FinishAutosave(); engine.SaveCompleted(store); var f = LiveSnapshot(); if (f.HasRecordedData) SaveFight(f); playerProfiles.Save(); }
             catch (Exception ex) { e.Cancel = true; notice = "Could not save before closing: " + ex.Message; Refresh(); return; }
-            shuttingDown = true; timer.Stop(); overlay?.Close(); LocalLog.Write("Application closed.");
+            shuttingDown = true; timer.Stop(); settingsWindow.Shutdown(); cooldownOverlay?.Close(); overlay?.Close(); LocalLog.Write("Application closed.");
         };
     }
     static TextBlock Label(string text) => new() { Text = text, VerticalAlignment = VerticalAlignment.Center, Margin = new(6) };
     static Border SettingsSection(string title, UIElement content)
     {
         var panel = new StackPanel(); panel.Children.Add(new TextBlock { Text = title, FontWeight = FontWeights.SemiBold, Margin = new(8, 2, 0, 5) }); panel.Children.Add(content);
-        var card = new Border { Child = panel, CornerRadius = new(7), Padding = new(8), Margin = new(4, 4, 4, 8) }; card.SetResourceReference(Border.BackgroundProperty, "Panel"); return card;
+        var card = new Border { Child = panel, CornerRadius = new(10), Padding = new(14), Margin = new(0, 0, 0, 14), BorderThickness = new(1) };
+        card.SetResourceReference(Border.BackgroundProperty, "Panel"); card.SetResourceReference(Border.BorderBrushProperty, "Edge"); return card;
     }
     FrameworkElement CharacterDetailsHeader(TextBlock text)
     {
@@ -269,33 +295,55 @@ public sealed class MainWindow : Window
     void AddDetail(Panel panel, string key, string title)
     {
         var grid = new LiveTable { IsReadOnly = true, AutoGenerateColumns = true, CanUserAddRows = false, CanUserDeleteRows = false,
-            RowHeight = 38, MaxHeight = 350, MinHeight = 80, EnableRowVirtualization = true, EnableColumnVirtualization = true,
+            RowHeight = 38, MinHeight = 60, EnableRowVirtualization = true, EnableColumnVirtualization = true,
             HeadersVisibility = DataGridHeadersVisibility.Column, Margin = new(8), ColumnWidth = DataGridLength.SizeToHeader };
         grid.AutoGeneratingColumn += (_, e) => { e.Column.Header = ColumnHeader(e.PropertyName); e.Column.MinWidth = 110; if (e.Column is DataGridTextColumn t && t.Binding is System.Windows.Data.Binding b && e.PropertyType == typeof(double)) b.StringFormat = "N1"; };
-        detailGrids[key] = grid; panel.Children.Add(new Expander { Header = title, Content = grid, Margin = new(8) });
+        detailGrids[key] = grid;
+        var section = new Expander { Header = title, Content = grid, Margin = new(8) };
+        if (panel is PageLayout && panel.Children.OfType<DataGrid>().LastOrDefault() is { } primary) {
+            panel.Children.Remove(primary); panel.Children.Add(PageLayout.Fill(new SplitView(primary, section, .6)));
+        } else panel.Children.Add(section);
     }
     void SetDetail(string key, IEnumerable rows)
     {
         var data = rows.Cast<object>().ToArray(); var grid = detailGrids[key];
         ((LiveTable)grid).SetRows(data);
     }
-    sealed record TrendChoice(string Character, string Job, int Server) { public string Label => $"{Character} · {Job} · server {Server}"; }
+    sealed record TrendChoice(string Character, string Job) { public string Label => $"{Character} · {Job}"; }
     void RefreshTrends()
     {
         var all = Benchmarks.Trends(archive).Where(r => Matches(r.Character)).ToArray();
-        var choices = all.Select(r => new TrendChoice(r.Character, r.Job, r.Server)).Distinct().OrderBy(r => r.Label).ToArray();
+        var choices = all.Select(r => new TrendChoice(r.Character, r.Job)).DistinctBy(r => (r.Character.ToUpperInvariant(), r.Job.ToUpperInvariant())).OrderBy(r => r.Label).ToArray();
         var selected = trendCharacter.SelectedItem as TrendChoice;
+        string? selectedEncounter = (grids["Trends"].SelectedItem as EncounterTrendRow)?.Encounter;
+        bool healing = trendMetric.SelectedIndex == 1;
         updatingTrends = true;
         try {
             if (trendCharacter.ItemsSource == null || !trendCharacter.ItemsSource.Cast<TrendChoice>().SequenceEqual(choices)) trendCharacter.ItemsSource = choices;
-            trendCharacter.SelectedItem = choices.FirstOrDefault(c => c == selected) ?? choices.FirstOrDefault(c => c.Character == Current.Name(Current.LocalPlayer)) ?? choices.FirstOrDefault();
+            trendCharacter.SelectedItem = choices.FirstOrDefault(c => selected != null && c.Character.Equals(selected.Character, StringComparison.OrdinalIgnoreCase) && c.Job.Equals(selected.Job, StringComparison.OrdinalIgnoreCase))
+                ?? choices.FirstOrDefault(c => c.Character.Equals(Current.Name(Current.LocalPlayer), StringComparison.OrdinalIgnoreCase)) ?? choices.FirstOrDefault();
+            var choice = trendCharacter.SelectedItem as TrendChoice;
+            trendRows = choice == null ? [] : EncounterTrends.ForCharacter(all, choice.Character, choice.Job);
+            var summaries = EncounterTrends.Summarize(trendRows, healing);
+            Set("Trends", summaries);
+            grids["Trends"].SelectedItem = summaries.FirstOrDefault(r => r.Encounter.Equals(selectedEncounter, StringComparison.OrdinalIgnoreCase)) ?? summaries.FirstOrDefault();
+            foreach (var column in grids["Trends"].Columns.Where(c => c.SortMemberPath is "Average" or "Latest" or "Best"))
+                column.Header = column.SortMemberPath + (healing ? " HPS" : " DPS");
         } finally { updatingTrends = false; }
-        var choice = trendCharacter.SelectedItem as TrendChoice;
-        var rows = all.Where(r => choice != null && r.Character == choice.Character && r.Job == choice.Job && r.Server == choice.Server).ToArray();
-        bool healing = trendMetric.SelectedIndex == 1; var rates = rows.Select(r => healing ? r.HPS : r.DPS).ToArray();
-        trendChart.Update(rows, healing); Set("Trends", rows.OrderByDescending(r => r.Date));
-        trendSummary.Text = rates.Length == 0 ? "No saved observations for this character yet." :
-            $"{rows.Length} observations · latest {rates[^1]:N1} · median {Benchmarks.Median(rates):N1} · best {rates.Max():N1} {(healing ? "HPS" : "DPS")} · compare matching encounters for context";
+        RefreshTrendChart();
+    }
+    void RefreshTrendChart()
+    {
+        var selected = grids["Trends"].SelectedItem as EncounterTrendRow;
+        bool healing = trendMetric.SelectedIndex == 1; string metric = healing ? "HPS" : "DPS";
+        trendChart.Update(selected == null ? [] : EncounterTrends.ForEncounter(trendRows, selected.Encounter), healing);
+        trendSummary.Text = selected == null ? "No saved encounters for this character yet." :
+            $"{selected.Encounter} · {selected.Attempts:N0} attempts\nAverage {metric} {selected.Average:N1} · latest {selected.Latest:N1} · best {selected.Best:N1}";
+    }
+    void OpenTrendFight(string fightId)
+    {
+        if (archive.FirstOrDefault(f => f.Id == fightId) is not { } fight) return;
+        viewed = fight; encounter.Text = fight.Label; tabs.SelectedIndex = 0; Refresh();
     }
     TotalRow? ComparisonActor(Fight f, TotalRow[] totals) => (character.Text.Length == 0 ? totals.FirstOrDefault(r => r.Id == f.LocalPlayer) : null)
         ?? totals.FirstOrDefault(r => Matches(r.Character) && f.Actors.GetValueOrDefault(r.Id)?.Player == true);
@@ -318,16 +366,34 @@ public sealed class MainWindow : Window
         if (column == 2) value.SetResourceReference(TextBlock.ForegroundProperty, "Accent");
         card.Child = content; Grid.SetColumn(card, column); grid.Children.Add(card);
     }
-    void ShowFiles()
+    void ShowMore()
     {
-        var menu = CreateFilesMenu(); menu.IsOpen = true;
+        var menu = CreateMoreMenu(); menu.IsOpen = true;
+    }
+    ContextMenu CreateMoreMenu()
+    {
+        var menu = UiTheme.Menu(this, moreButton); menu.Placement = PlacementMode.Bottom;
+        foreach (string title in MoreViews) {
+            var item = new MenuItem { Header = title, Icon = UiIcons.Create(UiIcons.ForView(title), 16) };
+            item.Click += (_, _) => { character.Clear(); tabs.SelectedItem = tabs.Items.Cast<TabItem>().Single(t => t.Header?.ToString() == title); };
+            menu.Items.Add(item);
+        }
+        menu.Items.Add(new Separator());
+        var files = CreateFilesMenu(); var actions = files.Items.Cast<object>().ToArray(); files.Items.Clear();
+        foreach (var action in actions) menu.Items.Add(action);
+        return menu;
+    }
+    void UpdateNavigation()
+    {
+        foreach (TabItem tab in tabs.Items)
+            tab.Visibility = MainViews.Contains(tab.Header?.ToString()) || ReferenceEquals(tab, tabs.SelectedItem) ? Visibility.Visible : Visibility.Collapsed;
     }
     ContextMenu CreateFilesMenu()
     {
         var menu = UiTheme.Menu(this);
-        foreach (var (label, action) in new (string, Action)[] { ("Save current fight", () => { SaveFight(Current); ReloadArchive(); Refresh(); }), ("Import fights…", Import), ("Export current fight…", Export), ("Import events…", ImportEvents) })
+        foreach (var (label, action) in new (string, Action)[] { ("Save current fight", () => { SaveFight(Current); ReloadArchive(); Refresh(); }), ("Import fights…", Import), ("Export current fight…", Export), ("Import events…", ImportEvents), ("Open data folder", () => System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(AppDataPaths.Root) { UseShellExecute = true })) })
         {
-            var item = new MenuItem { Header = label };
+            var item = new MenuItem { Header = label, Icon = UiIcons.Create(label.StartsWith("Save") || label.StartsWith("Export") ? UiIcon.Save : UiIcon.Folder, 16) };
             item.Click += (_, _) => { try { action(); } catch (Exception ex) { LocalLog.Write(label + " failed: " + ex); MessageBox.Show(this, ex.Message, "Wingbeat", MessageBoxButton.OK, MessageBoxImage.Error); } };
             menu.Items.Add(item);
         }
@@ -348,11 +414,28 @@ public sealed class MainWindow : Window
         b.Click += (_, _) => { try { action(); } catch (Exception ex) { LocalLog.Write(text + " failed: " + ex); MessageBox.Show(ex.Message, "Wingbeat Local", MessageBoxButton.OK, MessageBoxImage.Error); } };
         return b;
     }
-    StackPanel AddTab(string title, string help)
+    static Button IconButton(UiIcon icon, string label, Action action)
     {
-        var panel = new StackPanel();
+        var button = Button(label, action); button.Padding = new(10, 8, 10, 8); button.MinHeight = 36;
+        UiIcons.SetLabel(button, icon, label); return button;
+    }
+    void UpdateToolbarState()
+    {
+        void State(Button button, bool visible, string name) {
+            button.SetResourceReference(Control.BorderBrushProperty, visible ? "Accent" : "Edge");
+            button.SetResourceReference(Control.ForegroundProperty, visible ? "Accent" : "Text");
+            button.ToolTip = (visible ? "Hide " : "Show ") + name;
+            System.Windows.Automation.AutomationProperties.SetHelpText(button, visible ? "Visible" : "Hidden");
+        }
+        State(meterButton, overlay?.IsVisible == true, "DPS overlay");
+        State(cooldownButton, cooldownOverlay?.IsVisible == true, "cooldown overlay");
+        State(settingsButton, settingsWindow?.IsVisible == true, "settings");
+    }
+    PageLayout AddTab(string title, string help)
+    {
+        var panel = new PageLayout();
         panel.Children.Add(new Expander { Header = "About this view", Foreground = UiTheme.Brush("#93A2B8"), FontSize = 11, Margin = new(8, 4, 8, 8), Content = new TextBlock { Text = help, TextWrapping = TextWrapping.Wrap, Margin = new(6, 10, 6, 6) } });
-        var grid = new LiveTable { IsReadOnly = true, AutoGenerateColumns = true, CanUserAddRows = false, CanUserDeleteRows = false, EnableRowVirtualization = true, EnableColumnVirtualization = true, MaxHeight = 550, MinHeight = 120, RowHeight = 38, HeadersVisibility = DataGridHeadersVisibility.Column, Margin = new(8), GridLinesVisibility = DataGridGridLinesVisibility.None, BorderThickness = new(0) };
+        var grid = new LiveTable { IsReadOnly = true, AutoGenerateColumns = true, CanUserAddRows = false, CanUserDeleteRows = false, EnableRowVirtualization = true, EnableColumnVirtualization = true, MinHeight = 60, RowHeight = 38, HeadersVisibility = DataGridHeadersVisibility.Column, Margin = new(8), GridLinesVisibility = DataGridGridLinesVisibility.None, BorderThickness = new(0) };
         if (title == "Player stats") grid.RowHeight = 58;
         grid.ColumnWidth = new DataGridLength(1, DataGridLengthUnitType.Star);
         grid.AutoGeneratingColumn += (_, e) => {
@@ -365,8 +448,8 @@ public sealed class MainWindow : Window
             if (e.PropertyName is "Id" or "FightId" or "ActorId") e.Cancel = true;
             if (title == "Trends" && e.PropertyName is "Character" or "Job" or "Server") e.Cancel = true;
             if (title == "Report card" && e.PropertyName == "Encounter" || title == "Top 5%" && e.PropertyName == "Tier" || title == "Top cohort" && e.PropertyName == "Code") e.Cancel = true;
-            if (e.PropertyName == "SkillCode" && title is "Skills" or "Healing" or "Rotations") e.Cancel = true;
-            if (e.PropertyName == "Skill" && title is "Skills" or "Healing" or "Specs" or "Openers" or "Rotations")
+            if (e.PropertyName == "SkillCode" && title is "Skills" or "Healing" or "Rotations" or "Cooldowns") e.Cancel = true;
+            if (e.PropertyName == "Skill" && title is "Skills" or "Healing" or "Cooldowns" or "Openers" or "Rotations")
             {
                 var row = new FrameworkElementFactory(typeof(DockPanel));
                 row.SetValue(FrameworkElement.VerticalAlignmentProperty, VerticalAlignment.Center);
@@ -392,7 +475,12 @@ public sealed class MainWindow : Window
             if (e.PropertyName is "Character" or "Healer" or "Target") e.Column.MinWidth = 130;
             if (e.PropertyName is "Status" or "Source" or "Loadout" or "Metric") e.Column.MinWidth = 190;
             if (title is "Report card" or "Top 5%" or "Top cohort") { e.Column.MinWidth = Math.Max(115, e.Column.MinWidth); e.Column.Width = DataGridLength.SizeToHeader; }
-            if (title == "Trends") e.Column.Width = e.PropertyName switch { "Date" => 170, "Encounter" => 250, _ => 90 };
+            if (title == "Trends") {
+                if (e.PropertyName is "Average" or "Latest" or "Best") e.Column.Header = e.PropertyName + (trendMetric.SelectedIndex == 1 ? " HPS" : " DPS");
+                e.Column.Width = e.PropertyName switch { "LastFought" => 155, "Encounter" => new DataGridLength(1, DataGridLengthUnitType.Star), "Attempts" => 95, _ => 105 };
+                e.Column.MinWidth = e.PropertyName == "Encounter" ? 180 : 75;
+                if (e.PropertyName == "LastFought" && e.Column is DataGridTextColumn dateColumn && dateColumn.Binding is System.Windows.Data.Binding dateBinding) dateBinding.StringFormat = "g";
+            }
             if (title == "Top 5%") { e.Column.MinWidth = 65; e.Column.Width = e.PropertyName switch { "Metric" => 270, "Unit" => 105, "Samples" => 70, _ => 110 }; }
             if (title == "Top cohort" && e.PropertyName == "Skill") e.Column.Width = 230;
             if (title == "Report card") { e.Column.MinWidth = 75; e.Column.Width = e.PropertyName switch { "Character" => 150, "Status" => 370, "DPS" => 75, _ => 115 }; }
@@ -421,8 +509,11 @@ public sealed class MainWindow : Window
                 if (e.PropertyName is "Damage" or "Healing" or "Dealt" or "Received" or "DamageTaken" or "DamageToUs" or "DamageFromUs") binding.StringFormat = "N0";
             }
         };
-        grids[title] = grid; panel.Children.Add(grid);
-        tabs.Items.Add(new TabItem { Header = title, Tag = title switch { "Encounter" => "COMBAT", "Rotations" => "ANALYSIS", "Saved fights" => "LIBRARY", "Report card" => "INSIGHTS", "Network events" => "ADVANCED", _ => null }, Content = new ScrollViewer { Content = panel, VerticalScrollBarVisibility = ScrollBarVisibility.Visible, HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled } });
+        grids[title] = grid; panel.Children.Add(PageLayout.Fill(grid));
+        double minimum = title switch { "Encounter" => 350, "Rotations" => 460, "Boss analysis" => 580, "Trends" => 380, "Party" or "PvP" or "Top cohort" => 370, _ => 260 };
+        var tab = new TabItem { Header = title, HeaderTemplate = UiIcons.NavigationHeader(title), ToolTip = title,
+            Tag = title switch { "Encounter" => "COMBAT", "Rotations" => "ANALYSIS", "Saved fights" => "LIBRARY", "Report card" => "INSIGHTS", "Network events" => "ADVANCED", _ => null }, Content = new ViewportHost(panel, minimum) };
+        System.Windows.Automation.AutomationProperties.SetName(tab, title); tabs.Items.Add(tab);
         return panel;
     }
     static string ColumnHeader(string property) => property switch {
@@ -433,40 +524,73 @@ public sealed class MainWindow : Window
         "FirstEvent" => "First event", "YourFirstSkill" => "Your first skill", "RecordedEvents" => "Family events", "DamageTakenPerSecond" => "Damage taken/s",
         _ => System.Text.RegularExpressions.Regex.Replace(property, "(?<=[a-z0-9])(?=[A-Z])", " ")
     };
-    void RefreshAdapters()
+    void LoadAdapters()
     {
         if (capture != null) return;
         npcapMissing = false;
         try {
             string selected = (adapters.SelectedItem as LibPcapLiveDevice)?.Name ?? preferences.Adapter;
             var devices = LibPcapLiveDeviceList.Instance.ToArray(); adapters.ItemsSource = devices;
-            adapters.SelectedItem = devices.FirstOrDefault(d => d.Name == selected) ?? devices.FirstOrDefault();
-            notice = adapters.Items.Count == 0 ? "No capture adapters found. Check your network connection and Npcap installation, then refresh adapters." : "Choose the adapter carrying game traffic. Use Npcap loopback if the game uses a local proxy.";
+            adapters.SelectedItem = GameAdapterDetector.Automatic(preferences) ? null : devices.FirstOrDefault(d => string.Equals(d.Name, selected, StringComparison.OrdinalIgnoreCase));
+            adapterDetection = null;
+            notice = adapters.Items.Count == 0 ? "No capture adapters found. Check your network connection and Npcap installation, then refresh adapters." : GameAdapterDetector.Automatic(preferences)
+                ? "Connect Aion to a server, then use Detect game adapter or Start capture." : "Choose the adapter carrying game traffic. Use Npcap loopback if the game uses a local proxy.";
         }
         catch (Exception ex) {
             adapters.ItemsSource = null;
             npcapMissing = NpcapSetup.IsLoadFailure(ex);
             notice = "Npcap unavailable: " + ex.Message + " Demo and saved fights remain available.";
         }
+        adapterStatus.Text = notice; UpdateAdapterControls();
     }
-    void PromptForMissingNpcap(object? sender, EventArgs e)
+    void ShowSetup(string message)
     {
-        ContentRendered -= PromptForMissingNpcap;
-        if (npcapMissing) NpcapSetup.CreateDialog(this).ShowDialog();
+        setupMessage.Text = message; setupMessage.Visibility = Visibility.Visible;
+        ShowSettings("Capture");
     }
-    void Start()
+    async void ResumeConfiguredStartup(object? sender, EventArgs e)
+    {
+        ContentRendered -= ResumeConfiguredStartup;
+        if (adapterBusy) return;
+        if (preferences.AutoStartConfigured && GameAdapterDetector.Automatic(preferences) && !npcapMissing) {
+            adapterBusy = true; UpdateAdapterControls();
+            try { await DetectGameAdapterAsync(); }
+            finally { adapterBusy = false; UpdateAdapterControls(); }
+        }
+        if (shuttingDown) return;
+        var plan = StartupPlan.Create(preferences, adapters.Items.Cast<LibPcapLiveDevice>().Select(d => d.Name), npcapMissing, detection: adapterDetection);
+        if (plan.SetupMessage != null) ShowSetup(plan.SetupMessage);
+        if (plan.StartCapture) {
+            adapters.SelectedItem = adapters.Items.Cast<LibPcapLiveDevice>().Single(d => string.Equals(d.Name, plan.CaptureAdapter, StringComparison.OrdinalIgnoreCase));
+            try { Start(automatic: true); }
+            catch (Exception ex) { LocalLog.Write("Automatic capture startup failed: " + ex); ShowSetup("Capture could not start. Check the adapter, Npcap and capture filter, then try Start capture. " + ex.Message); }
+        }
+        RestoreStartupOverlays(plan);
+        if (npcapMissing) NpcapSetup.CreateDialog(this).ShowDialog();
+        Refresh();
+    }
+    void RestoreStartupOverlays(StartupPlan plan)
+    {
+        foreach (var (enabled, open) in new (bool, Action)[] { (plan.OpenMeter, OpenOverlay), (plan.OpenCooldowns, OpenCooldownOverlay) }) {
+            if (!enabled) continue;
+            try { open(); }
+            catch (Exception ex) { LocalLog.Write("Overlay restoration failed: " + ex); ShowSetup("An overlay could not reopen. Use its toolbar button to try again. " + ex.Message); }
+        }
+    }
+    void Start(bool automatic = false)
     {
         if (capture != null) return;
-        if (adapters.SelectedItem == null) RefreshAdapters();
-        if (npcapMissing) { NpcapSetup.CreateDialog(this).ShowDialog(); return; }
+        if (adapters.SelectedItem == null && !GameAdapterDetector.Automatic(preferences)) LoadAdapters();
+        if (npcapMissing) { if (!automatic) NpcapSetup.CreateDialog(this).ShowDialog(); return; }
         if (adapters.SelectedItem is not LibPcapLiveDevice device) throw new InvalidOperationException("Select an Npcap adapter first.");
         if (string.IsNullOrWhiteSpace(filter.Text)) throw new InvalidOperationException("Enter a TCP capture filter.");
         var label = EncounterLabel();
         FinishAutosave(); engine.SaveCompleted(store); var previous = LiveSnapshot(); if (previous.HasRecordedData) SaveFight(previous);
+        cooldownTracker.Reset();
         engine = new(decodeEu.IsChecked == true ? new EuGameDecoder() : null, playerProfiles); engine.NewFight(label); viewed = null;
         var newCapture = new LocalCapture(device, engine.Process);
         string? samplePath = null;
-        if (recordSample.IsChecked == true)
+        if (!automatic && recordSample.IsChecked == true)
         {
             var dialog = new SaveFileDialog { Filter = "Packet capture|*.pcap", FileName = "eu-game-sample.pcap", Title = "Save a private packet sample (do not commit captures to GitHub)" };
             if (dialog.ShowDialog(this) != true) return;
@@ -474,19 +598,23 @@ public sealed class MainWindow : Window
         }
         try { newCapture.Start(filter.Text, samplePath); }
         catch (Exception ex) when (NpcapSetup.IsLoadFailure(ex)) {
-            npcapMissing = true; NpcapSetup.CreateDialog(this).ShowDialog(); return;
+            npcapMissing = true;
+            if (automatic) throw;
+            NpcapSetup.CreateDialog(this).ShowDialog(); return;
         }
         capture = newCapture;
         nextMaintenance = Environment.TickCount64; nextAutosave = nextMaintenance + 30000;
-        start.Content = "Stop & save"; adapters.IsEnabled = false; filter.IsEnabled = false; decodeEu.IsEnabled = false;
-        preferences.Adapter = device.Name; preferences.Filter = filter.Text; SavePreferences();
+        UiIcons.SetLabel(start, UiIcon.Stop, "Stop & save"); UpdateAdapterControls(); filter.IsEnabled = false; decodeEu.IsEnabled = false;
+        preferences.AutoDetectAdapter = GameAdapterDetector.Automatic(preferences);
+        preferences.Adapter = device.Name; preferences.Filter = filter.Text; preferences.DecodeEu = decodeEu.IsChecked == true; SavePreferences();
+        setupMessage.Visibility = Visibility.Collapsed;
         notice = engine.DecoderStatus + (samplePath == null ? "" : " Private sample recording enabled (256 MB limit).");
         LocalLog.Write("Capture started: " + engine.DecoderStatus);
         Refresh();
     }
     void StopAndSave()
     {
-        capture?.Dispose(); LogCapture(); capture = null; start.Content = "Start capture"; adapters.IsEnabled = true; filter.IsEnabled = true; decodeEu.IsEnabled = true;
+        capture?.Dispose(); LogCapture(); capture = null; UiIcons.SetLabel(start, UiIcon.Play, "Start capture"); UpdateAdapterControls(); filter.IsEnabled = true; decodeEu.IsEnabled = true;
         FinishAutosave(); engine.SaveCompleted(store); var f = LiveSnapshot(); if (f.HasRecordedData) SaveFight(f); playerProfiles.Save(); ReloadArchive(); notice = "Capture stopped. Recorded events saved locally."; Refresh();
     }
     void NewFight()
@@ -590,12 +718,41 @@ public sealed class MainWindow : Window
         viewed = last; character.Clear();
         tabs.SelectedItem = tabs.Items.Cast<TabItem>().First(t => t.Header?.ToString() == "PvP"); Refresh();
     }
+    void ConfigureCooldowns()
+    {
+        var editor = new CooldownSettingsWindow(preferences, skills, cooldownTracker.ObservedSkills,
+            () => { SavePreferences(); cooldownOverlay?.Refresh(); }, OpenCooldownOverlay) { Owner = settingsWindow.IsActive ? settingsWindow : this, Topmost = cooldownOverlay?.IsVisible == true };
+        editor.ShowDialog();
+    }
+    void ToggleCooldownOverlay()
+    {
+        if (cooldownOverlay?.IsVisible == true) cooldownOverlay.Hide(); else OpenCooldownOverlay();
+    }
+    void OpenCooldownOverlay()
+    {
+        if (cooldownOverlay != null) { cooldownOverlay.Refresh(); cooldownOverlay.Show(); cooldownOverlay.Activate(); return; }
+        var window = new CooldownOverlayWindow(preferences, cooldownTracker, skills, skillIcons, () => capture != null, ConfigureCooldowns, SavePreferences);
+        cooldownOverlay = window;
+        window.IsVisibleChanged += (_, _) => UpdateToolbarState();
+        window.Closed += (_, _) => { if (ReferenceEquals(cooldownOverlay, window)) cooldownOverlay = null; UpdateToolbarState(); };
+        try { window.Show(); } catch { cooldownOverlay = null; window.Close(); throw; }
+    }
     void ToggleOverlay()
     {
-        if (overlay != null) { overlay.Close(); overlay = null; return; }
-        var opening = new OverlayWindow(NewFight, id => FocusActor(id, preferences.OverlayHealing), () => { customBars.IsChecked = preferences.OverlayCustomBars; pinLocal.IsChecked = preferences.OverlayPinLocal; SavePreferences(); });
+        if (overlay?.IsVisible == true) overlay.Hide(); else OpenOverlay();
+    }
+    void OpenOverlay()
+    {
+        if (overlay != null) {
+            var current = capture != null ? LiveSnapshot() : Current;
+            bool same = ReferenceEquals(current, displayedSnapshot);
+            overlay.Update(current, preferences, rows: same ? displayedTotals : null, pvpData: same ? displayedPvp : null);
+            overlay.Show(); overlay.Activate(); return;
+        }
+        var opening = new OverlayWindow(NewFight, id => FocusActor(id, preferences.OverlayHealing), () => { customBars.IsChecked = !preferences.OverlayCustomBars; pinLocal.IsChecked = preferences.OverlayPinLocal; SavePreferences(); });
         overlay = opening;
-        opening.Closed += (_, _) => { if (ReferenceEquals(overlay, opening)) overlay = null; };
+        opening.IsVisibleChanged += (_, _) => UpdateToolbarState();
+        opening.Closed += (_, _) => { if (ReferenceEquals(overlay, opening)) overlay = null; UpdateToolbarState(); };
         try {
             var fight = capture != null ? LiveSnapshot() : Current;
             bool cached = ReferenceEquals(fight, displayedSnapshot);
@@ -615,20 +772,20 @@ public sealed class MainWindow : Window
         _ = (Color)ColorConverter.ConvertFromString(accent.Text);
         _ = (Color)ColorConverter.ConvertFromString(backAttackColor.Text);
         preferences.BackAttackColor = backAttackColor.Text;
-        preferences.Theme = themes.SelectedItem?.ToString() ?? "Midnight"; preferences.Accent = accent.Text; preferences.Filter = filter.Text;
-        preferences.OverlayCustomBars = customBars.IsChecked == true;
-        preferences.Adapter = (adapters.SelectedItem as LibPcapLiveDevice)?.Name ?? preferences.Adapter;
+        preferences.Theme = themes.SelectedItem?.ToString() ?? "Midnight"; preferences.Accent = accent.Text;
+        preferences.OverlayCustomBars = customBars.IsChecked != true;
         SavePreferences(); ApplyTheme(); Refresh();
     }
     void SavePreferences()
     {
-        try { Directory.CreateDirectory(System.IO.Path.GetDirectoryName(PreferencePath)!); File.WriteAllText(PreferencePath, JsonSerializer.Serialize(preferences)); }
-        catch (Exception ex) { notice = "Could not save settings: " + ex.Message; LocalLog.Write(notice); }
+        try { Directory.CreateDirectory(System.IO.Path.GetDirectoryName(PreferencePath)!); File.WriteAllText(PreferencePath, JsonSerializer.Serialize(preferences)); settingsWindow?.ShowStatus("Settings saved on this PC."); }
+        catch (Exception ex) { notice = "Could not save settings: " + ex.Message; LocalLog.Write(notice); settingsWindow?.ShowStatus(notice); }
     }
     void ApplyTheme()
     {
         try { _ = (Color)ColorConverter.ConvertFromString(preferences.Accent); } catch { preferences.Accent = "#55D6BE"; }
         UiTheme.Apply(this, preferences);
+        settingsWindow.ApplyTheme(preferences); UpdateToolbarState();
         var accentColor = ((SolidColorBrush)Resources["Accent"]).Color;
         start.Foreground = .2126 * accentColor.R + .7152 * accentColor.G + .0722 * accentColor.B > 145 ? UiTheme.Brush("#10201C") : Brushes.White;
         tabs.Background = Background; tabs.Foreground = Foreground;
@@ -650,11 +807,12 @@ public sealed class MainWindow : Window
     void Refresh(bool skipUnchanged = false)
     {
         if (grids.Count == 0) return;
+        if (capture != null) cooldownTracker.Observe(LiveSnapshot(), DateTimeOffset.UtcNow.ToUnixTimeMilliseconds(), Environment.TickCount64);
         var f = Current;
         bool changed = !ReferenceEquals(f, displayedSnapshot);
         if (changed) { displayedTotals = Analysis.Totals(f); displayedPvp = PvpAnalysis.Build(f); displayedSnapshot = f; }
         var totals = displayedTotals;
-        if (!skipUnchanged || changed || archiveChanged || (detailsPending && Environment.TickCount64 >= nextComparisonRefresh))
+        if (!skipUnchanged || changed || archiveChanged || (tabs.SelectedItem as TabItem)?.Header?.ToString() == "Cooldowns" || (detailsPending && Environment.TickCount64 >= nextComparisonRefresh))
         {
         var meterData = MeterPresentation.Build(f, totals, limit: 50);
         summary.Text = f.Label; summary.TextTrimming = TextTrimming.CharacterEllipsis;
@@ -667,7 +825,9 @@ public sealed class MainWindow : Window
         character.Tag = bossSearch ? "Search bosses, IDs, instances..." : tab == "Encounter" ? "Search encounters or participants..." : tab == "Saved fights" ? "Search fights, bosses, players..." : "Filter characters...";
         character.ToolTip = bossSearch ? "Search boss names, NPC template IDs or possible instances" : "Filter details by character name; blank shows everyone";
         clearFilter.ToolTip = "Clear search";
-        viewTitle.Text = tab; clearFilter.Visibility = character.Text.Length > 0 ? Visibility.Visible : Visibility.Hidden;
+        bool hasCharacterFilter = tab is not ("Cooldowns" or "Player stats");
+        character.Visibility = hasCharacterFilter ? Visibility.Visible : Visibility.Hidden;
+        viewTitle.Text = tab; clearFilter.Visibility = hasCharacterFilter && character.Text.Length > 0 ? Visibility.Visible : Visibility.Hidden;
         showLive.Visibility = viewed != null ? Visibility.Visible : Visibility.Hidden;
         bool comparison = tab is "Trends" or "Report card" or "Top cohort" or "Top 5%";
         bool updateDetails = !skipUnchanged || archiveChanged || !comparison || Environment.TickCount64 >= nextComparisonRefresh;
@@ -692,26 +852,29 @@ public sealed class MainWindow : Window
                 damageValue.Text = MeterPresentation.Number(pvp.YourDamage); damageValue.ToolTip = "Your damage to PvP opponents";
                 dpsValue.Text = MeterPresentation.Number(pvp.YourDamage / pvp.Seconds); dpsValue.ToolTip = "Your DPS over the shared PvP window";
                 durationValue.Text = MeterPresentation.Duration(pvp.HasOpponents ? pvp.Seconds : 0); break;
-            case "Defense": Set(tab, Analysis.Defense(f).Where(r => Matches(r.Character)).ToArray()); break;
             case "Healing": Set(tab, SkillDamageDisplay.Shares(DetailedAnalysis.Healing(f, skills.GetSkillName).Where(r => Matches(r.Healer)))); break;
             case "Rotations":
                 DrawTimeline(f, totals); break;
             case "Openers": Set(tab, DetailedAnalysis.Openers(f, skills.GetSkillName).Where(r => Matches(r.Character))); break;
-            case "Specs": Set(tab, DetailedAnalysis.Specs(f, skills.GetSkillName).Where(r => Matches(r.Character))); SetDetail("Equipment", DetailedAnalysis.Equipment(f).Where(r => Matches(r.Character))); break;
-            case "Boss analysis": Set(tab, BossAnalysis.Build(f).Where(b => Matches(b.Boss) || Matches(b.PossibleInstances) || Matches(b.NpcIds))); break;
+            case "Boss analysis": bossView.Update(f, character.Text, force: !skipUnchanged); break;
             case "Boss catalogue": Set(tab, BossCatalogue.Default.Rows().Where(b => Matches(b.Boss) || Matches(b.PossibleInstances) || Matches(b.NpcIds))); break;
-            case "Saved fights": Set(tab, archive.Where(a => Matches(a.Label) || Matches(BossAnalysis.Summary(a)) || a.Actors.Values.Any(p => p.Player && Matches(p.Name))).Select(a => new SavedRow(a.Id, a.Created.ToLocalTime(), a.Label, a.Demo, a.Damage.Count + a.Healing.Count, Math.Round(a.Seconds, 1)) { Bosses = BossAnalysis.Summary(a) }).ToArray()); break;
+            case "Saved fights": Set(tab, archive.Where(EncounterOverview.HasLocalDamage).Where(a => Matches(a.Label) || Matches(BossAnalysis.Summary(a)) || a.Actors.Values.Any(p => p.Player && Matches(p.Name))).Select(a => new SavedRow(a.Id, a.Created.ToLocalTime(), a.Label, a.Demo, a.Damage.Count + a.Healing.Count, Math.Round(a.Seconds, 1)) { Bosses = BossAnalysis.Summary(a) }).ToArray()); break;
             case "Trends": RefreshTrends(); break;
             case "Report card": Set(tab, Benchmarks.Report(f, archive).Where(r => Matches(r.Character)).ToArray()); break;
             case "Player stats": Set(tab, CharacterReadings.Rows(f.LocalStats)); break;
-            case "Cooldowns": Set(tab, CharacterReadings.Cooldowns(f.Network, skills)); break;
+            case "Cooldowns":
+                var tracked = CooldownPresentation.Rows(preferences, skills, cooldownTracker, capture != null, Environment.TickCount64);
+                Set(tab, tracked);
+                string trackedLabel = $"{tracked.Length} tracked skill{(tracked.Length == 1 ? "" : "s")}";
+                cooldownSummary.Text = tracked.Length == 0 ? "Choose the skills you want to track, then open the cooldown overlay."
+                    : capture == null ? $"{trackedLabel}. Start capture to follow cooldowns."
+                    : $"{trackedLabel}. Live timers stay active while you browse saved encounters.";
+                break;
             case "Network events": Set(tab, f.Network.TakeLast(500).Reverse().Select(e => new { e.Timestamp, e.Kind, e.Opcode, Fields = e.Fields.GetRawText() }).ToArray()); break;
             case "Top cohort":
                 var focus = ComparisonActor(f, totals); var cohortPeers = focus == null ? [] : Benchmarks.Peers(f, focus, archive);
                 cohortSummary.Text = ComparisonStatus(f, focus, 20, cohortPeers.Length);
                 Set(tab, focus == null ? [] : Benchmarks.Cohort(f, focus, archive, skills.GetSkillName, cohortPeers));
-                SetDetail("Cohort specs", focus == null ? [] : Benchmarks.Specs(f, focus, archive, skills.GetSkillName, cohortPeers));
-                SetDetail("Cohort equipment", focus == null ? [] : Benchmarks.Equipment(f, focus, archive, cohortPeers));
                 SetDetail("Cohort openers", focus == null ? [] : Benchmarks.Openers(f, focus, archive, skills.GetSkillName, cohortPeers)); break;
             case "Top 5%":
                 var selected = ComparisonActor(f, totals); var differencePeers = selected == null ? [] : Benchmarks.Peers(f, selected, archive);
@@ -732,7 +895,7 @@ public sealed class MainWindow : Window
             var timing = capture.Timing;
             status.Text += $"\nQueued {timing.QueuedPackets} (peak {timing.PeakQueuedPackets}) · queue avg {timing.QueueWait.AverageMs:F2} ms · capture-to-processed avg {timing.CaptureToProcessed.AverageMs:F2} ms · display refresh 200 ms";
         }
-        if (overlay == null) return;
+        if (overlay?.IsVisible != true) return;
         var overlayFight = capture != null ? LiveSnapshot() : f;
         string overlayEnergy = overlayFight.Energy == null ? "Loot energy: not captured" : $"Loot energy: daily {overlayFight.Energy.Daily} · bonus {overlayFight.Energy.Bonus}";
         overlay.Update(overlayFight, preferences, overlayEnergy, ReferenceEquals(overlayFight, f) ? totals : null,
@@ -750,6 +913,9 @@ public sealed class MainWindow : Window
     internal void RunVisualSmokeTest()
     {
         Directory.CreateDirectory("test-artifacts");
+        CheckStartupUi();
+        CheckAdapterUi();
+        preferences.CooldownSkills = [17100000, 17100120];
         if (viewed?.Demo == true) {
             viewed.LocalStats = new(1000, new() { [19] = 1234, [425] = 1250, [65000] = -20 });
             viewed.Network.Add(new("skill-cooldown", 1000, "47 38", System.Text.Json.JsonSerializer.SerializeToElement(new { SkillCode = 17100000, RemainingMs = 3500 })));
@@ -777,27 +943,84 @@ public sealed class MainWindow : Window
                 if (content == null || !VisualImages(content).Any(i => i.Source != null)) throw new Exception("Skill cell did not render its icon or fallback.");
             }
             if (tab.Header.ToString() == "Player stats" && grids["Player stats"].Items.Count != 3) throw new Exception("Player stats view did not populate.");
-            if (tab.Header.ToString() == "Cooldowns" && grids["Cooldowns"].Items.Count != 1) throw new Exception("Cooldown view did not populate.");
+            if (tab.Header.ToString() == "Cooldowns" && (grids["Cooldowns"].Items.Count != 1 || grids["Cooldowns"].Items.OfType<TrackedCooldownRow>().Single().Status != "Start capture"))
+                throw new Exception("Cooldown view did not group configured skills or incorrectly used saved-fight timers.");
             if (tab.Header.ToString() is "Party" or "Rotations" or "Skills" or "Healing" or "PvP" or "Player stats" or "Cooldowns") Render(this, System.IO.Path.Combine("test-artifacts", tab.Header + ".png"));
         }
         if (grids["Party"].Items.Count != 13 || grids["PvP"].Items.Count != 3) throw new Exception("Demo grids failed to populate.");
         string oldTheme = preferences.Theme;
         foreach (string theme in themes.Items) { preferences.Theme = theme; ApplyTheme(); UpdateLayout(); }
-        settingsPanel.Visibility = Visibility.Visible; settingsPanel.IsExpanded = true; UpdateLayout();
+        CheckSettingsUi(); ShowSettings("Appearance"); settingsWindow.UpdateLayout();
         foreach (string theme in themes.Items)
         {
-            preferences.Theme = theme; ApplyTheme(); UpdateLayout();
+            preferences.Theme = theme; ApplyTheme(); settingsWindow.UpdateLayout(); UpdateLayout();
             themes.IsDropDownOpen = true; Dispatcher.Invoke(DispatcherPriority.Background, new Action(() => { })); themes.UpdateLayout();
             var popup = (Popup)themes.Template.FindName("PART_Popup", themes);
             if (popup.Child is not Border surface || surface.Background is not SolidColorBrush background || background.Color.R > 100)
                 throw new Exception("Theme dropdown lost its dark popup surface.");
-            surface.UpdateLayout(); Render(surface, $"test-artifacts/Dropdown-{theme}.png"); themes.IsDropDownOpen = false;
+            surface.UpdateLayout();
+            // Native focus changes can dismiss a popup during automation. Its
+            // theme is still testable: explicitly lay out the detached surface.
+            if (surface.ActualWidth <= 0 || surface.ActualHeight <= 0) {
+                surface.Measure(new Size(themes.ActualWidth, themes.MaxDropDownHeight));
+                surface.Arrange(new Rect(surface.DesiredSize));
+            }
+            Render(surface, $"test-artifacts/Dropdown-{theme}.png"); themes.IsDropDownOpen = false;
+            if (backAttackColor.Template.FindName("PART_EditableTextBox", backAttackColor) is not TextBox colourInput ||
+                !colourInput.IsVisible || colourInput.Text != backAttackColor.Text || string.IsNullOrWhiteSpace(colourInput.Text))
+                throw new Exception("Editable back-attack colour is missing or blank.");
             CheckMenu(CreateFilesMenu(), $"Files-{theme}");
+            CheckMenu(CreateMoreMenu(), $"More-{theme}");
         }
-        settingsPanel.IsExpanded = false; settingsPanel.Visibility = Visibility.Collapsed;
+        settingsWindow.Hide();
         preferences.Theme = oldTheme; ApplyTheme(); tabs.SelectedIndex = 0;
         if (overview.RowCount != 10) throw new Exception("Overview did not display the ten party members.");
         // Keep automated layout checks independent of a user's saved display preferences.
+        var cooldownDemo = new Fight { LocalPlayer = 1 }; long cooldownNow = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+        cooldownDemo.Network.Add(new("skill-cooldown", cooldownNow, "47 38", JsonSerializer.SerializeToElement(new { SkillCode = 17100000, RemainingMs = 30000 })));
+        cooldownDemo.Network.Add(new("skill-cooldown", cooldownNow, "47 38", JsonSerializer.SerializeToElement(new { SkillCode = 17010000, RemainingMs = 0 })));
+        cooldownDemo.Network.Add(new("skill-use", cooldownNow, "02 38", JsonSerializer.SerializeToElement(new { ActorId = 1, SkillCode = 17150230, Sequence = 1 })));
+        cooldownDemo.Network.Add(new("skill-use", cooldownNow - 2000, "02 38", JsonSerializer.SerializeToElement(new { ActorId = 1, SkillCode = 17060343, Sequence = 2 })));
+        long cooldownTick = Environment.TickCount64;
+        var cooldownTestTracker = new CooldownTracker(); cooldownTestTracker.Observe(cooldownDemo, cooldownNow, cooldownTick);
+        var cooldownTestSettings = new Preferences { CooldownSkills = [17100000, 17010000, 17020000, 17150000, 17060343, 17060001, 17060000] };
+        var cooldownTestOverlay = new CooldownOverlayWindow(cooldownTestSettings, cooldownTestTracker, skills, skillIcons, () => true, () => { }, () => { });
+        try {
+            cooldownTestOverlay.Show(); cooldownTestOverlay.UpdateLayout();
+            cooldownTestOverlay.CheckDragging();
+            if (!int.TryParse(cooldownTestOverlay.DisplayedTime(17100000), out _) || cooldownTestOverlay.DisplayedTime(17010000) != "" || cooldownTestOverlay.DisplayedTime(17020000) != "?" || !cooldownTestOverlay.Dimmed(17100000) || cooldownTestOverlay.Dimmed(17010000))
+                throw new Exception("Cooldown overlay failed to distinguish active, ready and unknown skills.");
+            if (!cooldownTestOverlay.DisplayedTime(17150000).StartsWith("~") || !cooldownTestOverlay.Dimmed(17150000)) throw new Exception("Cast estimate was not shown as a gray icon with estimated seconds.");
+            if (cooldownTestOverlay.VisibleSkills != 5 || !cooldownTestOverlay.DisplayedTime(17060000).StartsWith("~") || !cooldownTestOverlay.Dimmed(17060000))
+                throw new Exception("Old charge tier selections did not merge into one active base icon.");
+            cooldownTestOverlay.RefreshAt(cooldownTick + 29250);
+            if (cooldownTestOverlay.DisplayedTime(17100000) != "" || cooldownTestOverlay.Dimmed(17100000) ||
+                cooldownTestOverlay.DisplayedTime(17150000) != "" || cooldownTestOverlay.Dimmed(17150000) || cooldownTestOverlay.DisplayedTime(17020000) != "?")
+                throw new Exception("Early cooldown display did not make both known timers ready while preserving unknown skills.");
+            cooldownTestSettings.CooldownShowReady = false; cooldownTestOverlay.RefreshAt(cooldownTick + 29250);
+            if (cooldownTestOverlay.VisibleSkills != 2) throw new Exception("Hide-ready did not follow the adjusted cooldown display.");
+            cooldownTestSettings.CooldownOneSecondEarly = false; cooldownTestOverlay.RefreshAt(cooldownTick + 29250);
+            if (cooldownTestOverlay.DisplayedTime(17100000) != "1" || cooldownTestOverlay.DisplayedTime(17150000) != "~1" || cooldownTestOverlay.VisibleSkills != 4)
+                throw new Exception("Disabling the early display did not restore the original active timers.");
+            cooldownTestSettings.CooldownOneSecondEarly = true; cooldownTestSettings.CooldownShowReady = true;
+            cooldownTestOverlay.RefreshAt(cooldownTick); cooldownTestOverlay.RefreshAt(cooldownTick);
+            if (cooldownTestOverlay.DisplayedTime(17100000) != "29" || cooldownTestOverlay.DisplayedTime(17150000) != "~29" ||
+                cooldownTestOverlay.DisplayedTime(17060000) != "~42" || cooldownTestTracker.Remaining(17100000, cooldownTick, skills) != 30)
+                throw new Exception("Display adjustment accumulated, changed raw readings or lost packet-age correction.");
+            Render(cooldownTestOverlay, "test-artifacts/Cooldown-overlay.png");
+            CheckMenu(cooldownTestOverlay.ContextMenu, "Cooldown-menu");
+            cooldownTestOverlay.Hide();
+            long hiddenNow = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+            cooldownDemo.Network.Add(new("skill-cooldown", hiddenNow, "47 38", JsonSerializer.SerializeToElement(new { SkillCode = 17100000, RemainingMs = 3500 })));
+            cooldownTestTracker.Observe(cooldownDemo, hiddenNow, Environment.TickCount64);
+            cooldownTestOverlay.Show();
+            if (!int.TryParse(cooldownTestOverlay.DisplayedTime(17100000), out int resumedSeconds) || resumedSeconds is < 1 or > 3)
+                throw new Exception("Reopened cooldown overlay did not pick up events received while hidden.");
+            cooldownTestSettings.CooldownShowReady = false; cooldownTestSettings.CooldownLocked = true; cooldownTestOverlay.Refresh();
+            if (cooldownTestOverlay.VisibleSkills != 4 || cooldownTestOverlay.ResizeMode != ResizeMode.NoResize) throw new Exception("Cooldown overlay settings did not apply.");
+        } finally { cooldownTestOverlay.Close(); }
+        var cooldownEditor = new CooldownSettingsWindow(cooldownTestSettings, skills, cooldownTestTracker.ObservedSkills, () => { }, () => { });
+        try { cooldownEditor.Show(); cooldownEditor.UpdateLayout(); Render(cooldownEditor, "test-artifacts/Cooldown-settings.png"); } finally { cooldownEditor.Close(); }
         var testOverlay = new OverlayWindow(); var testPreferences = new Preferences { OverlayScope = "Party", OverlayPinLocal = true };
         testOverlay.Update(Current, testPreferences); testOverlay.Show(); testOverlay.UpdateLayout();
         testOverlay.CheckModes(); testOverlay.UpdateLayout(); Render(testOverlay, "test-artifacts/Overlay.png");
@@ -824,7 +1047,7 @@ public sealed class MainWindow : Window
         duelOverlay.CheckBackAttackBorder(false);
         if (duelOverlay.CurrentScope == "PvP") throw new Exception("Automatic PvP scope did not reset for the next fight.");
         duelOverlay.Close();
-        // Exercise the real open/close path while swapping a large and small fight.
+        // Exercise hide/show and close while swapping a large and small fight.
         var beforeStress = viewed;
         var beforeStressTab = tabs.SelectedItem;
         tabs.SelectedIndex = 0;
@@ -841,7 +1064,9 @@ public sealed class MainWindow : Window
                 viewed = duel; Refresh(); overlay.UpdateLayout();
                 if (overlay.RowCount != 2) throw new Exception("Overlay retained rows after switching fights.");
                 ToggleOverlay();
-                if (overlay != null) throw new Exception("Rapid overlay closing retained the window.");
+                if (overlay?.IsVisible != false) throw new Exception("Rapid overlay hiding failed.");
+                overlay.Close();
+                if (overlay != null) throw new Exception("Closing the overlay retained the window.");
             }
         } finally {
             overlay?.Close(); viewed = beforeStress; preferences.OverlayCustomBars = beforeCustom; tabs.SelectedItem = beforeStressTab; Refresh();
@@ -852,20 +1077,19 @@ public sealed class MainWindow : Window
         if (grids["PvP"].Items.Count != 1 || pvpMeter.RowCount != 2) throw new Exception("Unnamed opponent is hidden in the PvP tab.");
         Render(this, "test-artifacts/PvP-duel.png"); viewed = previousView; tabs.SelectedIndex = 0; Refresh();
         var beforeBossView = viewed; var beforeBossFilter = character.Text;
-        var bossDemo = new Fight { Demo = true, LocalPlayer = 1, Label = "Catalogue demo" };
-        bossDemo.Actors[1] = new(1, "Example", true, true, 42000, "Cleric", 1);
-        bossDemo.Actors[2] = new(2, "Kromede's Desire", false, false, 0, "Unknown", 0) { NpcId = 2300371 };
-        bossDemo.Damage.Add(new() { ActorId = 1, TargetId = 2, Timestamp = 1000, Damage = 1234 });
+        var bossDemo = BossEncounterTests.Fixture();
         viewed = bossDemo; character.Text = "";
         tabs.SelectedItem = tabs.Items.Cast<TabItem>().Single(t => t.Header?.ToString() == "Boss analysis"); Refresh(); UpdateLayout();
-        if (grids["Boss analysis"].Items.Count != 1) throw new Exception("Boss analysis did not identify the embedded catalogue NPC.");
+        bossView.CheckPresentation(bossDemo); UpdateLayout();
         Render(this, "test-artifacts/Boss-analysis.png");
+        Render(bossView, "test-artifacts/Boss-analysis-full.png");
         character.Text = "2310371";
         tabs.SelectedItem = tabs.Items.Cast<TabItem>().Single(t => t.Header?.ToString() == "Boss catalogue"); Refresh(); UpdateLayout();
         if (grids["Boss catalogue"].Items.Count != 1) throw new Exception("Boss catalogue variant-ID search failed.");
         Render(this, "test-artifacts/Boss-catalogue.png");
         viewed = beforeBossView; character.Text = beforeBossFilter; tabs.SelectedIndex = 0; Refresh();
         CheckFeatureViews();
+        CheckResponsiveViews();
         Width = MinWidth; Height = MinHeight; UpdateLayout(); Render(this, "test-artifacts/Main-small.png");
         File.WriteAllText("smoke-test-results.txt", $"PASS: all {tabs.Items.Count} WPF tabs, immediate rotation inspection, hover hold, pinned damage/healing stepping, scrubbing/resume and retained drawing, populated CP report/top-five/cohort/trends/specs/openers, character editor, delayed comparison refresh, unnamed PvP opponents, automatic PvP overlay, skill/healing icon cells, ten ranked bars, five themes, custom bars, dark dropdowns/file menus/overlay menu, damage/healing overlay, move lock and minimum sizes rendered on .NET 10.\n" + notice);
     }
@@ -883,17 +1107,15 @@ public sealed class MainWindow : Window
             Show("Top 5%");
             if (grids["Top 5%"].Items.Count != 6) throw new InvalidOperationException("Top-five-percent metrics are missing.");
             Show("Top cohort");
-            if (grids["Top cohort"].Items.Count != 4 || detailGrids.Values.Any(g => g.ItemsSource == null && g != detailGrids["Equipment"]))
+            if (grids["Top cohort"].Items.Count != 4 || detailGrids.Values.Any(g => g.ItemsSource == null))
                 throw new InvalidOperationException("Cohort details are missing.");
-            foreach (string detail in new[] { "Cohort specs", "Cohort equipment", "Cohort openers" })
+            foreach (string detail in new[] { "Cohort openers" })
                 if (detailGrids[detail].Items.Count == 0) throw new InvalidOperationException("Empty " + detail);
             Show("Trends");
-            if (grids["Trends"].Items.Count != 100 || !trendChart.Children.OfType<Polyline>().Any(l => l.Points.Count == 100))
-                throw new InvalidOperationException("Trend chart did not draw the chosen character's observations.");
+            if (grids["Trends"].Items.OfType<EncounterTrendRow>().Single().Attempts != 100 || !trendChart.Children.OfType<Polyline>().Any(l => l.Points.Count == 100))
+                throw new InvalidOperationException("Trend chart did not group the chosen character's observations by encounter.");
             trendMetric.SelectedIndex = 1; Refresh(); UpdateLayout(); Render(this, "test-artifacts/Populated-Trends-HPS.png");
-            Show("Specs");
-            if (detailGrids["Equipment"].Items.Count != 1 || !grids["Specs"].Items.OfType<SpecRow>().Any(r => r.SkillCode == 17030000 && r.Level == 7 && r.RecordedEvents == 0))
-                throw new InvalidOperationException("Unused loadout skills or equipment were lost in the UI.");
+            CheckTrendViews();
             Show("Openers");
             if (grids["Openers"].Items.Count != 4) throw new InvalidOperationException("Damage/healing opener rows are missing.");
             Show("Rotations"); RotationTests.CheckView(rotationView, viewed, name => { UpdateLayout(); Render(this, "test-artifacts/" + name + ".png"); });
@@ -911,6 +1133,89 @@ public sealed class MainWindow : Window
             finally { customOverlay.Close(); }
         }
         finally { viewed = previousView; archive.Clear(); archive.AddRange(savedArchive); archiveChanged = true; character.Text = previousFilter; trendMetric.SelectedIndex = 0; tabs.SelectedIndex = 0; Refresh(); }
+    }
+    void CheckStartupUi()
+    {
+        if (capture != null || overlay != null || cooldownOverlay != null) throw new Exception("Demo startup restored a live session.");
+        tabs.SelectedIndex = 0;
+        if (!tabs.Items.Cast<TabItem>().Where(t => t.Visibility == Visibility.Visible).Select(t => t.Header?.ToString()).SequenceEqual(MainViews) ||
+            grids.ContainsKey("Defense") || grids.ContainsKey("Specs")) throw new Exception("Navigation retained unused views or lost the main view order.");
+        var more = CreateMoreMenu();
+        more.Items.OfType<MenuItem>().Single(i => i.Header?.ToString() == "Network events").RaiseEvent(new RoutedEventArgs(MenuItem.ClickEvent));
+        if ((tabs.SelectedItem as TabItem) is not { Visibility: Visibility.Visible } advanced || advanced.Header?.ToString() != "Network events")
+            throw new Exception("More menu did not open the selected advanced view.");
+        var previous = preferences;
+        try {
+            double x = SystemParameters.VirtualScreenLeft + 20, y = SystemParameters.VirtualScreenTop + 20;
+            preferences = new() { Adapter = "fixture-adapter", CooldownSkills = [17060000, 17060343],
+                OverlayLeft = x, OverlayTop = y, OverlayWidth = 340, OverlayHeight = 220,
+                CooldownLeft = x + 30, CooldownTop = y + 30, CooldownWidth = 180, CooldownHeight = 100 };
+            RestoreStartupOverlays(StartupPlan.Create(preferences, ["fixture-adapter"], false));
+            var meter = overlay!; var cooldown = cooldownOverlay!;
+            if (capture != null || meter == null || cooldown == null || meter.Left != x || meter.Top != y || meter.Width != 340 ||
+                cooldown.Left != x + 30 || cooldown.Top != y + 30 || cooldown.Width != 180) throw new Exception("Startup overlays lost saved positions or sizes.");
+            OpenOverlay(); OpenCooldownOverlay();
+            if (!ReferenceEquals(overlay, meter) || !ReferenceEquals(cooldownOverlay, cooldown)) throw new Exception("Startup restoration duplicated or closed an overlay.");
+            meter.Left += 12; meter.Top += 10; meter.Width += 20;
+            cooldown.Left += 18; cooldown.Top += 16; cooldown.Width += 10;
+            // Let the same debounced placement handlers used for dragging run.
+            var frame = new DispatcherFrame(); var delay = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(550) };
+            delay.Tick += (_, _) => { delay.Stop(); frame.Continue = false; }; delay.Start(); Dispatcher.PushFrame(frame);
+            if (preferences.OverlayLeft != meter.Left || preferences.OverlayTop != meter.Top || preferences.OverlayWidth != meter.Width ||
+                preferences.CooldownLeft != cooldown.Left || preferences.CooldownTop != cooldown.Top || preferences.CooldownWidth != cooldown.Width)
+                throw new Exception("Moved overlays were not saved while still open.");
+            double meterX = meter.Left, meterY = meter.Top, cooldownX = cooldown.Left, cooldownY = cooldown.Top;
+            for (int i = 0; i < 3; i++) {
+                meterButton.RaiseEvent(new RoutedEventArgs(ButtonBase.ClickEvent)); cooldownButton.RaiseEvent(new RoutedEventArgs(ButtonBase.ClickEvent));
+                if (meter.IsVisible || cooldown.IsVisible || System.Windows.Automation.AutomationProperties.GetHelpText(meterButton) != "Hidden" ||
+                    System.Windows.Automation.AutomationProperties.GetHelpText(cooldownButton) != "Hidden") throw new Exception("Overlay buttons did not hide their windows or update their state.");
+                meterButton.RaiseEvent(new RoutedEventArgs(ButtonBase.ClickEvent)); cooldownButton.RaiseEvent(new RoutedEventArgs(ButtonBase.ClickEvent));
+                if (!meter.IsVisible || !cooldown.IsVisible || !ReferenceEquals(meter, overlay) || !ReferenceEquals(cooldown, cooldownOverlay) ||
+                    meter.Left != meterX || meter.Top != meterY || cooldown.Left != cooldownX || cooldown.Top != cooldownY ||
+                    System.Windows.Automation.AutomationProperties.GetHelpText(meterButton) != "Visible" ||
+                    System.Windows.Automation.AutomationProperties.GetHelpText(cooldownButton) != "Visible")
+                    throw new Exception("Overlay toggles lost visibility, state or saved placement.");
+            }
+            meter.Close(); cooldown.Close(); OpenOverlay(); OpenCooldownOverlay();
+            if (overlay!.Left != meterX || overlay.Top != meterY || cooldownOverlay!.Left != cooldownX || cooldownOverlay.Top != cooldownY)
+                throw new Exception("Manually reopened overlays did not restore their last placement.");
+            tabs.SelectedItem = tabs.Items.Cast<TabItem>().Single(t => t.Header?.ToString() == "Cooldowns"); UpdateLayout();
+            if (advanced.Visibility != Visibility.Collapsed || grids["Cooldowns"].Items.OfType<TrackedCooldownRow>().Single().Skill != "Bolt")
+                throw new Exception("Cooldown page did not show the configured skill or navigation failed to collapse the advanced view.");
+            Render(this, "test-artifacts/Cooldowns-tracked.png");
+        } finally {
+            cooldownOverlay?.Close(); overlay?.Close(); preferences = previous; SavePreferences(); tabs.SelectedIndex = 0; Refresh();
+        }
+    }
+    void CheckSettingsUi()
+    {
+        foreach (var button in new[] { start, newFightButton, meterButton, cooldownButton, moreButton, settingsButton })
+            if (button.Content is not StackPanel label || label.Children.OfType<Viewbox>().SingleOrDefault()?.Tag is not UiIcon ||
+                string.IsNullOrEmpty(System.Windows.Automation.AutomationProperties.GetName(button)))
+                throw new Exception("A toolbar action lost its icon or accessible label.");
+        settingsButton.RaiseEvent(new RoutedEventArgs(ButtonBase.ClickEvent));
+        if (!settingsWindow.IsVisible) throw new Exception("Settings button did not open settings.");
+        foreach (var page in new[] { "Startup", "Capture", "Overlays", "Appearance", "Local data", "Advanced" }) {
+            settingsWindow.SelectPage(page); settingsWindow.UpdateLayout();
+            if (settingsWindow.SelectedPage != page) throw new Exception("Settings navigation did not select a page.");
+            // Capture and diagnostics can contain adapter information: never use them as sample images.
+            if (page is "Startup" or "Overlays" or "Appearance") Render(settingsWindow, "test-artifacts/Settings-" + page + ".png");
+        }
+        settingsButton.RaiseEvent(new RoutedEventArgs(ButtonBase.ClickEvent));
+        if (settingsWindow.IsVisible) throw new Exception("Settings button did not hide settings.");
+        ShowSettings("Startup"); settingsWindow.Close();
+        if (settingsWindow.IsVisible) throw new Exception("Closing settings did not hide the reusable window.");
+        ShowSettings("Appearance");
+        double width = settingsWindow.Width, height = settingsWindow.Height;
+        settingsWindow.Width = settingsWindow.MinWidth; settingsWindow.Height = settingsWindow.MinHeight; settingsWindow.UpdateLayout();
+        Render(settingsWindow, "test-artifacts/Settings-compact.png");
+        settingsWindow.Width = width; settingsWindow.Height = height; settingsWindow.Hide();
+        double mainWidth = Width; Width = MinWidth; UpdateLayout();
+        foreach (var button in new[] { start, newFightButton, meterButton, cooldownButton, moreButton, settingsButton }) {
+            var point = button.TranslatePoint(new(0, 0), this);
+            if (point.X < 0 || point.X + button.ActualWidth > ActualWidth) throw new Exception("A toolbar action is clipped at minimum window width.");
+        }
+        Render(this, "test-artifacts/Toolbar-compact.png"); Width = mainWidth; UpdateLayout();
     }
     static IEnumerable<Image> VisualImages(DependencyObject parent)
     {

@@ -62,7 +62,7 @@ internal sealed class CharacterEditor : Window
         var buttons = new StackPanel { Orientation = Orientation.Horizontal, HorizontalAlignment = HorizontalAlignment.Right }; footer.Children.Add(buttons);
         var cancel = new Button { Content = "Cancel", IsCancel = true, Margin = new(4), Padding = new(15, 6, 15, 6) }; buttons.Children.Add(cancel);
         var save = new Button { Content = "Save details", Margin = new(4), Padding = new(15, 6, 15, 6) }; buttons.Children.Add(save); save.Click += (_, _) => Save();
-        var help = new TextBlock { Text = "Add class, Combat Power and server for comparisons. Enter only loadouts you know. Changes are stored with this fight and marked as entered locally. Player names come from capture.", TextWrapping = TextWrapping.Wrap, Margin = new(8, 4, 8, 12) };
+        var help = new TextBlock { Text = "Add class, Combat Power and server for comparisons. Changes are stored with this fight and marked as entered locally. Player names come from capture.", TextWrapping = TextWrapping.Wrap, Margin = new(8, 4, 8, 12) };
         DockPanel.SetDock(help, Dock.Top); root.Children.Add(help);
         root.Children.Add(tabs);
         DataGrid Grid(string title, object source)
@@ -81,23 +81,9 @@ internal sealed class CharacterEditor : Window
         TextColumn(actors, "Id", "ID", true, .6); TextColumn(actors, "Character", "Character", true, 1.8);
         CheckColumn(actors, "Player", "Player"); CheckColumn(actors, "Party", "Party");
         actors.Columns.Add(new DataGridComboBoxColumn { Header = "Class", ItemsSource = FightMetadata.Jobs, SelectedItemBinding = new Binding("Class"), Width = 115 });
-        TextColumn(actors, "CP", "CP"); TextColumn(actors, "Server", "Server"); CheckColumn(actors, "CompleteLoadout", "Full spec");
+        TextColumn(actors, "CP", "CP"); TextColumn(actors, "Server", "Server");
         var actorPanel = new DockPanel(); DockPanel.SetDock(roster, Dock.Top); actorPanel.Children.Add(roster); actorPanel.Children.Add(actors);
         tabs.Items.Add(new TabItem { Header = "Characters", Content = actorPanel });
-        var skillGrid = Grid("Skills", skills); var gearGrid = Grid("Equipment", gear);
-        foreach (var grid in new[] { skillGrid, gearGrid }) grid.Columns.Add(new DataGridComboBoxColumn {
-            Header = "Character", ItemsSource = characters, DisplayMemberPath = "Character", SelectedValuePath = "Id", SelectedValueBinding = new Binding("ActorId"), Width = 190 });
-        TextColumn(skillGrid, "SkillId", "Skill / family ID"); TextColumn(skillGrid, "Level", "Level"); TextColumn(skillGrid, "Choices", "Choices (comma separated)", width: 2);
-        TextColumn(gearGrid, "Slot", "Equipment slot"); TextColumn(gearGrid, "Item", "Item / identifier", width: 3);
-        void EditableTab(string title, DataGrid grid, Action add)
-        {
-            var panel = new DockPanel(); var addButton = new Button { Content = "Add row", HorizontalAlignment = HorizontalAlignment.Left, Margin = new(6), Padding = new(12, 5, 12, 5) };
-            addButton.Click += (_, _) => add(); DockPanel.SetDock(addButton, Dock.Top); panel.Children.Add(addButton); panel.Children.Add(grid);
-            tabs.Items.Add(new TabItem { Header = title, Content = panel });
-        }
-        int FirstActor() => (actors.SelectedItem as CharacterEntry)?.Id ?? characters.FirstOrDefault()?.Id ?? 0;
-        EditableTab("Skill loadouts", skillGrid, () => skills.Add(new() { ActorId = FirstActor() }));
-        EditableTab("Equipment", gearGrid, () => gear.Add(new() { ActorId = FirstActor() }));
     }
     internal static Fight Apply(Fight original, IEnumerable<CharacterEntry> characterEntries, IEnumerable<SkillEntry> skillEntries, IEnumerable<GearEntry> gearEntries, bool explicitRoster)
     {
@@ -149,7 +135,7 @@ internal sealed class CharacterEditor : Window
             tabs.SelectedItem = tab; UpdateLayout();
             render(this, "test-artifacts/Details-" + tab.Header + ".png");
         }
-        if (grids[0].Items.Count != 10 || grids[1].Items.Count != 3 || grids[2].Items.Count != 1)
-            throw new InvalidOperationException("Character editor lost roster, skill or equipment rows.");
+        if (grids.Count != 1 || grids[0].Items.Count != 10 || tabs.Items.Count != 1)
+            throw new InvalidOperationException("Character editor must show just the party and character table.");
     }
 }

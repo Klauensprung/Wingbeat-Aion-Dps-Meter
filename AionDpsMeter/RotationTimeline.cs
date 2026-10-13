@@ -199,7 +199,7 @@ internal sealed record RotationRow(int ActorId, string Character, double Seconds
     internal RotationHit Hit { get; init; } = null!;
 }
 
-internal sealed class RotationView : StackPanel
+internal sealed class RotationView : Grid
 {
     readonly RotationPlot plot = new();
     static readonly double[] ZoomSeconds = [1, 2, 5, 10, 30, 60];
@@ -246,17 +246,21 @@ internal sealed class RotationView : StackPanel
         controls.Children.Add(Button("Later", () => Seek(windowStart + Span * .8)));
         controls.Children.Add(Button("Follow latest", Resume));
         hold = Button("Hold view", () => { if (paused || pinned) Resume(); else { paused = true; UpdateState(); } }); controls.Children.Add(hold);
-        Children.Add(controls); Children.Add(state);
+        RowDefinitions.Add(new() { Height = GridLength.Auto }); RowDefinitions.Add(new() { Height = GridLength.Auto });
+        RowDefinitions.Add(new() { Height = GridLength.Auto }); RowDefinitions.Add(new() { Height = new GridLength(1, GridUnitType.Star) });
+        Children.Add(controls); SetRow(state, 1); Children.Add(state);
         var inspect = new DockPanel(); DockPanel.SetDock(icon, Dock.Left); inspect.Children.Add(icon);
         var steps = new StackPanel { Orientation = Orientation.Horizontal, VerticalAlignment = VerticalAlignment.Top };
         previous = Button("◀", () => Step(-1)); previous.ToolTip = "Previous event (Left arrow)";
         next = Button("▶", () => Step(1)); next.ToolTip = "Next event (Right arrow)";
         steps.Children.Add(previous); steps.Children.Add(next); DockPanel.SetDock(steps, Dock.Right); inspect.Children.Add(steps);
         var labels = new StackPanel(); labels.Children.Add(title); labels.Children.Add(detail); inspect.Children.Add(labels);
-        Children.Add(new Border { Child = inspect, Background = UiTheme.Brush("#1C2939"), Padding = new(14), CornerRadius = new(5), MinHeight = 105, Margin = new(0, 5, 0, 4) });
-        Children.Add(new ScrollViewer { Content = plot, MaxHeight = 320, VerticalScrollBarVisibility = ScrollBarVisibility.Auto, HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled });
-        Children.Add(scrub);
-        Children.Add(tableSummary); table.MaxHeight = 320; table.Margin = new(0, 6, 0, 0); Children.Add(table);
+        var inspection = new Border { Child = inspect, Background = UiTheme.Brush("#1C2939"), Padding = new(12), CornerRadius = new(5), MinHeight = 78, Margin = new(0, 5, 0, 4) };
+        SetRow(inspection, 2); Children.Add(inspection);
+        var timelinePanel = new DockPanel(); DockPanel.SetDock(scrub, Dock.Bottom); timelinePanel.Children.Add(scrub); timelinePanel.Children.Add(SplitView.Scroll(plot));
+        var eventPanel = new DockPanel(); DockPanel.SetDock(tableSummary, Dock.Top); eventPanel.Children.Add(tableSummary);
+        table.MaxHeight = double.PositiveInfinity; table.MinHeight = 60; table.Margin = new(0, 6, 0, 0); eventPanel.Children.Add(table);
+        var split = new SplitView(timelinePanel, eventPanel, .55, 90, 100); SetRow(split, 3); Children.Add(split);
         plot.Hover += SetHover; plot.Inspect += InspectAt; plot.Step += Step; plot.Resume += Resume;
         plot.Zoom += ZoomAt;
         scrub.ValueChanged += (_, _) => { if (!adjusting) Seek(scrub.Value); };

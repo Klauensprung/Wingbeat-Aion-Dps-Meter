@@ -4,6 +4,21 @@ internal static class EncounterOverviewTests
 {
     internal static void Run(Action<bool, string> check)
     {
+        var empty = new Fight { LocalPlayer = 1 };
+        empty.Damage.Add(new() { ActorId = 2, TargetId = 1, Timestamp = 1000, Damage = 100 });
+        empty.Damage.Add(new() { ActorId = 1, TargetId = 2, Timestamp = 1000, Damage = 0 });
+        empty.Healing.Add(new() { ActorId = 1, TargetId = 1, Timestamp = 1000, Damage = 100, IsHeal = true });
+        check(!EncounterOverview.HasLocalDamage(empty), "Encounter history excludes incoming-only, zero-damage and healing-only fights");
+        var eligible = Enumerable.Range(0, 200).Select(i => {
+            var f = new Fight { LocalPlayer = 1, Created = DateTime.UnixEpoch.AddMinutes(i) };
+            f.Damage.Add(new() { ActorId = 1, TargetId = 2, Timestamp = 1000, Damage = 1 }); return f;
+        }).ToArray();
+        var history = EncounterOverview.History(empty, empty, eligible.Append(empty), "");
+        check(history.Length == 200 && history.First().Id == eligible.Last().Id && history.Last().Id == eligible.First().Id,
+            "Encounter history retains all 200 qualifying encounters newest first, with no ten-entry limit");
+        var unknownLocal = eligible[0].Copy(); unknownLocal.LocalPlayer = 0;
+        check(!EncounterOverview.HasLocalDamage(unknownLocal) && empty.Damage.Count == 2,
+            "History does not guess an unknown local player or delete stored fight events");
         var fight = new Fight { LocalPlayer = 1 };
         fight.Actors[1] = new(1, "Example", true, true, 0, "Cleric", 1);
         fight.Actors[2] = new(2, "Example", true, true, 0, "Gladiator", 2);

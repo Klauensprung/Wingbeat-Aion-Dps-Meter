@@ -82,12 +82,17 @@ public sealed class OverlayWindow : Window
         meter.ActorSelected += id => actorSelected?.Invoke(id);
         ownMeter.ActorSelected += id => actorSelected?.Invoke(id);
         backAttackTimer.Tick += (_, _) => RefreshBackAttackBorder();
-        Loaded += (_, _) => { if (!closed) backAttackTimer.Start(); };
+        IsVisibleChanged += (_, _) => { if (IsVisible && !closed) { RefreshBackAttackBorder(); backAttackTimer.Start(); } else backAttackTimer.Stop(); };
+        OverlayPlacement.Track(this, SavePlacement);
         Closed += (_, _) => {
             closed = true; backAttackTimer.Stop();
-            preferences.OverlayWidth = Width; preferences.OverlayHeight = Height;
-            preferences.OverlayLeft = Left; preferences.OverlayTop = Top; saveSettings?.Invoke();
+            SavePlacement();
         };
+    }
+    void SavePlacement()
+    {
+        preferences.OverlayWidth = Width; preferences.OverlayHeight = Height;
+        preferences.OverlayLeft = Left; preferences.OverlayTop = Top; saveSettings?.Invoke();
     }
     static Button SmallButton(string text, string tip, Action action)
     {

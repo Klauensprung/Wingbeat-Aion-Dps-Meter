@@ -7,7 +7,7 @@ namespace AionDpsMeter.Local;
 
 internal sealed class EncounterView : Grid
 {
-    sealed class ClassIconConverter : IValueConverter
+    internal sealed class ClassIconConverter : IValueConverter
     {
         readonly Dictionary<string, DrawingImage> images = new(StringComparer.OrdinalIgnoreCase);
         public object? Convert(object value, Type targetType, object parameter, System.Globalization.CultureInfo culture)
@@ -24,6 +24,7 @@ internal sealed class EncounterView : Grid
     }
     sealed record Entry(string Id, string Encounter, string Detail);
     readonly LiveTable encounters = Table(), participants = Table(), skills = Table();
+    readonly TextBlock historyCount = new() { FontSize = 11, Foreground = UiTheme.Brush("#93A2B8"), Margin = new(0, 0, 0, 10) };
     readonly TextBlock heading = new() { FontSize = 18, FontWeight = FontWeights.SemiBold, TextTrimming = TextTrimming.CharacterEllipsis };
     readonly TextBlock subtitle = new() { FontSize = 11, Margin = new(0, 5, 0, 10), Foreground = UiTheme.Brush("#93A2B8") };
     readonly TextBlock skillHeading = new() { Text = "Skill damage - all participants", FontSize = 14, FontWeight = FontWeights.SemiBold, VerticalAlignment = VerticalAlignment.Center };
@@ -39,26 +40,27 @@ internal sealed class EncounterView : Grid
     internal EncounterView(Func<int, string> skillName, SkillIcons icons)
     {
         this.skillName = skillName;
-        Height = 530; Margin = new(8, 0, 8, 8);
-        ColumnDefinitions.Add(new() { Width = new GridLength(225) }); ColumnDefinitions.Add(new() { Width = new GridLength(1, GridUnitType.Star) });
+        Margin = new(8, 0, 8, 8);
+        ColumnDefinitions.Add(new() { Width = new GridLength(1, GridUnitType.Star), MinWidth = 170, MaxWidth = 300 }); ColumnDefinitions.Add(new() { Width = new GridLength(3, GridUnitType.Star) });
         var browser = new DockPanel { Margin = new(0, 0, 14, 0) };
         var listTitle = new TextBlock { Text = "Encounters", FontSize = 15, FontWeight = FontWeights.SemiBold, Margin = new(0, 0, 0, 4) };
         DockPanel.SetDock(listTitle, Dock.Top); browser.Children.Add(listTitle);
-        var listHint = new TextBlock { Text = "Current first, then newest saved", FontSize = 11, Foreground = UiTheme.Brush("#93A2B8"), Margin = new(0, 0, 0, 10) };
-        DockPanel.SetDock(listHint, Dock.Top); browser.Children.Add(listHint);
-        encounters.HeadersVisibility = DataGridHeadersVisibility.None; encounters.RowHeight = 62;
-        var item = new FrameworkElementFactory(typeof(StackPanel)); item.SetValue(MarginProperty, new Thickness(7, 5, 7, 5));
+        historyCount.ToolTip = "All encounters with damage dealt by your character. Current first, then newest saved. Scroll for older encounters.";
+        DockPanel.SetDock(historyCount, Dock.Top); browser.Children.Add(historyCount);
+        encounters.HeadersVisibility = DataGridHeadersVisibility.None; encounters.RowHeight = 46;
+        ScrollViewer.SetVerticalScrollBarVisibility(encounters, ScrollBarVisibility.Visible);
+        ScrollViewer.SetHorizontalScrollBarVisibility(encounters, ScrollBarVisibility.Disabled);
+        var item = new FrameworkElementFactory(typeof(StackPanel)); item.SetValue(MarginProperty, new Thickness(7, 2, 7, 2));
         var name = new FrameworkElementFactory(typeof(TextBlock)); name.SetBinding(TextBlock.TextProperty, new Binding("Encounter")); name.SetBinding(ToolTipProperty, new Binding("Encounter"));
         name.SetValue(TextBlock.FontWeightProperty, FontWeights.SemiBold); name.SetValue(TextBlock.TextTrimmingProperty, TextTrimming.CharacterEllipsis); item.AppendChild(name);
         var detail = new FrameworkElementFactory(typeof(TextBlock)); detail.SetBinding(TextBlock.TextProperty, new Binding("Detail")); detail.SetValue(TextBlock.FontSizeProperty, 10d);
-        detail.SetValue(TextBlock.ForegroundProperty, UiTheme.Brush("#93A2B8")); detail.SetValue(MarginProperty, new Thickness(0, 5, 0, 0)); item.AppendChild(detail);
+        detail.SetValue(TextBlock.ForegroundProperty, UiTheme.Brush("#93A2B8")); detail.SetValue(MarginProperty, new Thickness(0, 2, 0, 0)); item.AppendChild(detail);
         encounters.Columns.Add(new DataGridTemplateColumn { CellTemplate = new DataTemplate { VisualTree = item }, Width = new DataGridLength(1, DataGridLengthUnitType.Star) });
         browser.Children.Add(encounters); Children.Add(browser);
         var body = new Grid(); SetColumn(body, 1); Children.Add(body);
-        body.RowDefinitions.Add(new() { Height = GridLength.Auto }); body.RowDefinitions.Add(new() { Height = new GridLength(220) });
         body.RowDefinitions.Add(new() { Height = GridLength.Auto }); body.RowDefinitions.Add(new() { Height = new GridLength(1, GridUnitType.Star) });
         var title = new StackPanel(); title.Children.Add(heading); title.Children.Add(subtitle); title.Children.Add(empty); body.Children.Add(title);
-        var participantPanel = new DockPanel(); SetRow(participantPanel, 1); body.Children.Add(participantPanel);
+        var participantPanel = new DockPanel();
         var participantTitle = new TextBlock { Text = "Players - highest DPS first", FontSize = 14, FontWeight = FontWeights.SemiBold, Margin = new(0, 0, 0, 6) };
         DockPanel.SetDock(participantTitle, Dock.Top); participantPanel.Children.Add(participantTitle); participantPanel.Children.Add(participants);
         var player = new FrameworkElementFactory(typeof(DockPanel));
@@ -80,11 +82,12 @@ internal sealed class EncounterView : Grid
         TextColumn(participants, "Class", "Class", 90);
         TextColumn(participants, "Damage", "Damage", 85, "N0"); TextColumn(participants, "DPS", "DPS", 75, "N1");
         TextColumn(participants, "Healing", "Healing", 85, "N0"); TextColumn(participants, "HPS", "HPS", 75, "N1"); TextColumn(participants, "Deaths", "Deaths", 70, "N0");
-        var skillTitle = new DockPanel { Margin = new(0, 14, 0, 7) }; SetRow(skillTitle, 2); body.Children.Add(skillTitle);
+        var skillTitle = new DockPanel { Margin = new(0, 4, 0, 7) };
         var all = new Button { Content = "All participants", Padding = new(9, 4, 9, 4), Margin = new(8, 0, 0, 0) };
         DockPanel.SetDock(all, Dock.Right); skillTitle.Children.Add(all); skillTitle.Children.Add(skillHeading);
         all.Click += (_, _) => { participantId = null; updating = true; participants.SelectedItem = null; updating = false; RefreshSkills(); };
-        SetRow(skills, 3); body.Children.Add(skills);
+        var skillPanel = new DockPanel(); DockPanel.SetDock(skillTitle, Dock.Top); skillPanel.Children.Add(skillTitle); skillPanel.Children.Add(skills);
+        var split = new SplitView(participantPanel, skillPanel, .48, 100, 100); SetRow(split, 1); body.Children.Add(split);
         TextColumn(skills, "Participant", "Participant", 130);
         var skill = new FrameworkElementFactory(typeof(DockPanel));
         var image = new FrameworkElementFactory(typeof(Image)); image.SetValue(WidthProperty, 24d); image.SetValue(HeightProperty, 24d); image.SetValue(MarginProperty, new Thickness(0, 0, 7, 0));
@@ -115,8 +118,9 @@ internal sealed class EncounterView : Grid
             if (selected?.Id != current.Id) participantId = null;
             selected = current; liveId = live.Id; search = searchText;
             choices = new[] { live, current }.Concat(archive).DistinctBy(f => f.Id).ToDictionary(f => f.Id);
-            var entries = choices.Values.Where(f => f.Id == current.Id || f.Id == live.Id || string.IsNullOrWhiteSpace(search) || EncounterOverview.Title(f).Contains(search, StringComparison.OrdinalIgnoreCase) || f.Actors.Values.Any(a => a.Name.Contains(search, StringComparison.OrdinalIgnoreCase)))
-                .OrderByDescending(f => f.Id == live.Id).ThenByDescending(f => f.Created).ThenBy(f => f.Id)
+            var history = EncounterOverview.History(current, live, archive, search);
+            historyCount.Text = $"{history.Length} {(history.Length == 1 ? "encounter" : "encounters")} - scroll for older";
+            var entries = history
                 .Select(f => new Entry(f.Id, EncounterOverview.Title(f), (f.Id == live.Id ? capturing ? "LIVE" : "CURRENT" : f.Demo ? "DEMO" : "SAVED") + "  |  " + f.Created.ToLocalTime().ToString("dd MMM HH:mm") + "  |  " + MeterPresentation.Duration(f))).ToArray();
             encounters.SetRows(entries); encounters.SelectedItem = encounters.Items.Cast<Entry>().FirstOrDefault(e => e.Id == current.Id);
             heading.Text = EncounterOverview.Title(current); heading.ToolTip = heading.Text;

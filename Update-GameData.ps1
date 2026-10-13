@@ -1,5 +1,5 @@
 param(
-    [Parameter(Mandatory = $true)][string]$LocalData
+    [string]$LocalData = (Join-Path ([Environment]::GetFolderPath('LocalApplicationData')) 'Wingbeat')
 )
 $ErrorActionPreference = 'Stop'
 # Explicit, one-time download. The meter itself reads only these local files.

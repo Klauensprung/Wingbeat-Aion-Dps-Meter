@@ -41,7 +41,13 @@ internal static class ReadingTests
         var store = new FightStore(Path.Combine(temp, "readings")); store.Save(saved);
         check(store.Load(Path.Combine(store.Root, saved.Id + ".json")).LocalStats!.Values[19] == 1234 && JsonSerializer.Deserialize<Fight>("{}")!.LocalStats == null,
             "Stat snapshots persist and older saved fights remain readable");
+        byte[] cast = Frame(0x02, 0x38, [..Var(101), 0, ..BitConverter.GetBytes(17060340u), 43, 2, ..new byte[8]]);
+        var castResult = new EuGameDecoder().Decode(Payload(cast)).Events.Single().Network!;
+        check(castResult.Kind == "skill-use" && castResult.Fields.GetProperty("ActorId").GetInt32() == 101 && castResult.Fields.GetProperty("SkillCode").GetInt32() == 17060340 &&
+            new EuGameDecoder().Decode(Payload(Frame(0x02, 0x38, [..Var(101), 0, ..BitConverter.GetBytes(17060340u), 43]))).Events.Count == 0,
+            "EU skill-use prefixes retain caster, variant and sequence and reject truncated records");
         byte[] cooldown = Frame(0x47, 0x38, [2, ..BitConverter.GetBytes(17100000u), ..Var(3500), ..BitConverter.GetBytes(17010000u), 0]);
+        CheckCooldownTiming(check, temp, cast, cooldown);
         check(new EuGameDecoder().Decode(Payload(cooldown)).Events.Count == 2 && new EuGameDecoder().Decode(Payload(Frame(0x47, 0x38, [2, ..BitConverter.GetBytes(17100000u), 1]))).Events.Count == 0,
             "Cooldown lists retain milliseconds and zero resets; truncated batches publish nothing");
         var cdEvents = new EuGameDecoder().Decode(Payload(cooldown)).Events.Select(e => e.Network!).ToList();
@@ -64,5 +70,39 @@ internal static class ReadingTests
         var unknown = new CombatEngine(); unknown.Apply(new("character-link", Link: new(50, 9001)));
         unknown.Apply(new("party-profiles", Profiles: [new("Member", 2301, 33000, 0) { CharacterId = 9001 }, new("Other", 2302, 44000, 0) { CharacterId = 9001 }]));
         check(unknown.Fight.Actors[50].Cp == 0, "Ambiguous global links never choose a CP from another server");
+    }
+
+    static void CheckCooldownTiming(Action<bool, string> check, string temp, byte[] cast, byte[] cooldown)
+    {
+        var names = new SkillNames(Path.Combine(temp, "no-local-timing-overrides.json"), true);
+        var tracker = new CooldownTracker(); var engine = new CombatEngine(new EuGameDecoder());
+        engine.Apply(new("local-player", Actor: new(101, "Timing fixture", true, true, 0, "Cleric", 1)));
+        engine.Process(Payload(cast) with { TimestampMs = 10000 });
+        engine.Process(Payload(cooldown) with { TimestampMs = 10000 });
+        tracker.Observe(engine.Snapshot(), 12000, 50000);
+        check(tracker.Reading(17060000, 50000, names, null) == (43d, true) && tracker.Remaining(17100000, 50000, names) == 1.5,
+            "Decoder and engine retain capture time: two seconds of processing delay shorten both cast and reported cooldowns");
+        tracker.Observe(engine.Snapshot(), 14000, 52000);
+        check(tracker.Remaining(17100000, 52000, names) == 0 && tracker.Reading(17060000, 52000, names, null) == (41d, true),
+            "Already expired packet cooldowns show ready without adding UI refresh delay");
+        var tcp = new TcpAssembler(); var decoder = new EuGameDecoder();
+        byte[] gap = Frame(0x47, 0x38, [0]);
+        tcp.PushTimed(100, [], 9000, 49000).ToArray();
+        check(!tcp.PushTimed((uint)(100 + gap.Length), cooldown, 10000, 50000).Any() && tcp.HasPending,
+            "Out-of-order cooldown packet waits for its missing TCP prefix");
+        tcp.PushTimed((uint)(100 + gap.Length), cooldown, 11000, 51000).ToArray();
+        var chunks = tcp.PushTimed(100, gap, 12000, 52000).ToArray();
+        var fight = new Fight();
+        foreach (var chunk in chunks)
+            fight.Network.AddRange(decoder.Decode(Payload(chunk.Data) with { TimestampMs = chunk.TimestampMs, CounterTimestampMs = chunk.CounterTimestampMs }).Events.Select(e => e.Network!));
+        tracker.Reset(); tracker.Observe(fight, 12000, 52000);
+        check(chunks.Length == 2 && chunks[1].TimestampMs == 10000 && chunks[1].CounterTimestampMs == 50000 &&
+            tracker.Remaining(17100000, 52000, names) == 1.5 && !tcp.HasPending,
+            "Reassembly and retransmissions preserve original packet time instead of extending cooldowns across a TCP gap");
+        var wrap = new TcpAssembler(); wrap.PushTimed(uint.MaxValue - 1, [1, 2], 100, 1000).ToArray();
+        wrap.PushTimed(2, [5, 6], 200, 1100).ToArray();
+        var wrapped = wrap.PushTimed(0, [3, 4], 300, 1200).ToArray();
+        check(wrapped.SelectMany(c => c.Data).SequenceEqual(new byte[] { 3, 4, 5, 6 }) && wrapped[1].TimestampMs == 200,
+            "Timed TCP reassembly retains ordering and capture times across sequence wraparound");
     }
 }

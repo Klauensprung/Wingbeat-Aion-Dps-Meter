@@ -106,8 +106,9 @@ public sealed class LocalCapture : IDisposable
             if (streams.Count >= 256) throw new InvalidOperationException("Too many TCP streams; narrow the capture filter and restart.");
             streams[key] = stream = new TcpAssembler();
         }
-        foreach (var bytes in stream.Push(tcp.SequenceNumber, tcp.PayloadData))
-            consume(new CapturedPayload(tcp.SourcePort, tcp.DestinationPort, bytes, device.Name) { Connection = key, TimestampMs = new DateTimeOffset(raw.Timeval.Date.ToUniversalTime()).ToUnixTimeMilliseconds(), CounterTimestampMs = counterTimestampMs });
+        long capturedAt = new DateTimeOffset(raw.Timeval.Date.ToUniversalTime()).ToUnixTimeMilliseconds();
+        foreach (var chunk in stream.PushTimed(tcp.SequenceNumber, tcp.PayloadData, capturedAt, counterTimestampMs))
+            consume(new CapturedPayload(tcp.SourcePort, tcp.DestinationPort, chunk.Data, device.Name) { Connection = key, TimestampMs = chunk.TimestampMs, CounterTimestampMs = chunk.CounterTimestampMs });
     }
     public void Dispose()
     {
@@ -122,22 +123,26 @@ public sealed class LocalCapture : IDisposable
 
 public sealed class TcpAssembler
 {
+    internal readonly record struct Chunk(byte[] Data, long? TimestampMs, long? CounterTimestampMs);
     uint? next;
-    readonly Dictionary<uint, byte[]> pending = new();
+    readonly Dictionary<uint, Chunk> pending = new();
     public bool HasPending => pending.Count != 0;
-    public IEnumerable<byte[]> Push(uint seq, byte[] data)
+    public IEnumerable<byte[]> Push(uint seq, byte[] data) => PushTimed(seq, data, null, null).Select(chunk => chunk.Data);
+    internal IEnumerable<Chunk> PushTimed(uint seq, byte[] data, long? timestampMs, long? counterTimestampMs = null)
     {
         next ??= seq;
         if (unchecked((int)(seq - next.Value)) > 0)
         {
-            if (pending.Count >= 128) throw new InvalidOperationException("TCP gap exceeded reassembly limit; restart capture.");
-            pending[seq] = data;
+            if (!pending.ContainsKey(seq) && pending.Count >= 128) throw new InvalidOperationException("TCP gap exceeded reassembly limit; restart capture.");
+            // A duplicate retransmission must not make already captured bytes newer.
+            if (!pending.TryGetValue(seq, out var previous) || data.Length > previous.Data.Length)
+                pending[seq] = new(data, timestampMs, counterTimestampMs);
             yield break;
         }
         int skip = unchecked((int)(next.Value - seq));
         if (skip < data.Length)
         {
-            var bytes = data[skip..]; next = unchecked(next.Value + (uint)bytes.Length); yield return bytes;
+            var bytes = data[skip..]; next = unchecked(next.Value + (uint)bytes.Length); yield return new(bytes, timestampMs, counterTimestampMs);
         }
         while (pending.Count > 0)
         {
@@ -147,8 +152,11 @@ public sealed class TcpAssembler
             {
                 pending.Remove(entry.Key);
                 skip = unchecked((int)(next.Value - entry.Key));
-                if (skip >= entry.Value.Length) continue;
-                var bytes = entry.Value[skip..]; next = unchecked(next.Value + (uint)bytes.Length); yield return bytes;
+                if (skip >= entry.Value.Data.Length) continue;
+                var bytes = entry.Value.Data[skip..]; next = unchecked(next.Value + (uint)bytes.Length);
+                // Keep the packet's capture clock across a gap, not the time of
+                // the packet that finally makes these buffered bytes readable.
+                yield return entry.Value with { Data = bytes };
             }
         }
     }

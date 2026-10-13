@@ -93,6 +93,18 @@ public sealed class EuGameDecoder(int serverPort = 13328, IReadOnlySet<int>? hea
                         Emit(staged, "character-link", time, hex, new { EntityId = entity, CharacterId = character });
                         break;
                     }
+                    case 0x0238:
+                    {
+                        // Observed EU skill-use prefix. The target/position trailer is
+                        // intentionally opaque; this is not a cooldown-duration report.
+                        int actor = Positive(reader.Var());
+                        if (reader.Byte() != 0) throw new InvalidDataException("Unknown skill-use prefix.");
+                        uint skill = reader.U32(); int sequence = reader.Byte(), mode = reader.Byte();
+                        if (skill is < 11000000 or >= 20000000 || reader.Remaining < 5 || mode is not (0 or 2))
+                            throw new InvalidDataException("Unknown skill-use layout.");
+                        Emit(staged, "skill-use", time, hex, new { ActorId = actor, SkillCode = (int)skill, Sequence = sequence });
+                        break;
+                    }
                     case 0x4738:
                     {
                         int count = reader.Byte();

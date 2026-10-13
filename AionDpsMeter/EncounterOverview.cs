@@ -9,6 +9,15 @@ public sealed record EncounterParticipant(int Id, string Participant, string Cla
 public sealed record EncounterSkill(int ActorId, string Participant, string Skill, int SkillCode, int Hits, long Damage, double DPS, double DamageShare, double CritPercent);
 internal static class EncounterOverview
 {
+    internal static bool HasLocalDamage(Fight fight) => fight.LocalPlayer > 0 &&
+        fight.Damage.Any(h => h.ActorId == fight.LocalPlayer && h.Damage > 0 && !h.IsHeal);
+
+    internal static Fight[] History(Fight current, Fight live, IEnumerable<Fight> archive, string search) =>
+        new[] { live, current }.Concat(archive).DistinctBy(f => f.Id).Where(HasLocalDamage)
+            .Where(f => f.Id == current.Id || f.Id == live.Id || string.IsNullOrWhiteSpace(search) ||
+                Title(f).Contains(search, StringComparison.OrdinalIgnoreCase) || f.Actors.Values.Any(a => a.Name.Contains(search, StringComparison.OrdinalIgnoreCase)))
+            .OrderByDescending(f => f.Id == live.Id).ThenByDescending(f => f.Created).ThenBy(f => f.Id).ToArray();
+
     internal static string Title(Fight fight)
     {
         string bosses = BossAnalysis.Summary(fight);

@@ -11,7 +11,7 @@ public readonly record struct SkillName(int Code, int? MatchedCode, string Name,
 public sealed class SkillNames
 {
     readonly FrozenDictionary<int, string> names;
-    public static string LocalPath => Path.Combine(AppContext.BaseDirectory, "local-data", "skill-names.json");
+    public static string LocalPath => AppDataPaths.FilePath("skill-names.json");
     public int Count => names.Count;
     public string? LoadError { get; }
 
@@ -87,6 +87,10 @@ public sealed class SkillNames
             return new(code, family, name, "family");
         return new(code, null, $"Unknown skill {code}", "unknown");
     }
+
+    internal IEnumerable<int> SearchCodes(string query) => names.Where(p => p.Key is >= 11000000 and < 20000000 &&
+        (query.Length == 0 || p.Value.Contains(query, StringComparison.OrdinalIgnoreCase) || p.Key.ToString().Contains(query)))
+        .OrderBy(p => p.Value).ThenBy(p => p.Key).Select(p => p.Key);
 
     public string GetSkillName(int code) => Resolve(code).Name;
 

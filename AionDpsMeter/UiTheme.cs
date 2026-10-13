@@ -28,9 +28,10 @@ internal static class UiTheme
             <Setter Property="Foreground" Value="{DynamicResource Text}"/><Setter Property="Background" Value="{DynamicResource Raised}"/>
             <Setter Property="BorderBrush" Value="{DynamicResource Edge}"/><Setter Property="Cursor" Value="Hand"/>
             <Setter Property="Padding" Value="12,8"/><Setter Property="FontSize" Value="12"/>
+            <Setter Property="HorizontalContentAlignment" Value="Center"/>
             <Setter Property="Template"><Setter.Value><ControlTemplate TargetType="Button">
               <Border x:Name="Surface" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="1" CornerRadius="5" Padding="{TemplateBinding Padding}">
-                <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                <ContentPresenter HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}" VerticalAlignment="Center"/>
               </Border><ControlTemplate.Triggers>
                 <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="Surface" Property="BorderBrush" Value="{DynamicResource Accent}"/></Trigger>
                 <Trigger Property="IsKeyboardFocused" Value="True"><Setter TargetName="Surface" Property="BorderBrush" Value="{DynamicResource Accent}"/></Trigger>
@@ -59,8 +60,8 @@ internal static class UiTheme
           <Style xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" TargetType="Expander">
             <Setter Property="Foreground" Value="{DynamicResource Text}"/>
             <Setter Property="Template"><Setter.Value><ControlTemplate TargetType="Expander">
-              <StackPanel>
-                <ToggleButton Content="{TemplateBinding Header}" Foreground="{TemplateBinding Foreground}" HorizontalContentAlignment="Left"
+              <DockPanel>
+                <ToggleButton DockPanel.Dock="Top" Content="{TemplateBinding Header}" Foreground="{TemplateBinding Foreground}" HorizontalContentAlignment="Left"
                               IsChecked="{Binding IsExpanded, RelativeSource={RelativeSource TemplatedParent}, Mode=TwoWay}">
                   <ToggleButton.Template><ControlTemplate TargetType="ToggleButton">
                     <Border x:Name="Header" BorderBrush="Transparent" BorderThickness="1" CornerRadius="4" Padding="3,5">
@@ -75,7 +76,7 @@ internal static class UiTheme
                   </ControlTemplate></ToggleButton.Template>
                 </ToggleButton>
                 <ContentPresenter x:Name="Body" ContentSource="Content" Margin="0,5,0,0" Visibility="Collapsed"/>
-              </StackPanel><ControlTemplate.Triggers>
+              </DockPanel><ControlTemplate.Triggers>
                 <Trigger Property="IsExpanded" Value="True"><Setter TargetName="Body" Property="Visibility" Value="Visible"/></Trigger>
                 <Trigger Property="IsEnabled" Value="False"><Setter Property="Opacity" Value="0.5"/></Trigger>
               </ControlTemplate.Triggers>
@@ -157,7 +158,10 @@ internal static class UiTheme
                     </ControlTemplate.Triggers>
                   </ControlTemplate></ToggleButton.Template>
                 </ToggleButton>
-                <ContentPresenter Margin="9,7,30,7" Content="{TemplateBinding SelectionBoxItem}" ContentTemplate="{TemplateBinding SelectionBoxItemTemplate}" ContentTemplateSelector="{TemplateBinding ItemTemplateSelector}" IsHitTestVisible="False" VerticalAlignment="Center"/>
+                <ContentPresenter x:Name="Selection" Margin="9,7,30,7" Content="{TemplateBinding SelectionBoxItem}" ContentTemplate="{TemplateBinding SelectionBoxItemTemplate}" ContentTemplateSelector="{TemplateBinding ItemTemplateSelector}" IsHitTestVisible="False" VerticalAlignment="Center"/>
+                <TextBox x:Name="PART_EditableTextBox" Visibility="Hidden" Style="{x:Null}" Background="Transparent" Foreground="{TemplateBinding Foreground}" CaretBrush="{DynamicResource Accent}" Margin="9,7,30,7" VerticalAlignment="Center" IsReadOnly="{TemplateBinding IsReadOnly}">
+                  <TextBox.Template><ControlTemplate TargetType="TextBox"><ScrollViewer x:Name="PART_ContentHost" Background="Transparent"/></ControlTemplate></TextBox.Template>
+                </TextBox>
                 <Popup x:Name="PART_Popup" Placement="Bottom" IsOpen="{TemplateBinding IsDropDownOpen}" AllowsTransparency="True" Focusable="False" PopupAnimation="Fade">
                   <Border MinWidth="{TemplateBinding ActualWidth}" MaxHeight="{TemplateBinding MaxDropDownHeight}" Background="{DynamicResource Panel}" BorderBrush="{DynamicResource Edge}" BorderThickness="1" CornerRadius="4" Padding="4" Margin="0,3,0,0">
                     <ScrollViewer CanContentScroll="True"><ItemsPresenter KeyboardNavigation.DirectionalNavigation="Contained"/></ScrollViewer>
@@ -165,6 +169,7 @@ internal static class UiTheme
                 </Popup>
               </Grid><ControlTemplate.Triggers>
                 <Trigger Property="IsKeyboardFocusWithin" Value="True"><Setter TargetName="Toggle" Property="BorderBrush" Value="{DynamicResource Accent}"/></Trigger>
+                <Trigger Property="IsEditable" Value="True"><Setter TargetName="Selection" Property="Visibility" Value="Hidden"/><Setter TargetName="PART_EditableTextBox" Property="Visibility" Value="Visible"/></Trigger>
                 <Trigger Property="IsEnabled" Value="False"><Setter Property="Opacity" Value="0.5"/></Trigger>
               </ControlTemplate.Triggers>
             </ControlTemplate></Setter.Value></Setter>
@@ -199,12 +204,13 @@ internal static class UiTheme
             <Setter Property="Template"><Setter.Value><ControlTemplate TargetType="MenuItem">
               <Border Background="{TemplateBinding Background}" CornerRadius="3" Padding="8,8">
                 <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="22"/><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                  <ContentPresenter x:Name="Glyph" ContentSource="Icon" HorizontalAlignment="Left" VerticalAlignment="Center"/>
                   <TextBlock x:Name="Check" Text="✓" Foreground="{DynamicResource Accent}" Visibility="Hidden"/>
                   <ContentPresenter Grid.Column="1" ContentSource="Header" RecognizesAccessKey="True" Margin="0,0,12,0"/>
                   <TextBlock Grid.Column="2" Text="{TemplateBinding InputGestureText}" Foreground="{DynamicResource Muted}"/>
                 </Grid>
               </Border><ControlTemplate.Triggers>
-                <Trigger Property="IsChecked" Value="True"><Setter TargetName="Check" Property="Visibility" Value="Visible"/></Trigger>
+                <Trigger Property="IsChecked" Value="True"><Setter TargetName="Check" Property="Visibility" Value="Visible"/><Setter TargetName="Glyph" Property="Visibility" Value="Hidden"/></Trigger>
                 <Trigger Property="IsHighlighted" Value="True"><Setter Property="Background" Value="#33465C"/></Trigger>
                 <Trigger Property="IsEnabled" Value="False"><Setter Property="Opacity" Value="0.4"/></Trigger>
               </ControlTemplate.Triggers>
@@ -275,5 +281,10 @@ internal static class UiTheme
             <Style.Triggers><Trigger Property="IsKeyboardFocusWithin" Value="True"><Setter Property="BorderBrush" Value="{DynamicResource Accent}"/></Trigger></Style.Triggers>
           </Style>
           """);
+        // Recreate the derived style with each theme, after the shared cell template exists.
+        var trendCell = new Style(typeof(DataGridCell), (Style)resources[typeof(DataGridCell)]);
+        var trendSelected = new Trigger { Property = DataGridCell.IsSelectedProperty, Value = true };
+        trendSelected.Setters.Add(new Setter(Control.BackgroundProperty, Brush("#29495A")));
+        trendCell.Triggers.Add(trendSelected); resources["TrendCell"] = trendCell;
     }
 }

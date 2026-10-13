@@ -8,7 +8,7 @@ namespace AionDpsMeter.Local;
 public sealed class NpcNames
 {
     readonly FrozenDictionary<int, string> names;
-    public static string LocalPath => Path.Combine(AppContext.BaseDirectory, "local-data", "npc-names.json");
+    public static string LocalPath => AppDataPaths.FilePath("npc-names.json");
     public static NpcNames Default { get; } = new();
     public int Count => names.Count;
     public string? LoadError { get; }

@@ -16,7 +16,7 @@ public static class Benchmarks
     static bool Known(string job) => !string.IsNullOrWhiteSpace(job) && job is not ("Unknown" or "None" or "0");
     public static TrendRow[] Trends(IEnumerable<Fight> fights) => fights.Where(f => !f.Demo && f.HasEvents).DistinctBy(f => f.Id)
         .SelectMany(f => Analysis.Totals(f).Where(r => (r.Damage > 0 || r.Healing > 0) && f.Actors.GetValueOrDefault(r.Id)?.Player == true)
-        .Select(r => new TrendRow(f.Created.ToLocalTime(), Encounter(f), r.Character, f.Actors[r.Id].Job, f.Actors[r.Id].Server,
+        .Select(r => new TrendRow(f.Created.ToLocalTime(), EncounterOverview.Title(f).Trim(), r.Character, f.Actors[r.Id].Job, f.Actors[r.Id].Server,
             r.CP, Math.Round(f.Seconds, 1), r.DPS, r.HPS, f.Id))).OrderBy(r => r.Date).ToArray();
     public static string Missing(Fight fight, TotalRow actor)
     {

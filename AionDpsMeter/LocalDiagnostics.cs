@@ -7,7 +7,7 @@ namespace AionDpsMeter.Local;
 public static class LocalLog
 {
     static readonly object Gate = new();
-    public static string DirectoryPath => Path.Combine(AppContext.BaseDirectory, "local-data", "logs");
+    public static string DirectoryPath => AppDataPaths.FilePath("logs");
     public static void Write(string message)
     {
         lock (Gate)

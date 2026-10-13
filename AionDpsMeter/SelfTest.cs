@@ -160,6 +160,10 @@ public static class SelfTest
             WireTests.Run(Check, temp);
             TelemetryTests.Run(Check, temp);
             PlayerProfileCacheTests.Run(Check, temp);
+            AppDataPathsTests.Run(Check, temp);
+            CooldownTrackerTests.Run(Check, temp);
+            StartupTests.Run(Check, temp);
+            GameAdapterTests.Run(Check);
             DisplayTests.Run(Check, temp);
             AssetTests.Run(Check, temp);
             ReadingTests.Run(Check, temp);
@@ -168,8 +172,10 @@ public static class SelfTest
             IngestionTests.Run(Check, temp);
             EncounterTests.Run(Check, temp);
             BossCatalogueTests.Run(Check);
+            BossEncounterTests.Run(Check);
             EncounterOverviewTests.Run(Check);
             FeatureTests.Run(Check, temp);
+            EncounterTrendTests.Run(Check);
             RotationTests.Run(Check);
             File.WriteAllLines(Path.Combine(AppContext.BaseDirectory, "self-test-results.txt"), results.Append($"Passed {results.Count} checks."));
             return 0;
