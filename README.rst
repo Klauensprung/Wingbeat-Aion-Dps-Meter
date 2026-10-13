@@ -1,12 +1,34 @@
 Wingbeat ♥ Aion 2 DPS Meter
 ============================
 
-Free, local Aion 2 DPS meter for Windows. No account or subscription.
+**Built for privacy: zero outbound requests.**
+
+No logins, automatic update checks, runtime downloads, or telemetry.
+Your combat data stays on your PC.
+
+Free Aion 2 DPS meter for Windows. No account or subscription.
 
 .. image:: docs/images/ui-overview.svg
    :alt: Current Wingbeat encounter screen beside the DPS and cooldown overlays, using demo data.
    :width: 100%
    :target: docs/images/ui-overview.svg
+
+Local by design
+---------------
+
+A packet-capture tool should earn your trust. Wingbeat processes captured traffic
+on your PC, calculates your combat statistics locally, and keeps settings,
+player profiles and encounter history in local files.
+
+* **No live API calls or phone-home requests.** The meter does not send captured
+  traffic or combat statistics to an external service.
+* **No cloud dependency.** Skill names, icons and NPC data are bundled, so the
+  meter needs no external service to analyse your fights. Aion still needs its
+  own game connection.
+* **Passive capture.** Wingbeat reads packets through Npcap; it does not inject
+  packets or modify the game's memory.
+* **Source you can inspect.** Review the capture, decoding and storage code here,
+  or build the application yourself.
 
 Features
 --------
@@ -83,4 +105,4 @@ and survive application updates. Use **More > Open data folder** to access them.
 
 The standalone ZIP is written to ``releases/``. Npcap is installed separately.
 
-`Third-party notices <THIRD-PARTY-NOTICES.txt>`_ · `Licenses <licenses/>`_
+`Third-party notices <THIRD-PARTY-NOTICES.txt>`_ · `Third-party licenses <licenses/>`_
