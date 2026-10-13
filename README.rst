@@ -1,12 +1,15 @@
 Wingbeat ♥ Aion 2 DPS Meter
 ============================
 
+Wingbeat is a free AION 2 DPS meter for Windows with real-time damage and healing
+tracking, skill cooldown overlays, and combat statistics.
+
 **Built for privacy: zero outbound requests.**
 
 No logins, automatic update checks, runtime downloads, or telemetry.
 Your combat data stays on your PC.
 
-Free Aion 2 DPS meter for Windows. No account or subscription.
+No account or subscription.
 
 .. image:: docs/images/ui-overview.svg
    :alt: Current Wingbeat encounter screen beside the DPS and cooldown overlays, using demo data.
