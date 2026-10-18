@@ -1,4 +1,5 @@
 using System.IO;
+using System.Text.Json;
 using AionDpsMeter.Models;
 
 namespace AionDpsMeter.Local;
@@ -60,5 +61,38 @@ internal static class IngestionTests
         Hit(rollover, 3000);
         check(rollover.Snapshot().Damage.Count == 1 && early.Damage.Count == 1 && written[^1].Damage.Count == 2,
             "Capture, autosave and completed fights retain separate event lists");
+
+        var resets = new CombatEngine();
+        Hit(resets, 1000); resets.EndFight("Second");
+        int writes = 0;
+        var resetSaves = resets.SaveCompleted(_ => {
+            if (++writes != 1) return;
+            // Simulate further reset clicks while the first write is in flight.
+            Hit(resets, 2000); resets.EndFight("Third");
+            Hit(resets, 3000); resets.EndFight("Fourth");
+        });
+        check(resetSaves.Length == 3 && resetSaves.All(f => f.Damage.Count == 1) &&
+            resetSaves.Select(f => f.Id).Distinct().Count() == 3 && !resets.HasCompletedFights && !resets.Snapshot().HasEvents,
+            "Repeated resets during a save retain each encounter and leave an empty live fight");
+        Hit(resets, 4000); resets.EndFight("Retry");
+        try { resets.SaveCompleted(_ => throw new IOException("Disk unavailable")); } catch (IOException) { }
+        check(resets.HasCompletedFights, "Failed reset saves remain discoverable for retry even without active capture");
+
+        var large = new Fight { Label = "Large encounter – streaming regression" };
+        for (int i = 0; i < 50000; i++) large.Damage.Add(new() { ActorId = 1, TargetId = 2, Timestamp = i, Damage = i });
+        var largeStore = new FightStore(Path.Combine(temp, "large-save"));
+        largeStore.Save(new Fight()); // Warm the serializer before measuring allocations.
+        long before = GC.GetAllocatedBytesForCurrentThread();
+        largeStore.Save(large);
+        long streamedBytes = GC.GetAllocatedBytesForCurrentThread() - before;
+        before = GC.GetAllocatedBytesForCurrentThread();
+        string json = JsonSerializer.Serialize(large);
+        long stringBytes = GC.GetAllocatedBytesForCurrentThread() - before;
+        check(streamedBytes < stringBytes / 2,
+            $"Large fight save avoids whole-file JSON allocations (stream {streamedBytes:N0}, string {stringBytes:N0} bytes)");
+        var loaded = largeStore.Load(Path.Combine(largeStore.Root, large.Id + ".json"));
+        check(loaded.Label == large.Label && loaded.Damage.Count == large.Damage.Count && loaded.Damage[^1].Damage == 49999,
+            "Streamed large fights round-trip all events and Unicode labels");
+        GC.KeepAlive(json);
     }
 }

@@ -30,6 +30,7 @@ public sealed class CombatEngine
         get { lock (Gate) return decoder is EuGameDecoder eu ? $"records {eu.Records:N0}, unsupported {eu.UnknownRecords:N0}, rejected {eu.RejectedRecords:N0}, framing errors {eu.FramingErrors:N0}" : $"undecoded payloads {UnsupportedPayloads:N0}"; }
     }
     public Fight Fight { get; private set; } = new();
+    public bool HasCompletedFights { get { lock (Gate) return completed.Count > 0; } }
     public CombatEngine(IGamePacketDecoder? decoder = null, PlayerProfileCache? profiles = null) { this.decoder = decoder ?? new UnconfiguredGameDecoder(); this.profiles = profiles ?? new(); }
     void RefreshProfiles()
     {

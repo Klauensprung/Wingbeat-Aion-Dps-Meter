@@ -85,5 +85,5 @@ public static class BossAnalysis
     sealed record SavedSummary(string Text);
     static readonly System.Runtime.CompilerServices.ConditionalWeakTable<Fight, SavedSummary> summaries = new();
     // Used only for immutable archive snapshots, never the live mutable engine fight.
-    public static string Summary(Fight fight) => summaries.GetValue(fight, f => new(string.Join(", ", Build(f).Select(b => b.Boss)))).Text;
+    public static string Summary(Fight fight) => fight.ArchiveSummary?.Bosses ?? summaries.GetValue(fight, f => new(string.Join(", ", Build(f).Select(b => b.Boss)))).Text;
 }

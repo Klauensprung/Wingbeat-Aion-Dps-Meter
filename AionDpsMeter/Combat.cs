@@ -17,6 +17,7 @@ public sealed record Actor(int Id, string Name, bool Player, bool Party, int Cp,
 public sealed record Spec(int Skill, int Level, int[] Choices);
 public sealed class Fight
 {
+    internal FightArchiveSummary? ArchiveSummary { get; init; }
     public int Version { get; set; } = 1;
     public string Id { get; set; } = Guid.NewGuid().ToString("N");
     public string Label { get; set; } = "Local fight";
@@ -37,8 +38,8 @@ public sealed class Fight
     public PartyProfile[] PartyProfiles { get; set; } = [];
     public PingReading? LocalPing { get; set; }
     public PlayerStatReading? LocalStats { get; set; }
-    public long Start => Damage.Select(e => e.Timestamp).Concat(Healing.Select(e => e.Timestamp)).Concat(Defense.Select(e => e.Timestamp)).DefaultIfEmpty(0).Min();
-    public long End => Damage.Select(e => e.Timestamp).Concat(Healing.Select(e => e.Timestamp)).Concat(Defense.Select(e => e.Timestamp)).DefaultIfEmpty(0).Max();
+    public long Start => ArchiveSummary?.Start ?? Damage.Select(e => e.Timestamp).Concat(Healing.Select(e => e.Timestamp)).Concat(Defense.Select(e => e.Timestamp)).DefaultIfEmpty(0).Min();
+    public long End => ArchiveSummary?.End ?? Damage.Select(e => e.Timestamp).Concat(Healing.Select(e => e.Timestamp)).Concat(Defense.Select(e => e.Timestamp)).DefaultIfEmpty(0).Max();
     public double Seconds => Math.Max(1, (End - Start) / 1000d);
     public string Name(int id)
     {
@@ -47,9 +48,9 @@ public sealed class Fight
             return NpcNames.Default.GetName(actor.NpcId);
         return actor.Name;
     }
-    public bool HasEvents => Damage.Count + Healing.Count + Defense.Count > 0;
+    public bool HasEvents => ArchiveSummary?.HasEvents ?? Damage.Count + Healing.Count + Defense.Count > 0;
     public bool HasRecordedData => HasEvents || Deaths.Count > 0 || LocalStats != null || Network.Count > 0 || Energy != null || Builds.Count > 0 || PartyKnown || Actors.Values.Any(a => a.ProfileSource == "Entered locally");
-    public Fight Copy() => new() { Version = Version, Id = Id, Label = Label, Created = Created, Demo = Demo, LocalPlayer = LocalPlayer,
+    public Fight Copy() => new() { ArchiveSummary = ArchiveSummary, Version = Version, Id = Id, Label = Label, Created = Created, Demo = Demo, LocalPlayer = LocalPlayer,
         Actors = new(Actors), Damage = new(Damage), Healing = new(Healing), Defense = new(Defense), Network = new(Network), Deaths = new(Deaths), PartyProfiles = [..PartyProfiles], LocalPing = LocalPing, LocalStats = CharacterReadings.Copy(LocalStats),
         Specs = Specs.ToDictionary(p => p.Key, p => p.Value with { Choices = p.Value.Choices.ToArray() }), Energy = Energy,
         Builds = Builds.ToDictionary(p => p.Key, p => FightMetadata.Copy(p.Value)), PartyKnown = PartyKnown, PartySource = PartySource };
@@ -67,6 +68,7 @@ public static class Analysis
 {
     public static TotalRow[] Totals(Fight f)
     {
+        if (f.ArchiveSummary is { } summary) return summary.Totals;
         double seconds = f.Seconds;
         var damageByActor = f.Damage.ToLookup(e => e.ActorId);
         var healingByActor = f.Healing.ToLookup(e => e.ActorId);
@@ -119,16 +121,20 @@ public sealed class FightStore
     public FightStore(string root) { Root = root; Directory.CreateDirectory(root); }
     public void Save(Fight fight)
     {
+        if (fight.ArchiveSummary != null) throw new InvalidOperationException("Load full fight details before saving an archive entry.");
         if (!Guid.TryParseExact(fight.Id, "N", out _)) throw new InvalidDataException("Invalid fight ID.");
         var path = Path.Combine(Root, fight.Id + ".json");
         var temp = path + ".tmp";
-        File.WriteAllText(temp, JsonSerializer.Serialize(fight, Options));
+        // Stream directly to the temporary file: large encounters must not also
+        // allocate a complete UTF-16 JSON string before they can be saved.
+        using (var output = File.Create(temp)) JsonSerializer.Serialize(output, fight, Options);
         File.Move(temp, path, true);
     }
     public Fight Load(string path)
     {
         if (new FileInfo(path).Length > 128 * 1024 * 1024) throw new InvalidDataException("Fight exceeds 128 MB limit.");
-        var f = JsonSerializer.Deserialize<Fight>(File.ReadAllText(path), Options) ?? throw new InvalidDataException("Empty fight.");
+        using var input = File.OpenRead(path);
+        var f = JsonSerializer.Deserialize<Fight>(input, Options) ?? throw new InvalidDataException("Empty fight.");
         if (f.Version != 1 || !Guid.TryParseExact(f.Id, "N", out _) || string.IsNullOrWhiteSpace(f.Label) || f.Actors == null || f.Damage == null || f.Healing == null || f.Defense == null || f.Specs == null || f.Actors.Any(a => a.Value == null || a.Value.Name == null || a.Value.Job == null) || f.Specs.Any(s => s.Value == null || s.Value.Choices == null) || f.Damage.Any(e => e == null || e.Damage < 0 || e.Timestamp < 0) || f.Healing.Any(e => e == null || e.Damage < 0 || e.Timestamp < 0) || f.Defense.Any(e => e == null || e.Timestamp < 0)) throw new InvalidDataException("Unsupported or invalid fight data.");
         if (f.Deaths == null || f.Deaths.Any(d => d == null || d.EntityId <= 0 || d.Timestamp < 0)) throw new InvalidDataException("Invalid death events.");
         if (f.Network == null || f.Network.Any(e => e == null || e.Timestamp < 0 || string.IsNullOrWhiteSpace(e.Kind) || string.IsNullOrWhiteSpace(e.Opcode) || e.Fields.ValueKind != JsonValueKind.Object)) throw new InvalidDataException("Invalid network event data.");

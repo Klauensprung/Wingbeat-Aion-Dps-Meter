@@ -163,6 +163,7 @@ public static class SelfTest
             AppDataPathsTests.Run(Check, temp);
             CooldownTrackerTests.Run(Check, temp);
             StartupTests.Run(Check, temp);
+            StartMenuShortcutTests.Run(Check, temp);
             GameAdapterTests.Run(Check);
             DisplayTests.Run(Check, temp);
             AssetTests.Run(Check, temp);
@@ -170,6 +171,7 @@ public static class SelfTest
             OverlayBehaviorTests.Run(Check, temp);
             PvpTests.Run(Check);
             IngestionTests.Run(Check, temp);
+            ArchiveMemoryTests.Run(Check, temp);
             EncounterTests.Run(Check, temp);
             BossCatalogueTests.Run(Check);
             BossEncounterTests.Run(Check);

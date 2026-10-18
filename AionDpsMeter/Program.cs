@@ -10,13 +10,15 @@ public static class Program
     {
         Directory.SetCurrentDirectory(AppContext.BaseDirectory);
         try {
-            bool isolated = args.Any(a => a is "--self-test" or "--smoke-test" or "--benchmark-ui" or "--demo" or "--check-npcap" or "--check-game-adapter" or "--live-probe" or "--replay-pcap" or "--audit-fight");
+            bool isolated = args.Any(a => a is "--self-test" or "--smoke-test" or "--benchmark-ui" or "--benchmark-archive" or "--demo" or "--check-npcap" or "--check-game-adapter" or "--live-probe" or "--replay-pcap" or "--audit-fight");
             AppDataPaths.Initialize(isolated);
+            StartMenuShortcut.EnsureForCurrentProcess(isolated);
         } catch (Exception ex) {
             MessageBox.Show("Could not prepare Wingbeat user data. Original files have been retained.\n" + ex.Message, "Wingbeat storage error");
             return 1;
         }
         if (args.Contains("--self-test")) return SelfTest.Run();
+        if (args.Contains("--benchmark-archive")) return ArchiveMemoryTests.Measure(args);
         if (args.Contains("--check-npcap")) return SelfTest.CheckNpcap();
         if (args.Contains("--check-game-adapter")) return GameAdapterTests.CheckLive();
         if (args.Contains("--live-probe")) return LiveProbe.Run(args);

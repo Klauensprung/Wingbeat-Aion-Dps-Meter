@@ -180,7 +180,7 @@ public sealed partial class MainWindow : Window
         var encounterPanel = AddTab("Encounter", "Select a recorded encounter on the left. Current capture is first; saved encounters follow newest first. Participants and attributed skill damage are shown together. Select a participant to focus their skills. Adds remain in encounter totals. Each existing saved fight remains a separate entry; no inferred instance-run merging.");
         encounterPanel.Children.Remove(grids["Encounter"]);
         encounterView = new(code => skills.GetSkillName(code), skillIcons); encounterPanel.Children.Add(PageLayout.Fill(encounterView));
-        encounterView.Selected += selected => { viewed = selected; encounter.Text = Current.Label; Refresh(); };
+        encounterView.Selected += selected => { viewed = selected == null ? null : LoadArchiveDetails(selected); encounter.Text = Current.Label; Refresh(); };
         var party = AddTab("Party", "Bars show captured party members, or named players when no roster is available. Click a bar for skills. Player names arrive when entering a zone. The full table below includes every observed actor.");
         party.Children.Remove(grids["Party"]);
         party.Children.Add(PageLayout.Fill(new SplitView(SplitView.Scroll(overview), new Expander { Header = "Full breakdown · all actors", Content = grids["Party"], Margin = new(8, 2, 8, 4) }, .6)));
@@ -206,7 +206,7 @@ public sealed partial class MainWindow : Window
         AddTab("Boss catalogue", "Offline boss and hero/legend catalogue. Search by name, NPC ID or possible instance. Family variants may span difficulties and locations; unassigned hero/legend entries are not automatically treated as bosses. Source client: " + BossCatalogue.Default.ClientVersion);
         bossView.BrowseCatalogue += id => { character.Text = id; tabs.SelectedItem = tabs.Items.Cast<TabItem>().First(t => t.Header?.ToString() == "Boss catalogue"); Refresh(); };
         AddTab("Saved fights", "Double-click a row to inspect it. Capturing continues in the background while browsing. Demo fights are marked and excluded from trends and comparisons.");
-        grids["Saved fights"].MouseDoubleClick += (_, _) => { if (grids["Saved fights"].SelectedItem is SavedRow row) { viewed = archive.First(f => f.Id == row.Id); encounter.Text = viewed.Label; tabs.SelectedIndex = 0; Refresh(); } };
+        grids["Saved fights"].MouseDoubleClick += (_, _) => { if (grids["Saved fights"].SelectedItem is SavedRow row) { viewed = LoadArchiveDetails(archive.First(f => f.Id == row.Id)); encounter.Text = viewed.Label; tabs.SelectedIndex = 0; Refresh(); } };
         var trendsPanel = AddTab("Trends", "Select an encounter to follow your DPS across attempts. Average gives each saved attempt equal weight; the chart shows the latest 100 attempts against the all-attempt average. Recognized bosses supply encounter names automatically. Character history stays together across servers. Double-click an encounter to open its latest fight, or a chart point to inspect that attempt. Switch to HPS for healing trends.");
         var trendControls = new WrapPanel(); trendControls.Children.Add(trendCharacter); trendControls.Children.Add(trendMetric);
         trendsPanel.Children.Insert(1, trendControls); trendsPanel.Children.Insert(2, trendSummary);
@@ -246,19 +246,11 @@ public sealed partial class MainWindow : Window
                 if (capture != null) engine.AdvanceTime(DateTimeOffset.UtcNow.ToUnixTimeMilliseconds());
                 FinishAutosave(wait: false);
                 long now = Environment.TickCount64;
-                if (capture != null && autosave == null && now >= nextMaintenance)
+                if ((capture != null || engine.HasCompletedFights) && autosave == null && now >= nextMaintenance)
                 {
-                    bool saveCurrent = now >= nextAutosave;
-                    Fight? snapshot = saveCurrent ? LiveSnapshot() : null;
-                    var activeEngine = engine; var activeCapture = capture; var names = skills;
-                    nextMaintenance = now + 1000;
+                    bool saveCurrent = capture != null && now >= nextAutosave;
                     if (saveCurrent) nextAutosave = now + 30000;
-                    autosave = Task.Run(() => {
-                        var saved = FightPersistence.Save(activeEngine, snapshot, f => SaveFightCore(f, names));
-                        playerProfiles.Save();
-                        if (saveCurrent) LogCapture(activeCapture, activeEngine);
-                        return saved;
-                    });
+                    StartAutosave(saveCurrent);
                 }
                 Refresh(skipUnchanged: true);
             } catch (Exception ex) { notice = "Local save/update failed: " + ex.Message; LocalLog.Write(notice); }
@@ -343,7 +335,7 @@ public sealed partial class MainWindow : Window
     void OpenTrendFight(string fightId)
     {
         if (archive.FirstOrDefault(f => f.Id == fightId) is not { } fight) return;
-        viewed = fight; encounter.Text = fight.Label; tabs.SelectedIndex = 0; Refresh();
+        viewed = LoadArchiveDetails(fight); encounter.Text = fight.Label; tabs.SelectedIndex = 0; Refresh();
     }
     TotalRow? ComparisonActor(Fight f, TotalRow[] totals) => (character.Text.Length == 0 ? totals.FirstOrDefault(r => r.Id == f.LocalPlayer) : null)
         ?? totals.FirstOrDefault(r => Matches(r.Character) && f.Actors.GetValueOrDefault(r.Id)?.Player == true);
@@ -619,9 +611,34 @@ public sealed partial class MainWindow : Window
     }
     void NewFight()
     {
-        var label = EncounterLabel(); FinishAutosave();
-        engine.EndFight(label); engine.SaveCompleted(store);
-        viewed = null; ReloadArchive(); Refresh();
+        try
+        {
+            engine.EndFight(EncounterLabel());
+            viewed = null;
+            // Keep the existing archive objects. Reloading every file here doubles
+            // history memory while views still reference the previous objects.
+            // An in-flight worker finishes first; the timer drains any later resets.
+            if (autosave == null) StartAutosave(saveCurrent: false);
+            Refresh();
+        }
+        catch (Exception ex)
+        {
+            notice = "New fight failed: " + ex.Message;
+            LocalLog.Write("New fight failed: " + ex);
+            MessageBox.Show(notice, "Wingbeat Local", MessageBoxButton.OK, MessageBoxImage.Error);
+        }
+    }
+    void StartAutosave(bool saveCurrent)
+    {
+        Fight? snapshot = saveCurrent ? LiveSnapshot() : null;
+        var activeEngine = engine; var activeCapture = capture; var names = skills;
+        nextMaintenance = Environment.TickCount64 + 1000;
+        autosave = Task.Run(() => {
+            var saved = FightPersistence.Save(activeEngine, snapshot, f => SaveFightCore(f, names));
+            playerProfiles.Save();
+            if (saveCurrent && activeCapture != null) LogCapture(activeCapture, activeEngine);
+            return saved.Select(FightArchiveSummary.Create).ToArray();
+        });
     }
     string EncounterLabel() => string.IsNullOrWhiteSpace(encounter.Text) ? throw new InvalidOperationException("Enter an encounter label.") : encounter.Text.Trim();
     void SaveFight(Fight f)
@@ -708,16 +725,17 @@ public sealed partial class MainWindow : Window
     {
         FinishAutosave();
         archive.Clear(); archiveChanged = true; int skipped = 0;
-        foreach (var path in store.Files()) { try { archive.Add(store.Load(path)); } catch { skipped++; } }
+        foreach (var path in store.Files()) { try { archive.Add(FightArchiveSummary.Create(store.Load(path))); } catch { skipped++; } }
         if (skipped > 0) notice = $"Skipped {skipped} invalid fight file(s); original files retained.";
     }
     void ShowLastPvp()
     {
-        var last = archive.Where(f => !f.Demo).OrderByDescending(f => f.Created).FirstOrDefault(f => PvpAnalysis.Build(f).HasOpponents);
+        var last = archive.Where(f => !f.Demo).OrderByDescending(f => f.Created).FirstOrDefault(f => f.ArchiveSummary?.HasPvp ?? PvpAnalysis.Build(f).HasOpponents);
         if (last == null) { notice = "No saved PvP fight found yet."; Refresh(); return; }
-        viewed = last; character.Clear();
+        viewed = LoadArchiveDetails(last); character.Clear();
         tabs.SelectedItem = tabs.Items.Cast<TabItem>().First(t => t.Header?.ToString() == "PvP"); Refresh();
     }
+    Fight LoadArchiveDetails(Fight entry) => entry.ArchiveSummary == null ? entry : store.Load(System.IO.Path.Combine(store.Root, entry.Id + ".json"));
     void ConfigureCooldowns()
     {
         var editor = new CooldownSettingsWindow(preferences, skills, cooldownTracker.ObservedSkills,
@@ -858,7 +876,9 @@ public sealed partial class MainWindow : Window
             case "Openers": Set(tab, DetailedAnalysis.Openers(f, skills.GetSkillName).Where(r => Matches(r.Character))); break;
             case "Boss analysis": bossView.Update(f, character.Text, force: !skipUnchanged); break;
             case "Boss catalogue": Set(tab, BossCatalogue.Default.Rows().Where(b => Matches(b.Boss) || Matches(b.PossibleInstances) || Matches(b.NpcIds))); break;
-            case "Saved fights": Set(tab, archive.Where(EncounterOverview.HasLocalDamage).Where(a => Matches(a.Label) || Matches(BossAnalysis.Summary(a)) || a.Actors.Values.Any(p => p.Player && Matches(p.Name))).Select(a => new SavedRow(a.Id, a.Created.ToLocalTime(), a.Label, a.Demo, a.Damage.Count + a.Healing.Count, Math.Round(a.Seconds, 1)) { Bosses = BossAnalysis.Summary(a) }).ToArray()); break;
+            case "Saved fights": Set(tab, archive.Where(EncounterOverview.HasLocalDamage).Where(a => Matches(a.Label) || Matches(BossAnalysis.Summary(a)) ||
+                (a.ArchiveSummary?.PlayerNames ?? a.Actors.Values.Where(p => p.Player).Select(p => p.Name)).Any(Matches))
+                .Select(a => new SavedRow(a.Id, a.Created.ToLocalTime(), a.Label, a.Demo, a.ArchiveSummary?.Events ?? a.Damage.Count + a.Healing.Count, Math.Round(a.Seconds, 1)) { Bosses = BossAnalysis.Summary(a) }).ToArray()); break;
             case "Trends": RefreshTrends(); break;
             case "Report card": Set(tab, Benchmarks.Report(f, archive).Where(r => Matches(r.Character)).ToArray()); break;
             case "Player stats": Set(tab, CharacterReadings.Rows(f.LocalStats)); break;
@@ -1098,7 +1118,7 @@ public sealed partial class MainWindow : Window
         var previousView = viewed; var savedArchive = archive.ToArray(); string previousFilter = character.Text;
         try
         {
-            viewed = FeatureTests.Sample(); archive.Clear(); archive.AddRange(Enumerable.Range(1, 100).Select(FeatureTests.Sample));
+            viewed = FeatureTests.Sample(); archive.Clear(); archive.AddRange(Enumerable.Range(1, 100).Select(FeatureTests.Sample).Select(FightArchiveSummary.Create));
             archiveChanged = true; character.Clear();
             void Show(string name) { tabs.SelectedItem = tabs.Items.Cast<TabItem>().Single(t => t.Header?.ToString() == name); Refresh(); UpdateLayout(); Render(this, "test-artifacts/Populated-" + name + ".png"); }
             Show("Report card");

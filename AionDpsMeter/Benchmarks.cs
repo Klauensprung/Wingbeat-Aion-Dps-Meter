@@ -60,7 +60,7 @@ public static class Benchmarks
         if (peers.Length >= 20) yield return ("Top quarter (local)", peers.Take((int)Math.Ceiling(peers.Length * .25)).ToArray());
         if (peers.Length >= 100) yield return ("Top 5% (local)", peers.Take((int)Math.Ceiling(peers.Length * .05)).ToArray());
     }
-    static Dictionary<int, (long Amount, int Hits)> Skills(Fight f, int actor) => f.Damage.Where(e => e.ActorId == actor)
+    static Dictionary<int, (long Amount, int Hits)> Skills(Fight f, int actor) => f.ArchiveSummary?.Stats.GetValueOrDefault(actor)?.Skills ?? f.Damage.Where(e => e.ActorId == actor)
         .GroupBy(e => DetailedAnalysis.Family(e.SkillCode)).ToDictionary(g => g.Key, g => (g.Sum(e => (long)e.Damage), g.Count()));
     public static CohortRow[] Cohort(Fight f, TotalRow actor, IEnumerable<Fight> archive, Func<int, string> name, (Fight Fight, TotalRow Row)[]? matched = null)
     {
@@ -85,6 +85,7 @@ public static class Benchmarks
     {
         var peers = matched ?? Peers(f, actor, archive); var rows = new List<DifferenceRow>();
         double Opener(Fight fight, TotalRow row) {
+            if (fight.ArchiveSummary is { } summary) return summary.Stats.GetValueOrDefault(row.Id)?.OpeningDps ?? 0;
             var hits = fight.Damage.Where(e => e.ActorId == row.Id).ToArray();
             if (hits.Length == 0) return 0;
             long first = hits.Select(e => e.Timestamp).Concat(fight.Healing.Where(e => e.ActorId == row.Id).Select(e => e.Timestamp)).Min();
@@ -93,9 +94,9 @@ public static class Benchmarks
         var metrics = new (string Name, string Unit, Func<Fight, TotalRow, double> Value)[] {
             ("Damage per second", "DPS", (_, r) => r.DPS), ("Healing per second", "HPS", (_, r) => r.HPS),
             ("Critical damage events", "%", (_, r) => r.CritPercent),
-            ("Damage events per minute", "events/min", (fight, r) => 60d * fight.Damage.Count(e => e.ActorId == r.Id) / fight.Seconds),
+            ("Damage events per minute", "events/min", (fight, r) => 60d * (fight.ArchiveSummary?.Stats.GetValueOrDefault(r.Id)?.Hits ?? fight.Damage.Count(e => e.ActorId == r.Id)) / fight.Seconds),
             ("Opening damage rate (first 15s)", "DPS", Opener),
-            ("Damage received per second", "damage/s", (fight, r) => fight.Damage.Where(e => e.TargetId == r.Id).Sum(e => (long)e.Damage) / fight.Seconds)
+            ("Damage received per second", "damage/s", (fight, r) => (fight.ArchiveSummary?.Stats.GetValueOrDefault(r.Id)?.DamageTaken ?? fight.Damage.Where(e => e.TargetId == r.Id).Sum(e => (long)e.Damage)) / fight.Seconds)
         };
         foreach (var tier in Tiers(peers))
         foreach (var metric in metrics)
@@ -121,7 +122,9 @@ public static class Benchmarks
         }).ToArray();
     public static CohortOpenerRow[] Openers(Fight f, TotalRow actor, IEnumerable<Fight> archive, Func<int, string> name, (Fight Fight, TotalRow Row)[]? matched = null)
     {
-        OpenerRow? First(Fight fight, int id) => DetailedAnalysis.Openers(fight, name).FirstOrDefault(r => r.ActorId == id);
+        OpenerRow? First(Fight fight, int id) => fight.ArchiveSummary is { } summary
+            ? summary.Stats.GetValueOrDefault(id)?.First is { } first ? first with { Skill = name(first.SkillCode) } : null
+            : DetailedAnalysis.Openers(fight, name).FirstOrDefault(r => r.ActorId == id);
         var own = First(f, actor.Id);
         return Tiers(matched ?? Peers(f, actor, archive)).SelectMany(tier => tier.Observations.Select(p => First(p.Fight, p.Row.Id)).Where(r => r != null)
             .GroupBy(r => (Code: DetailedAnalysis.Family(r!.SkillCode), r.Event)).Select(g =>
