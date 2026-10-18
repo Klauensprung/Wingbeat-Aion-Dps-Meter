@@ -14,9 +14,10 @@ $name = "Wingbeat-Aion2-DpsMeter-$version-win-x64"
 if ((Test-Path -LiteralPath (Join-Path $releaseRoot $name)) -or (Test-Path -LiteralPath (Join-Path $releaseRoot ($name + '.zip')))) {
     $name += '-' + [DateTime]::UtcNow.ToString('yyyyMMdd-HHmmss') + '-' + [Guid]::NewGuid().ToString('N').Substring(0, 8)
 }
-$packageRoot = Join-Path $releaseRoot "$name/Wingbeat"
+$packageFolder = 'Winbeat ' + [char]0x2665 + ' Aion Dps Meter'
+$packageRoot = Join-Path $releaseRoot "$name/$packageFolder"
 $checkRoot = Join-Path $releaseRoot "build-checks/$name"
-$testApp = Join-Path $checkRoot 'app'
+$testApp = Join-Path $checkRoot $packageFolder
 New-Item -ItemType Directory -Path $packageRoot, $testApp -Force | Out-Null
 
 & (Join-Path $PSScriptRoot 'Verify-Source.ps1')
@@ -119,7 +120,7 @@ try {
     # Windows PowerShell's .NET Framework can write backslash ZIP entry names.
     # Explicit forward slashes work with Explorer and other archive readers.
     foreach ($file in Get-ChildItem -LiteralPath $packageRoot -Recurse -File) {
-        $entryName = 'Wingbeat/' + $file.FullName.Substring($packageRoot.Length + 1).Replace('\', '/')
+        $entryName = $packageFolder + '/' + $file.FullName.Substring($packageRoot.Length + 1).Replace('\', '/')
         [IO.Compression.ZipFileExtensions]::CreateEntryFromFile($zipArchive, $file.FullName, $entryName, [IO.Compression.CompressionLevel]::Optimal) | Out-Null
     }
 }

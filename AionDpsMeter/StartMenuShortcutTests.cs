@@ -1,5 +1,4 @@
 using System.IO;
-using System.Runtime.InteropServices;
 
 namespace AionDpsMeter.Local;
 
@@ -13,8 +12,8 @@ internal static class StartMenuShortcutTests
             !StartMenuShortcut.Eligible(false, null),
             "Only normal Wingbeat launches register Start menu shortcuts; isolated tests and dotnet hosts do not");
         string programs = Path.Combine(temp, "Start menu programs");
-        string original = Path.Combine(temp, "Release one", "Wingbeat.exe");
-        string updated = Path.Combine(temp, "Release two", "Wingbeat.exe");
+        string original = Path.Combine(temp, "Release one ♥", "Wingbeat.exe");
+        string updated = Path.Combine(temp, "Release two ♥", "Wingbeat.exe");
         foreach (var path in new[] { original, updated }) {
             Directory.CreateDirectory(Path.GetDirectoryName(path)!);
             File.Copy(Path.Combine(AppContext.BaseDirectory, "Wingbeat.exe"), path);
@@ -26,20 +25,11 @@ internal static class StartMenuShortcutTests
             "Repeated launches leave a correct shortcut untouched");
         check(StartMenuShortcut.Ensure(updated, programs) && Directory.GetFiles(programs, "*.lnk").Length == 1,
             "Launching an updated or moved release repairs the same shortcut without duplicates");
-        object? shell = null, loaded = null;
-        try {
-            shell = Activator.CreateInstance(Type.GetTypeFromProgID("WScript.Shell", true)!);
-            loaded = ((dynamic)shell!).CreateShortcut(shortcut);
-            dynamic link = loaded;
-            check(string.Equals((string)link.TargetPath, updated, StringComparison.OrdinalIgnoreCase) &&
-                string.Equals((string)link.WorkingDirectory, Path.GetDirectoryName(updated), StringComparison.OrdinalIgnoreCase) &&
-                string.Equals((string)link.IconLocation, updated + ",0", StringComparison.OrdinalIgnoreCase) &&
-                (string)link.Arguments == "" && ((string)link.Description).Contains("Aion 2"),
-                "Windows reads the correct executable, working folder, icon and normal launch arguments");
-        }
-        finally {
-            if (loaded != null) Marshal.FinalReleaseComObject(loaded);
-            if (shell != null) Marshal.FinalReleaseComObject(shell);
-        }
+        var link = StartMenuShortcut.Read(shortcut);
+        check(string.Equals(link.Target, updated, StringComparison.OrdinalIgnoreCase) &&
+            string.Equals(link.WorkingDirectory, Path.GetDirectoryName(updated), StringComparison.OrdinalIgnoreCase) &&
+            string.Equals(link.Icon, updated, StringComparison.OrdinalIgnoreCase) && link.IconIndex == 0 &&
+            link.Arguments == "" && link.Description.Contains("Aion 2"),
+            "Windows reads Unicode executable paths, working folders, icons and normal launch arguments");
     }
 }
