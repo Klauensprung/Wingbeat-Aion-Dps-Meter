@@ -13,6 +13,16 @@ internal static class ReadingTests
     internal static void Run(Action<bool, string> check, string temp)
     {
         byte[] stats = Frame(0x49, 0x36, [0, 0, 3, ..Entry(19, 1234), ..Entry(425, 1250), ..Entry(65000, -20), ..new byte[8]]);
+        using (var fixtures = new ReferencePacketFixtures(Path.Combine(temp, "full-stat-wire-fixtures.jsonl"))) {
+            foreach (var frame in new[] {
+                stats,
+                Frame(0x49, 0x36, [0, 0, 0, ..BitConverter.GetBytes(5000000000L)]),
+                Frame(0x49, 0x36, [1, 0, 0, ..new byte[8]]),
+                Frame(0x49, 0x36, [1, 0, 1, ..Entry(19, 999), ..BitConverter.GetBytes(5000000000L)]),
+                Frame(0x49, 0x36, [0, 0, 2, ..Entry(0, int.MinValue), ..Entry(ushort.MaxValue, int.MaxValue), ..BitConverter.GetBytes(9007199254740991L)]),
+                Frame(0x49, 0x36, [0, 0, ..Var(130), ..Enumerable.Range(1, 130).SelectMany(i => Entry((ushort)i, i - 65)), ..BitConverter.GetBytes(1234L)])
+            }) fixtures.Add(Payload(frame));
+        }
         var decoder = new EuGameDecoder(); var events = decoder.Decode(Payload(stats)).Events;
         var value = events.Single(e => e.Stats != null).Stats!;
         check(value.Values.Count == 3 && value.Values[65000] == -20 && CharacterReadings.Rows(value).Single(r => r.StatId == 425).Value.EndsWith("%"),
@@ -22,6 +32,13 @@ internal static class ReadingTests
             var split = new EuGameDecoder(); splits &= split.Decode(Payload(stats[..i])).Events.Count == 0 && split.Decode(Payload(stats[i..])).Events.Count == 2;
         }
         check(splits, "Player stat lists publish atomically across every TCP split");
+        var fullHp = new EuGameDecoder().Decode(Payload(Frame(0x49, 0x36, [0, 0, 0, ..BitConverter.GetBytes(5000000000L)])));
+        check(fullHp.Events.Single(e => e.Stats != null).Stats is { MaximumHp: 5000000000, IsComplete: true } &&
+            fullHp.Events.Single(e => e.Stats != null).Stats!.Values.Count == 0,
+            "A full stat response permits an empty stat map and preserves 64-bit maximum HP");
+        check(new EuGameDecoder().Decode(Payload(Frame(0x49, 0x36, [1, 0, 0, ..new byte[8]]))).Events.Count == 0 &&
+            new EuGameDecoder().Decode(Payload(Frame(0x49, 0x36, [0, 0, 1, ..Entry(19, 1)]))).Events.Count == 0,
+            "Failed full-stat replies and missing maximum-HP trailers cannot replace captured stats");
         check(new[] {
             Frame(0x49, 0x36, [0, 0, 2, ..Entry(19, 1), ..Entry(19, 2)]),
             Frame(0x49, 0x36, [0, 0, 2, ..Entry(19, 1)]),
@@ -29,19 +46,21 @@ internal static class ReadingTests
             Frame(0x49, 0x36, [0, 0, ..Var(2049)])
         }.All(f => new EuGameDecoder().Decode(Payload(f)).Events.Count == 0), "Duplicate, truncated, oversized and unknown-tail stat lists reject without partial updates");
         var engine = new CombatEngine(); foreach (var e in events) engine.Apply(e);
+        check(engine.Fight.LocalStats == null, "Pre-identity full stats wait without being attributed to a character");
+        value.Values[19] = 9;
+        engine.Apply(new("local-player", Actor: new(1, "NewCharacter", true, false, 0, "Unknown", 2301)));
+        check(engine.Fight.LocalStats?.Values[19] == 1234, "Late first identity receives an isolated copy of pending full stats");
         var saved = engine.Snapshot(); value.Values[19] = 9;
         check(saved.LocalStats!.Values[19] == 1234 && engine.Fight.LocalStats!.Values[19] == 1234, "Stat ingestion and snapshots do not share mutable dictionaries");
         engine.NewFight("Next"); check(engine.Fight.LocalStats!.Values[19] == 1234, "Manual fight resets retain the latest local stat snapshot");
         engine.Apply(new("player-stats", Stats: new(999, new() { [19] = 1 })));
         check(engine.Fight.LocalStats!.Values[19] == 1234, "Older stat samples cannot overwrite newer readings");
-        engine.Apply(new("local-player", Actor: new(1, "NewCharacter", true, false, 0, "Unknown", 2301)));
-        check(engine.Fight.LocalStats != null, "Late first identity preserves current stat readings");
         engine.Apply(new("local-player", Actor: new(2, "OtherCharacter", true, false, 0, "Unknown", 2301)));
         check(engine.Fight.LocalStats == null, "Scene or character changes clear local stats instead of attributing another character's readings");
         var store = new FightStore(Path.Combine(temp, "readings")); store.Save(saved);
         check(store.Load(Path.Combine(store.Root, saved.Id + ".json")).LocalStats!.Values[19] == 1234 && JsonSerializer.Deserialize<Fight>("{}")!.LocalStats == null,
             "Stat snapshots persist and older saved fights remain readable");
-        byte[] cast = Frame(0x02, 0x38, [..Var(101), 0, ..BitConverter.GetBytes(17060340u), 43, 2, ..new byte[8]]);
+        byte[] cast = Frame(0x02, 0x38, [..Var(101), 0, ..BitConverter.GetBytes(17060340u), 43, 0, 0, ..new byte[4], 0, 0, 0]);
         var castResult = new EuGameDecoder().Decode(Payload(cast)).Events.Single().Network!;
         check(castResult.Kind == "skill-use" && castResult.Fields.GetProperty("ActorId").GetInt32() == 101 && castResult.Fields.GetProperty("SkillCode").GetInt32() == 17060340 &&
             new EuGameDecoder().Decode(Payload(Frame(0x02, 0x38, [..Var(101), 0, ..BitConverter.GetBytes(17060340u), 43]))).Events.Count == 0,
@@ -58,8 +77,8 @@ internal static class ReadingTests
         byte[] hp = Frame(0, 0x8d, [..Var(12), 2, 1, 0, ..BitConverter.GetBytes(5000000000UL)]);
         check(new EuGameDecoder().Decode(Payload(hp)).Events.Single().Network!.Fields.GetProperty("CurrentHp").GetUInt64() == 5000000000UL,
             "HP readings preserve all 64 bits instead of silently truncating large health values");
-        check(new EuGameDecoder().Decode(Payload(Frame(4, 0x8d, [..Var(12)]))).Events.Single().Network?.Kind == "entity-death",
-            "Short death records identify the deceased entity");
+        check(new EuGameDecoder().Decode(Payload(Frame(4, 0x8d, [..Var(12)]))).Events.Count == 0,
+            "Entity-only death prefixes cannot manufacture a death event");
         var linking = new CombatEngine(new EuGameDecoder());
         linking.Process(Payload(Frame(0x20, 0x36, [0, 0, ..Var(12), ..new byte[4], ..BitConverter.GetBytes(9001u)])));
         linking.Apply(new("party-profiles", Profiles: [new("Member", 2301, 33000, 0) { CharacterId = 9001 }]));

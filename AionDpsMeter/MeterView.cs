@@ -9,6 +9,7 @@ namespace AionDpsMeter.Local;
 public sealed record MeterRow(int Id, string Name, string Job, long Amount, double Rate, double Share, double Fraction, string Color, bool Local, bool Player)
 {
     public string Detail { get; init; } = "";
+    public string Health { get; init; } = "";
     public int Deaths { get; init; }
     public int CombatPower { get; init; }
     public int LocalCombatPower { get; init; }
@@ -50,12 +51,14 @@ public static class MeterPresentation
         foreach (char c in actor.Name) hash = unchecked((hash ^ c) * 16777619);
         return PlayerColors[hash % PlayerColors.Length];
     }
-    public static MeterData Build(Fight fight, TotalRow[] totals, bool healing = false, bool allActors = false, int limit = 10, bool pinLocal = false)
+    public static MeterData Build(Fight fight, TotalRow[] totals, bool healing = false, bool allActors = false, int limit = 10, bool pinLocal = false, string? actorScope = null)
     {
         IEnumerable<TotalRow> selected = totals;
         string scope = "All actors";
         bool party = fight.PartyKnown || fight.Actors.Values.Any(a => a.Party);
-        if (!allActors)
+        if (actorScope == "Self") { selected = totals.Where(r => fight.LocalPlayer > 0 && r.Id == fight.LocalPlayer); scope = "You"; }
+        else if (actorScope == "Players") { selected = totals.Where(r => fight.Actors.GetValueOrDefault(r.Id)?.Player == true || r.Id == fight.LocalPlayer); scope = "All players"; }
+        else if (!allActors)
         {
             selected = totals.Where(r => party ? fight.Actors.GetValueOrDefault(r.Id)?.Party == true || r.Id == fight.LocalPlayer : fight.Actors.GetValueOrDefault(r.Id)?.Player == true || r.Id == fight.LocalPlayer);
             scope = party ? "Party" : "Players";
@@ -143,6 +146,7 @@ sealed class MeterBar : Border
     readonly TextBlock deaths = new() { FontSize = 10, Margin = new(6, 0, 0, 0), VerticalAlignment = VerticalAlignment.Center };
     readonly TextBlock job = new() { FontSize = 10, Margin = new(0, 2, 0, 0) };
     readonly TextBlock metadata = new() { FontSize = 10, TextTrimming = TextTrimming.CharacterEllipsis, Margin = new(0, 2, 0, 0) };
+    readonly TextBlock healthStatus = new() { FontSize = 10, TextTrimming = TextTrimming.CharacterEllipsis, Foreground = UiTheme.Brush("#A5B2C5") };
     readonly TextBlock rate = new() { FontWeight = FontWeights.Bold, HorizontalAlignment = HorizontalAlignment.Right };
     readonly System.Windows.Shapes.Path classSymbol = new() { Width = 14, Height = 14, Stretch = Stretch.Uniform, StrokeThickness = 1.5, StrokeLineJoin = PenLineJoin.Round, Margin = new(0, 0, 5, 0), VerticalAlignment = VerticalAlignment.Center };
     readonly TextBlock amount = new() { FontSize = 10, HorizontalAlignment = HorizontalAlignment.Right };
@@ -158,7 +162,7 @@ sealed class MeterBar : Border
         content.ColumnDefinitions.Add(new() { Width = GridLength.Auto });
         var identity = new StackPanel { VerticalAlignment = VerticalAlignment.Center, Margin = new(3, 0, 10, 0) };
         var nameLine = new DockPanel(); DockPanel.SetDock(deaths, Dock.Right); nameLine.Children.Add(deaths); nameLine.Children.Add(name);
-        identity.Children.Add(nameLine); identity.Children.Add(job); identity.Children.Add(metadata);
+        identity.Children.Add(nameLine); identity.Children.Add(job); identity.Children.Add(metadata); identity.Children.Add(healthStatus);
         var values = new StackPanel { VerticalAlignment = VerticalAlignment.Center, MinWidth = 91 };
         var rateLine = new StackPanel { Orientation = Orientation.Horizontal, HorizontalAlignment = HorizontalAlignment.Right };
         rateLine.Children.Add(classSymbol); rateLine.Children.Add(rate);
@@ -181,6 +185,7 @@ sealed class MeterBar : Border
             metadata.Foreground is not SolidColorBrush cpBrush || cpBrush.Color != (Color)ColorConverter.ConvertFromString(MeterPresentation.CombatPowerColor(current.CombatPower, current.LocalCombatPower, current.Local)) ||
             deaths.Text != "\u2620 " + current.Deaths || deaths.Visibility != Visibility.Visible ||
             (current.CombatPower == 0 && metadata.Text.Contains("CP ")) ||
+            healthStatus.Text != current.Health ||
             (current.CombatPower == 0 && !current.Local && metadata.Visibility != Visibility.Collapsed))
             throw new InvalidOperationException("Overlay icons, bars or death counts do not match the current row.");
     }
@@ -205,14 +210,17 @@ sealed class MeterBar : Border
         }
         bool showCp = row.CombatPower > 0, showPing = showClassSymbols && row.Local;
         bool showMetadata = showCp || showPing;
-        current = row; Height = (compact ? 35 : 48) + (showMetadata ? 12 : 0);
+        current = row; Height = (compact ? 35 : 48) + (showMetadata ? 12 : 0) + (row.Health.Length > 0 ? 13 : 0);
+        healthStatus.Text = row.Health; healthStatus.Visibility = row.Health.Length > 0 ? Visibility.Visible : Visibility.Collapsed;
+        healthStatus.ToolTip = row.Health + ". Last captured health or revival state, not a live estimate.";
         metadata.Visibility = showMetadata ? Visibility.Visible : Visibility.Collapsed;
         metadata.Text = (showCp ? "CP " + row.CombatPower.ToString("N0") : "") +
             (showPing ? (showCp ? "  |  " : "") + "Ping " + (row.LocalPingMs is int ping ? $"~{ping} ms" : "--") : "");
         metadata.Foreground = UiTheme.Brush(MeterPresentation.CombatPowerColor(row.CombatPower, row.LocalCombatPower, row.Local));
         metadata.ToolTip = (row.CombatPower > 0 ? $"Combat power: {row.CombatPower:N0} ({row.CombatPowerSource})" : "Combat power not captured. Party profile packets can supply it; character details also allow manual entry.") +
             MeterPresentation.CombatPowerComparison(row.CombatPower, row.LocalCombatPower, row.Local) +
-            (showClassSymbols && row.Local ? "\nPing is the last local client-clock echo estimate." : "");
+            (showClassSymbols && row.Local ? "\nPing is the last local client-clock echo estimate." : "") +
+            (row.Health.Length > 0 ? "\n" + row.Health + ". Last captured health or revival state, not a live estimate." : "");
         BorderBrush = row.Local ? UiTheme.Brush(row.Color) : Brushes.Transparent;
         rank.Text = position.ToString(); rank.Foreground = UiTheme.Brush("#CED5E1");
         name.Text = row.Name + (row.Local ? "  ·  you" : ""); name.FontSize = compact ? 12 : 14; name.Foreground = Brushes.White;

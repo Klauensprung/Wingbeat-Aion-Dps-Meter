@@ -8,17 +8,22 @@ namespace AionDpsMeter.Local;
 
 internal static class UiTheme
 {
+    internal static Border Card(UIElement child, Thickness? padding = null) {
+        var card = new Border { Child = child, CornerRadius = new(10), Padding = padding ?? new Thickness(12), BorderThickness = new(1) };
+        card.SetResourceReference(Border.BackgroundProperty, "Panel"); card.SetResourceReference(Border.BorderBrushProperty, "Edge");
+        System.Windows.Documents.TextElement.SetForeground(card, Brush("#E7EDF7")); return card;
+    }
     public static ContextMenu Menu(Window owner, UIElement? target = null) => new() {
         Resources = owner.Resources, PlacementTarget = target,
         Background = (Brush)owner.Resources["Panel"], Foreground = (Brush)owner.Resources["Text"]
     };
     public static SolidColorBrush Brush(string value) { var brush = new SolidColorBrush((Color)ColorConverter.ConvertFromString(value)); brush.Freeze(); return brush; }
-    public static string Background(string theme) => theme switch { "Slate" => "#192330", "Forest" => "#11251F", "Ember" => "#271C1B", "Violet" => "#211A2D", _ => "#10151F" };
+    public static string Background(string theme) => theme switch { "Slate" => "#171E28", "Forest" => "#0F1C18", "Ember" => "#201715", "Violet" => "#1A1623", _ => "#0C1017" };
     public static void Apply(Window window, Preferences preferences)
     {
         window.Background = Brush(Background(preferences.Theme)); window.Foreground = Brush("#E7EDF7");
         var resources = window.Resources;
-        resources["Panel"] = Brush("#171F2C"); resources["Raised"] = Brush("#222D3E"); resources["Edge"] = Brush("#2B374A");
+        resources["Panel"] = Brush("#131A24"); resources["Raised"] = Brush("#1D2836"); resources["Edge"] = Brush("#293443");
         resources["Text"] = Brush("#E7EDF7"); resources["Muted"] = Brush("#93A2B8"); resources["Accent"] = Brush(preferences.Accent);
         resources[SystemColors.WindowBrushKey] = resources["Panel"]; resources[SystemColors.WindowTextBrushKey] = resources["Text"];
         resources[SystemColors.ControlBrushKey] = resources["Raised"]; resources[SystemColors.ControlTextBrushKey] = resources["Text"];
@@ -30,7 +35,7 @@ internal static class UiTheme
             <Setter Property="Padding" Value="12,8"/><Setter Property="FontSize" Value="12"/>
             <Setter Property="HorizontalContentAlignment" Value="Center"/>
             <Setter Property="Template"><Setter.Value><ControlTemplate TargetType="Button">
-              <Border x:Name="Surface" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="1" CornerRadius="5" Padding="{TemplateBinding Padding}">
+              <Border x:Name="Surface" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="1" CornerRadius="7" Padding="{TemplateBinding Padding}">
                 <ContentPresenter HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}" VerticalAlignment="Center"/>
               </Border><ControlTemplate.Triggers>
                 <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="Surface" Property="BorderBrush" Value="{DynamicResource Accent}"/></Trigger>
@@ -46,7 +51,7 @@ internal static class UiTheme
             <Setter Property="CaretBrush" Value="{DynamicResource Accent}"/>
             <Setter Property="Template"><Setter.Value><ControlTemplate TargetType="TextBox">
               <Border x:Name="Outline" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="1" CornerRadius="4">
-                <Grid><ScrollViewer x:Name="PART_ContentHost" Margin="{TemplateBinding Padding}"/>
+                <Grid><ScrollViewer x:Name="PART_ContentHost"/>
                   <TextBlock x:Name="Hint" Text="{TemplateBinding Tag}" Foreground="{DynamicResource Muted}" Margin="{TemplateBinding Padding}" IsHitTestVisible="False" Visibility="Collapsed"/>
                 </Grid>
               </Border><ControlTemplate.Triggers>
@@ -112,7 +117,7 @@ internal static class UiTheme
                 <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
                   <StackPanel IsItemsHost="True" KeyboardNavigation.TabNavigation="Once"/>
                 </ScrollViewer>
-                <ContentPresenter Grid.Column="1" ContentSource="SelectedContent" Margin="{TemplateBinding Padding}"/>
+                <ContentPresenter Grid.Column="1" ContentSource="SelectedContent" Margin="{TemplateBinding Padding}" TextElement.Foreground="{DynamicResource Text}"/>
               </Grid>
             </ControlTemplate></Setter.Value></Setter>
           </Style>
@@ -193,7 +198,7 @@ internal static class UiTheme
             <Setter Property="Foreground" Value="{DynamicResource Text}"/><Setter Property="Background" Value="{DynamicResource Panel}"/>
             <Setter Property="Template"><Setter.Value><ControlTemplate TargetType="ContextMenu">
               <Border Background="{TemplateBinding Background}" BorderBrush="{DynamicResource Edge}" BorderThickness="1" CornerRadius="5" Padding="5">
-                <StackPanel IsItemsHost="True" KeyboardNavigation.DirectionalNavigation="Cycle"/>
+                <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" MaxHeight="480"><StackPanel IsItemsHost="True" KeyboardNavigation.DirectionalNavigation="Cycle"/></ScrollViewer>
               </Border>
             </ControlTemplate></Setter.Value></Setter>
           </Style>
@@ -223,6 +228,52 @@ internal static class UiTheme
           </Style>
           """);
         resources[MenuItem.SeparatorStyleKey] = resources[typeof(Separator)];
+        resources[typeof(CheckBox)] = XamlReader.Parse("""
+          <Style xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" TargetType="CheckBox">
+            <Setter Property="Foreground" Value="{DynamicResource Text}"/><Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Template"><Setter.Value><ControlTemplate TargetType="CheckBox">
+              <Border x:Name="Focus" BorderBrush="Transparent" BorderThickness="1" Padding="2" CornerRadius="3">
+                <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="20"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                  <Border x:Name="Box" Width="14" Height="14" CornerRadius="3" BorderBrush="{DynamicResource Muted}" BorderThickness="1" Background="{DynamicResource Panel}" VerticalAlignment="Center">
+                    <Path x:Name="Mark" Data="M 2 6 L 5 9 L 10 3" Stroke="{DynamicResource Accent}" StrokeThickness="2" Visibility="Collapsed"/>
+                  </Border>
+                  <ContentPresenter Grid.Column="1" VerticalAlignment="Center" Margin="4,0,0,0">
+                    <ContentPresenter.ContentTemplate><DataTemplate><TextBlock Text="{Binding}" TextWrapping="Wrap"/></DataTemplate></ContentPresenter.ContentTemplate>
+                  </ContentPresenter>
+                </Grid>
+              </Border><ControlTemplate.Triggers>
+                <Trigger Property="IsChecked" Value="True"><Setter TargetName="Mark" Property="Visibility" Value="Visible"/><Setter TargetName="Box" Property="BorderBrush" Value="{DynamicResource Accent}"/></Trigger>
+                <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="Focus" Property="Background" Value="{DynamicResource Raised}"/></Trigger>
+                <Trigger Property="IsKeyboardFocused" Value="True"><Setter TargetName="Focus" Property="BorderBrush" Value="{DynamicResource Accent}"/></Trigger>
+                <Trigger Property="IsEnabled" Value="False"><Setter Property="Opacity" Value="0.5"/></Trigger>
+              </ControlTemplate.Triggers>
+            </ControlTemplate></Setter.Value></Setter>
+          </Style>
+          """);
+        resources[typeof(ListBox)] = XamlReader.Parse("""
+          <Style xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" TargetType="ListBox">
+            <Setter Property="Background" Value="{DynamicResource Panel}"/><Setter Property="Foreground" Value="{DynamicResource Text}"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource Edge}"/><Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Padding" Value="4"/><Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+            <Setter Property="ScrollViewer.HorizontalScrollBarVisibility" Value="Auto"/>
+          </Style>
+          """);
+        resources[typeof(ListBoxItem)] = XamlReader.Parse("""
+          <Style xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" TargetType="ListBoxItem">
+            <Setter Property="Foreground" Value="{DynamicResource Text}"/><Setter Property="Background" Value="Transparent"/>
+            <Setter Property="Padding" Value="8,6"/><Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+            <Setter Property="Template"><Setter.Value><ControlTemplate TargetType="ListBoxItem">
+              <Border x:Name="Row" Background="{TemplateBinding Background}" BorderBrush="Transparent" BorderThickness="1" CornerRadius="4" Padding="{TemplateBinding Padding}">
+                <ContentPresenter HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}" VerticalAlignment="Center"/>
+              </Border><ControlTemplate.Triggers>
+                <Trigger Property="IsMouseOver" Value="True"><Setter Property="Background" Value="{DynamicResource Raised}"/></Trigger>
+                <Trigger Property="IsSelected" Value="True"><Setter Property="Background" Value="#29495A"/></Trigger>
+                <Trigger Property="IsKeyboardFocusWithin" Value="True"><Setter TargetName="Row" Property="BorderBrush" Value="{DynamicResource Accent}"/></Trigger>
+                <Trigger Property="IsEnabled" Value="False"><Setter Property="Opacity" Value="0.5"/></Trigger>
+              </ControlTemplate.Triggers>
+            </ControlTemplate></Setter.Value></Setter>
+          </Style>
+          """);
         resources[typeof(DataGrid)] = XamlReader.Parse("""
           <Style xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" TargetType="DataGrid">
             <Setter Property="Background" Value="#121B28"/><Setter Property="Foreground" Value="{DynamicResource Text}"/>
@@ -230,7 +281,7 @@ internal static class UiTheme
             <Setter Property="BorderBrush" Value="{DynamicResource Edge}"/><Setter Property="BorderThickness" Value="1"/>
             <Setter Property="GridLinesVisibility" Value="None"/><Setter Property="RowHeight" Value="38"/>
             <Setter Property="ColumnHeaderHeight" Value="40"/><Setter Property="FontSize" Value="12"/>
-            <Setter Property="SelectionUnit" Value="FullRow"/>
+            <Setter Property="SelectionUnit" Value="FullRow"/><Setter Property="HeadersVisibility" Value="Column"/>
             <Setter Property="ScrollViewer.VerticalScrollBarVisibility" Value="Visible"/>
             <Setter Property="ScrollViewer.HorizontalScrollBarVisibility" Value="Visible"/>
             <Setter Property="VirtualizingPanel.ScrollUnit" Value="Pixel"/>

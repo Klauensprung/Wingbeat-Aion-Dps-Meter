@@ -16,11 +16,14 @@ internal static class EncounterOverview
         new[] { live, current }.Concat(archive).DistinctBy(f => f.Id).Where(HasLocalDamage)
             .Where(f => f.Id == current.Id || f.Id == live.Id || string.IsNullOrWhiteSpace(search) ||
                 Title(f).Contains(search, StringComparison.OrdinalIgnoreCase) ||
+                f.Training?.Group.Contains(search, StringComparison.OrdinalIgnoreCase) == true ||
+                f.Training?.Notes.Contains(search, StringComparison.OrdinalIgnoreCase) == true ||
                 (f.ArchiveSummary?.Names ?? f.Actors.Values.Select(a => a.Name)).Any(n => n.Contains(search, StringComparison.OrdinalIgnoreCase)))
             .OrderByDescending(f => f.Id == live.Id).ThenByDescending(f => f.Created).ThenBy(f => f.Id).ToArray();
 
     internal static string Title(Fight fight)
     {
+        if (fight.Training != null) return "Training · " + fight.Label;
         string bosses = BossAnalysis.Summary(fight);
         return bosses.Length > 0 ? bosses : string.IsNullOrWhiteSpace(fight.Label) ? "Unclassified encounter" : fight.Label;
     }

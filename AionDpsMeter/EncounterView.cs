@@ -29,6 +29,8 @@ internal sealed class EncounterView : Grid
     readonly TextBlock subtitle = new() { FontSize = 11, Margin = new(0, 5, 0, 10), Foreground = UiTheme.Brush("#93A2B8") };
     readonly TextBlock skillHeading = new() { Text = "Skill damage - all participants", FontSize = 14, FontWeight = FontWeights.SemiBold, VerticalAlignment = VerticalAlignment.Center };
     readonly TextBlock empty = new() { Text = "Start capture to record an encounter, or select one from your saved history.", TextWrapping = TextWrapping.Wrap, Margin = new(8), Foreground = UiTheme.Brush("#93A2B8") };
+    readonly EncounterTimelinePlot timeline = new();
+    readonly TextBlock timelineLabel = new() { Text = "DAMAGE OVER TIME", FontSize = 10, FontWeight = FontWeights.SemiBold, Margin = new(0, 0, 0, 8) };
     readonly Func<int, string> skillName;
     Dictionary<string, Fight> choices = new();
     Fight? selected;
@@ -40,10 +42,11 @@ internal sealed class EncounterView : Grid
     internal EncounterView(Func<int, string> skillName, SkillIcons icons)
     {
         this.skillName = skillName;
+        heading.SetResourceReference(TextBlock.ForegroundProperty, "Text");
         Margin = new(8, 0, 8, 8);
         ColumnDefinitions.Add(new() { Width = new GridLength(1, GridUnitType.Star), MinWidth = 170, MaxWidth = 300 }); ColumnDefinitions.Add(new() { Width = new GridLength(3, GridUnitType.Star) });
-        var browser = new DockPanel { Margin = new(0, 0, 14, 0) };
-        var listTitle = new TextBlock { Text = "Encounters", FontSize = 15, FontWeight = FontWeights.SemiBold, Margin = new(0, 0, 0, 4) };
+        var browser = new DockPanel();
+        var listTitle = new TextBlock { Text = "Fight history", FontSize = 15, FontWeight = FontWeights.SemiBold, Margin = new(0, 0, 0, 4) };
         DockPanel.SetDock(listTitle, Dock.Top); browser.Children.Add(listTitle);
         historyCount.ToolTip = "All encounters with damage dealt by your character. Current first, then newest saved. Scroll for older encounters.";
         DockPanel.SetDock(historyCount, Dock.Top); browser.Children.Add(historyCount);
@@ -54,14 +57,15 @@ internal sealed class EncounterView : Grid
         var name = new FrameworkElementFactory(typeof(TextBlock)); name.SetBinding(TextBlock.TextProperty, new Binding("Encounter")); name.SetBinding(ToolTipProperty, new Binding("Encounter"));
         name.SetValue(TextBlock.FontWeightProperty, FontWeights.SemiBold); name.SetValue(TextBlock.TextTrimmingProperty, TextTrimming.CharacterEllipsis); item.AppendChild(name);
         var detail = new FrameworkElementFactory(typeof(TextBlock)); detail.SetBinding(TextBlock.TextProperty, new Binding("Detail")); detail.SetValue(TextBlock.FontSizeProperty, 10d);
+        detail.SetBinding(ToolTipProperty, new Binding("Detail")); detail.SetValue(TextBlock.TextTrimmingProperty, TextTrimming.CharacterEllipsis);
         detail.SetValue(TextBlock.ForegroundProperty, UiTheme.Brush("#93A2B8")); detail.SetValue(MarginProperty, new Thickness(0, 2, 0, 0)); item.AppendChild(detail);
         encounters.Columns.Add(new DataGridTemplateColumn { CellTemplate = new DataTemplate { VisualTree = item }, Width = new DataGridLength(1, DataGridLengthUnitType.Star) });
-        browser.Children.Add(encounters); Children.Add(browser);
+        browser.Children.Add(encounters); var historyCard = UiTheme.Card(browser, new Thickness(10)); historyCard.Margin = new(0, 0, 12, 0); Children.Add(historyCard);
         var body = new Grid(); SetColumn(body, 1); Children.Add(body);
-        body.RowDefinitions.Add(new() { Height = GridLength.Auto }); body.RowDefinitions.Add(new() { Height = new GridLength(1, GridUnitType.Star) });
+        body.RowDefinitions.Add(new() { Height = GridLength.Auto }); body.RowDefinitions.Add(new() { Height = GridLength.Auto }); body.RowDefinitions.Add(new() { Height = new GridLength(1, GridUnitType.Star) });
         var title = new StackPanel(); title.Children.Add(heading); title.Children.Add(subtitle); title.Children.Add(empty); body.Children.Add(title);
         var participantPanel = new DockPanel();
-        var participantTitle = new TextBlock { Text = "Players - highest DPS first", FontSize = 14, FontWeight = FontWeights.SemiBold, Margin = new(0, 0, 0, 6) };
+        var participantTitle = new TextBlock { Text = "Party performance", ToolTip = "Ranked by DPS. Select a player to inspect their skills and timeline.", FontSize = 14, FontWeight = FontWeights.SemiBold, Margin = new(0, 0, 0, 10) };
         DockPanel.SetDock(participantTitle, Dock.Top); participantPanel.Children.Add(participantTitle); participantPanel.Children.Add(participants);
         var player = new FrameworkElementFactory(typeof(DockPanel));
         var classIcon = new FrameworkElementFactory(typeof(Image));
@@ -87,7 +91,9 @@ internal sealed class EncounterView : Grid
         DockPanel.SetDock(all, Dock.Right); skillTitle.Children.Add(all); skillTitle.Children.Add(skillHeading);
         all.Click += (_, _) => { participantId = null; updating = true; participants.SelectedItem = null; updating = false; RefreshSkills(); };
         var skillPanel = new DockPanel(); DockPanel.SetDock(skillTitle, Dock.Top); skillPanel.Children.Add(skillTitle); skillPanel.Children.Add(skills);
-        var split = new SplitView(participantPanel, skillPanel, .48, 100, 100); SetRow(split, 1); body.Children.Add(split);
+        var graph = new StackPanel(); graph.Children.Add(timelineLabel); graph.Children.Add(timeline);
+        var graphCard = UiTheme.Card(graph, new Thickness(10)); graphCard.Margin = new(0, 0, 0, 10); SetRow(graphCard, 1); body.Children.Add(graphCard);
+        var split = new SplitView(UiTheme.Card(participantPanel, new Thickness(10, 8, 10, 8)), UiTheme.Card(skillPanel, new Thickness(10, 8, 10, 8)), .48, 110, 110); SetRow(split, 2); body.Children.Add(split);
         TextColumn(skills, "Participant", "Participant", 130);
         var skill = new FrameworkElementFactory(typeof(DockPanel));
         var image = new FrameworkElementFactory(typeof(Image)); image.SetValue(WidthProperty, 24d); image.SetValue(HeightProperty, 24d); image.SetValue(MarginProperty, new Thickness(0, 0, 7, 0));
@@ -119,7 +125,7 @@ internal sealed class EncounterView : Grid
             selected = current; liveId = live.Id; search = searchText;
             choices = new[] { live, current }.Concat(archive).DistinctBy(f => f.Id).ToDictionary(f => f.Id);
             var history = EncounterOverview.History(current, live, archive, search);
-            historyCount.Text = $"{history.Length} {(history.Length == 1 ? "encounter" : "encounters")} - scroll for older";
+            historyCount.Text = $"{history.Length:N0} {(history.Length == 1 ? "encounter" : "encounters")}";
             var entries = history
                 .Select(f => new Entry(f.Id, EncounterOverview.Title(f), (f.Id == live.Id ? capturing ? "LIVE" : "CURRENT" : f.Demo ? "DEMO" : "SAVED") + "  |  " + f.Created.ToLocalTime().ToString("dd MMM HH:mm") + "  |  " + MeterPresentation.Duration(f))).ToArray();
             encounters.SetRows(entries); encounters.SelectedItem = encounters.Items.Cast<Entry>().FirstOrDefault(e => e.Id == current.Id);
@@ -139,6 +145,8 @@ internal sealed class EncounterView : Grid
         var people = currentPeople.Where(p => participantId == null || p.Id == participantId).ToArray();
         skills.SetRows(EncounterOverview.Skills(selected, people.Select(p => p.Id), skillName));
         skillHeading.Text = participantId == null ? "Skill damage - all participants" : "Skill damage - " + selected.Name(participantId.Value);
+        timelineLabel.Text = participantId == null ? "PARTY DAMAGE OVER TIME" : selected.Name(participantId.Value).ToUpperInvariant() + " · DAMAGE OVER TIME";
+        timeline.Update(selected, people.Select(p => p.Id));
     }
     internal void CheckPresentation(Fight fight)
     {
@@ -160,6 +168,9 @@ internal sealed class EncounterView : Grid
                 throw new InvalidOperationException("Changing live encounter values lost the encounter, participant or skill selection.");
         }
         Update(fight, live, archive, false, search);
+        int builds = timeline.Builds; RefreshSkills();
+        if (timeline.Builds != builds || timeline.BucketCount is < 1 or > 120)
+            throw new InvalidOperationException("Encounter timeline rebuilt unchanged data or exceeded its rendering budget.");
         participantId = null; participants.SelectedItem = null; RefreshSkills();
         if (skills.Items.Count != EncounterOverview.Skills(fight, EncounterOverview.Participants(fight).Select(p => p.Id), skillName).Length)
             throw new InvalidOperationException("All-participant skill breakdown did not restore all rows.");

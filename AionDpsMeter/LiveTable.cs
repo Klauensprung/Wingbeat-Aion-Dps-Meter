@@ -5,6 +5,8 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Data;
 using System.Windows.Media;
+using System.Windows.Documents;
+using System.Collections.Specialized;
 
 namespace AionDpsMeter.Local;
 
@@ -12,7 +14,33 @@ namespace AionDpsMeter.Local;
 // Immutable analysis records are replaced only when their values change.
 internal sealed class LiveTable : DataGrid
 {
-    public LiveTable() => SetResourceReference(StyleProperty, typeof(DataGrid));
+    TableEmptyAdorner? emptyState;
+    AdornerLayer? emptyLayer;
+    string emptyTitle = "Nothing to show yet", emptyHint = "Results appear here when data is available.";
+    internal bool EmptyStateVisible => emptyState?.Visibility == Visibility.Visible;
+    public LiveTable()
+    {
+        SetResourceReference(StyleProperty, typeof(DataGrid));
+        Loaded += (_, _) => {
+            if (emptyState != null) return;
+            emptyLayer = AdornerLayer.GetAdornerLayer(this);
+            if (emptyLayer == null) return;
+            emptyState = new(this); emptyLayer.Add(emptyState); UpdateEmptyState();
+        };
+        Unloaded += (_, _) => { if (emptyState != null) emptyLayer?.Remove(emptyState); emptyState = null; emptyLayer = null; };
+    }
+    internal void DescribeEmpty(string title, string hint)
+    {
+        if (emptyTitle == title && emptyHint == hint) return;
+        emptyTitle = title; emptyHint = hint; UpdateEmptyState();
+    }
+    protected override void OnItemsChanged(NotifyCollectionChangedEventArgs e) { base.OnItemsChanged(e); UpdateEmptyState(); }
+    void UpdateEmptyState()
+    {
+        if (emptyState == null) return;
+        emptyState.Update(emptyTitle, emptyHint);
+        emptyState.Visibility = Items.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
+    }
     protected override void OnAutoGeneratingColumn(DataGridAutoGeneratingColumnEventArgs e)
     {
         base.OnAutoGeneratingColumn(e);

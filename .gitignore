@@ -82,5 +82,13 @@ Desktop.ini
 
 # Downloaded boss catalogue source pages (maintainer input only).
 .cache/boss-catalogue/
+.cache/pet-catalogue/
+.cache/field-boss-catalogue/
+.cache/effect-catalogue/
+.cache/item-catalogue/
+.cache/zone-catalogue/
 /AionDpsMeter/Properties/PublishProfiles/FolderProfile.pubxml
 /.github/copilot-instructions.md
+
+# Compact factual marker catalogue embedded in the app.
+!/AionDpsMeter/Assets/map-markers.zip

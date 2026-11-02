@@ -8,6 +8,66 @@ internal static class OverlayBehaviorTests
 {
     public static void Run(Action<bool, string> check, string temp)
     {
+        var healthFight = FeatureTests.Sample();
+        void Hp(int id, long hp, long time) => healthFight.Network.Add(new("hp", time, "", JsonSerializer.SerializeToElement(new { EntityId = id, CurrentHp = hp })));
+        Hp(1, 5000, 100); Hp(1, 6000, 90); Hp(2, 7000, 300);
+        healthFight.Deaths.Add(new(1, 200)); healthFight.Deaths.Add(new(2, 200));
+        var readings = CapturedHealth.Build(healthFight);
+        check(readings[1].Value == 0 && readings[2].Value == 7000,
+            "Captured health orders samples and deaths by timestamp and recognizes newer positive health after revival");
+        Hp(1, 8000, 200); Hp(3, -1, 200); Hp(4, 10, -1);
+        healthFight.Network.Add(new("hp", 300, "", JsonSerializer.SerializeToElement(new { EntityId = "invalid", CurrentHp = 100 })));
+        healthFight.Network.Add(new("hp", 300, "", JsonSerializer.SerializeToElement("invalid")));
+        readings = CapturedHealth.Build(healthFight);
+        check(readings[1].Value == 0 && !readings.ContainsKey(3) && !readings.ContainsKey(4),
+            "Death wins tied health timestamps and malformed or negative health is ignored");
+        healthFight.Actors[99] = healthFight.Actors[2] with { Id = 99, OriginalEntityId = 2 };
+        healthFight.Deaths.Clear();
+        readings = CapturedHealth.Build(healthFight);
+        check(!readings.ContainsKey(2) && !readings.ContainsKey(99) && CapturedHealth.Build(new Fight()).Count == 0,
+            "Recycled entity IDs do not inherit ambiguous health and new fights start without stale health");
+        var targeted = FeatureTests.Sample();
+        targeted.Actors[100] = targeted.Actors[100] with { NpcId = 2300371 };
+        targeted.Actors[101] = new(101, "Nearby creature", false, false, 0, "Unknown", 0);
+        targeted.Actors[11] = new(11, "Nearby player", true, false, 0, "Ranger", 0);
+        targeted.Damage.Add(new() { ActorId = 1, TargetId = 101, Damage = 9000, Timestamp = 61000 });
+        targeted.Damage.Add(new() { ActorId = 100, TargetId = 1, Damage = 4000, Timestamp = 20000 });
+        targeted.Damage.Add(new() { ActorId = 11, TargetId = 100, Damage = 500, Timestamp = 20000 });
+        var bossView = OverlayCombatFilter.Apply(targeted, true, 0);
+        var targetView = OverlayCombatFilter.Apply(targeted, false, 100);
+        check(bossView.Damage.Count == 3 && bossView.Damage.All(h => h.TargetId == 100) &&
+            targetView.Damage.SequenceEqual(bossView.Damage) && targetView.Seconds == targeted.Seconds &&
+            PersonalSkills.Build(targetView, false).Sum(s => s.Rate) == 2000 / targeted.Seconds,
+            "Boss and selected-target filters retain outgoing damage and full-encounter DPS duration");
+        check(ReferenceEquals(OverlayCombatFilter.Apply(targeted, false, 0), targeted) && targeted.Damage.Count == 5 &&
+            ReferenceEquals(targeted.Actors, targetView.Actors) && OverlayCombatFilter.Apply(targeted, false, 999).Damage.Count == 0,
+            "Target views preserve the original snapshot, share metadata and handle empty targets");
+        check(OverlayCombatFilter.Apply(targeted, false, 1).Healing.Sum(h => h.Damage) == 350 &&
+            OverlayCombatFilter.Targets(targeted).Distinct().Count() == OverlayCombatFilter.Targets(targeted).Length,
+            "Healing target filters select recipients and target choices are unique");
+        var targetTotals = Analysis.Totals(targetView);
+        check(MeterPresentation.Build(targetView, targetTotals, actorScope: "Self").Rows.Select(r => r.Id).SequenceEqual(new[] { 1 }) &&
+            MeterPresentation.Build(targetView, targetTotals, actorScope: "Players", limit: 50).Rows.Any(r => r.Id == 11) &&
+            MeterPresentation.Build(targetView, targetTotals, actorScope: "Party").Rows.All(r => r.Id != 11),
+            "Self, nearby players and party scopes select distinct actors after target filtering");
+        bool rejectedView = false;
+        try { new FightStore(Path.Combine(temp, "filtered-view")).Save(targetView.Copy()); }
+        catch (InvalidOperationException) { rejectedView = true; }
+        check(rejectedView, "A filtered display or its copy cannot overwrite a saved encounter");
+        check(!new Preferences().OverlayShowSkills && JsonSerializer.Deserialize<Preferences>(JsonSerializer.Serialize(new Preferences { OverlayShowSkills = true }))!.OverlayShowSkills,
+            "Personal skill view is optional and persists through preferences");
+        var skillsFight = FeatureTests.Sample();
+        skillsFight.Damage.Add(new() { ActorId = 2, TargetId = 100, SkillCode = 999, Damage = 999999, Timestamp = 5000 });
+        skillsFight.Damage.Add(new() { ActorId = 1, TargetId = 100, SkillCode = 17010001, Damage = 500, Timestamp = 5000, IsCritical = true });
+        var ownSkills = PersonalSkills.Build(skillsFight, false);
+        check(ownSkills.Length == 2 && ownSkills[0].Code == 17010001 && ownSkills.Sum(s => s.Amount) == 2500 &&
+            Math.Abs(ownSkills.Sum(s => s.Share) - 100) < .001 && ownSkills[0].Fraction == 1 && ownSkills[0].Hits == 2 && ownSkills[0].Crit == 100 &&
+            Math.Abs(ownSkills.Sum(s => s.Rate) - 2500 / skillsFight.Seconds) < .001,
+            "Personal skills rank only local damage and preserve totals, shares, hits, crit and fight-wide DPS");
+        check(PersonalSkills.Build(skillsFight, true).Single().Amount == 1000,
+            "Personal healing skills use only local healing events");
+        skillsFight.LocalPlayer = 0;
+        check(PersonalSkills.Build(skillsFight, false).Length == 0, "Missing local identity never guesses another player's skills");
         check(!new Preferences().OverlayPinLocal && !JsonSerializer.Deserialize<Preferences>("{}")!.OverlayPinLocal &&
             JsonSerializer.Deserialize<Preferences>(JsonSerializer.Serialize(new Preferences { OverlayPinLocal = true }))!.OverlayPinLocal,
             "Pinning is opt-in for fresh and existing settings and persists when enabled");
@@ -67,12 +127,12 @@ internal static class OverlayBehaviorTests
         Death(new { EntityId = 1 }, 30000);
         check(engine.Fight.Deaths.Count == 1, "Death deduplication resets with the encounter");
         var decoder = new EuGameDecoder();
-        byte[] body = [12, ..BitConverter.GetBytes(17010020u), 13, 0, 0];
+        byte[] body = [12, ..BitConverter.GetBytes(17010020u), 13, 0, 0, 0, 0, 0, 0, 0, ..new byte[4], 0, 0];
         var decoded = decoder.Decode(new CapturedPayload(13328, 50000, [(byte)(body.Length + 6), 4, 0x8d, ..body]) { TimestampMs = 1000 });
         check(decoded.Events.Single().Network is { Kind: "entity-death" } death && death.Fields.GetProperty("EntityId").GetInt32() == 12,
             "Full death records count the victim even when the killer has no player identity");
         body = [12, 0, 0, 0, 0, 0, 0, 0];
         check(new EuGameDecoder().Decode(new CapturedPayload(13328, 50000, [(byte)(body.Length + 6), 4, 0x8d, ..body])).Events.Count == 0,
-            "Ambiguous empty appearance records do not manufacture deaths");
+            "Incomplete death records do not manufacture deaths");
     }
 }

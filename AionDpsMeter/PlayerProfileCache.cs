@@ -34,7 +34,7 @@ public sealed class PlayerProfileCache
             foreach (var e in loaded) entries[(e.Server, e.Name)] = e;
             localIdentity = state.LocalPlayer;
         }
-        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or JsonException) {
+        catch (Exception ex) when (ex is IOException or InvalidDataException or UnauthorizedAccessException or JsonException) {
             LocalLog.Write("Player profile cache could not be loaded; starting with an empty cache.");
         }
     }
@@ -75,8 +75,8 @@ public sealed class PlayerProfileCache
                 entries[key] = next; revision++;
             }
             fight.Actors[actor.Id] = actor with {
-                Cp = actor.Cp > 0 ? actor.Cp : cp,
-                CpSource = actor.Cp > 0 || cp == 0 ? actor.CpSource : CachedSource,
+                Cp = actor.Cp > 0 || actor.CpSource is "Captured party" or "Player spawn packet" or "Local character packet" or "Local CP update" ? actor.Cp : cp,
+                CpSource = actor.Cp > 0 || cp == 0 || actor.CpSource is "Captured party" or "Player spawn packet" or "Local character packet" or "Local CP update" ? actor.CpSource : CachedSource,
                 CachedJob = job
             };
         }

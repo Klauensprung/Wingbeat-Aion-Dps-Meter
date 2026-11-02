@@ -1,0 +1,3737 @@
+{
+  "Version": 1,
+  "GameVersion": "2026.10.28",
+  "RetrievedUtc": "2026-10-31T01:44:01.806782+00:00",
+  "Source": "https://aion2data.com/pets",
+  "SourceSha256": "923f9aa7fcb3746659102e7bf639543ecce53abb4126440cfcf5954fdea9bff0",
+  "Pets": [
+    {
+      "Id": 1001,
+      "Name": "Black Dragon",
+      "Family": "Special",
+      "SummonSouls": 5,
+      "SoulSource": "",
+      "Source": "https://aion2data.com/pets/1001-black-dragon",
+      "Level2Souls": 25,
+      "Level3Souls": 75,
+      "DetailSha256": "3e268972edd0af6bc50ad5fc46d76e0033c963993e3a5e5ce55ff50c74c805ae",
+      "Locations": []
+    },
+    {
+      "Id": 1002,
+      "Name": "Krall Laborer",
+      "Family": "Cogni",
+      "SummonSouls": 5,
+      "SoulSource": "Krall Armed Soldier",
+      "Source": "https://aion2data.com/pets/1002-krall-laborer",
+      "Level2Souls": 25,
+      "Level3Souls": 75,
+      "DetailSha256": "9766bc0aad30e0ee79670e42127bf0f97d245f0f678592bf78d04017bb492a87",
+      "Locations": [
+        {
+          "Region": "Verteron",
+          "Faction": "Elyos"
+        }
+      ]
+    },
+    {
+      "Id": 1003,
+      "Name": "Forest Specter",
+      "Family": "Natura",
+      "SummonSouls": 5,
+      "SoulSource": "Canyon Vine Spirit",
+      "Source": "https://aion2data.com/pets/1003-forest-specter",
+      "Level2Souls": 25,
+      "Level3Souls": 75,
+      "DetailSha256": "9580369234874ec12d340fb755daa38d7a0e437041e771fadd0ff3b62cc3b6cf",
+      "Locations": [
+        {
+          "Region": "Verteron",
+          "Faction": "Elyos"
+        }
+      ]
+    },
+    {
+      "Id": 1004,
+      "Name": "Fossa",
+      "Family": "Fera",
+      "SummonSouls": 5,
+      "SoulSource": "Daeva Renegade Fossa",
+      "Source": "https://aion2data.com/pets/1004-fossa",
+      "Level2Souls": 25,
+      "Level3Souls": 75,
+      "DetailSha256": "8b5f60a127989d0772555b9dd05b32d3065bbc153f154bf7772c4b4f44b770fa",
+      "Locations": [
+        {
+          "Region": "Altgard",
+          "Faction": "Asmodian"
+        },
+        {
+          "Region": "Verteron",
+          "Faction": "Elyos"
+        }
+      ]
+    },
+    {
+      "Id": 1005,
+      "Name": "Klaw",
+      "Family": "Cogni",
+      "SummonSouls": 5,
+      "SoulSource": "Wandering Klaw",
+      "Source": "https://aion2data.com/pets/1005-klaw",
+      "Level2Souls": 25,
+      "Level3Souls": 75,
+      "DetailSha256": "cad23b02bf5363dd423852f95f6321850e2d27be884efca42ce5a74fcf74fac6",
+      "Locations": [
+        {
+          "Region": "Chaotic Lower Reshanta",
+          "Faction": "Abyss"
+        },
+        {
+          "Region": "Chaotic Middle Reshanta",
+          "Faction": "Abyss"
+        },
+        {
+          "Region": "Verteron",
+          "Faction": "Elyos"
+        }
+      ]
+    },
+    {
+      "Id": 1006,
+      "Name": "Sparkie",
+      "Family": "Fera",
+      "SummonSouls": 5,
+      "SoulSource": "Meadow Sparkie",
+      "Source": "https://aion2data.com/pets/1006-sparkie",
+      "Level2Souls": 25,
+      "Level3Souls": 75,
+      "DetailSha256": "3843bd939b2144b70e23c60067dd11aa0c75437e6239d8c6100278eb9f27394f",
+      "Locations": [
+        {
+          "Region": "Verteron",
+          "Faction": "Elyos"
+        }
+      ]
+    },
+    {
+      "Id": 1007,
+      "Name": "Potcrab",
+      "Family": "Fera",
+      "SummonSouls": 5,
+      "SoulSource": "Marsh Moss Potcrab",
+      "Source": "https://aion2data.com/pets/1007-potcrab",
+      "Level2Souls": 25,
+      "Level3Souls": 75,
+      "DetailSha256": "f5634486522328f1c7d9611d7e3a1b994e62d92c36357c93699a6227aabd4e3b",
+      "Locations": [
+        {
+          "Region": "Verteron",
+          "Faction": "Elyos"
+        },
+        {
+          "Region": "Altgard",
+          "Faction": "Asmodian"
+        }
+      ]
+    },
+    {
+      "Id": 1008,
+      "Name": "Baby Odyle Spider",
+      "Family": "Fera",
+      "SummonSouls": 5,
+      "SoulSource": "Coastal Odyle Spider",
+      "Source": "https://aion2data.com/pets/1008-baby-odyle-spider",
+      "Level2Souls": 25,
+      "Level3Souls": 75,
+      "DetailSha256": "01c7964d13012e82725521c8c00759e8c220a0927b2df5d897c96ebeedfacb10",
+      "Locations": [
+        {
+          "Region": "Verteron",
+          "Faction": "Elyos"
+        }
+      ]
+    },
+    {
+      "Id": 1009,
+      "Name": "Kernon",
+      "Family": "Fera",
+      "SummonSouls": 5,
+      "SoulSource": "chests",
+      "Source": "https://aion2data.com/pets/1009-kernon",
+      "Level2Souls": 25,
+      "Level3Souls": 75,
+      "DetailSha256": "22e7074d63b50e2557d2deb57867f544a4f2e998691692828a43858c36616fbf",
+      "Locations": []
+    },
+    {
+      "Id": 1010,
+      "Name": "Manduri Fighter",
+      "Family": "Cogni",
+      "SummonSouls": 5,
+      "SoulSource": "Black Claw Manduri Combatant",
+      "Source": "https://aion2data.com/pets/1010-manduri-fighter",
+      "Level2Souls": 25,
+      "Level3Souls": 75,
+      "DetailSha256": "b1ce65ce9526dc5651c745dc8fef2bc792025be251832eebcd47af38a544b6f5",
+      "Locations": [
+        {
+          "Region": "Altgard",
+          "Faction": "Asmodian"
+        },
+        {
+          "Region": "Verteron",
+          "Faction": "Elyos"
+        }
+      ]
+    },
+    {
+      "Id": 1011,
+      "Name": "Skyray",
+      "Family": "Fera",
+      "SummonSouls": 5,
+      "SoulSource": "Cantas Valley Skyray",
+      "Source": "https://aion2data.com/pets/1011-skyray",
+      "Level2Souls": 25,
+      "Level3Souls": 75,
+      "DetailSha256": "a4bcd1152fb0a475023bbfca9c3f3a4bfa047bc97480930b19ee739d9b34d2a6",
+      "Locations": [
+        {
+          "Region": "Verteron",
+          "Faction": "Elyos"
+        },
+        {
+          "Region": "Altgard",
+          "Faction": "Asmodian"
+        }
+      ]
+    },
+    {
+      "Id": 1012,
+      "Name": "Fungie",
+      "Family": "Natura",
+      "SummonSouls": 5,
+      "SoulSource": "Red Cap Fungie",
+      "Source": "https://aion2data.com/pets/1012-fungie",
+      "Level2Souls": 25,
+      "Level3Souls": 75,
+      "DetailSha256": "3a21ecde2003945db259dd2912f1abbdf8295ada2a9b5636a7dd3700e4c8a2fc",
+      "Locations": [
+        {
+          "Region": "Verteron",
+          "Faction": "Elyos"
+        }
+      ]
+    },
+    {
+      "Id": 1013,
+      "Name": "Swarm",
+      "Family": "Varian",
+      "SummonSouls": 5,
+      "SoulSource": "Contaminated Swarm",
+      "Source": "https://aion2data.com/pets/1013-swarm",
+      "Level2Souls": 25,
+      "Level3Souls": 75,
+      "DetailSha256": "21e3cce744eb6699ea8918b3466c28ec081ce8156d263468fe26ea1eaa7a8fe3",
+      "Locations": [
+        {
+          "Region": "Chaotic Lower Reshanta",
+          "Faction": "Abyss"
+        },
+        {
+          "Region": "Altgard",
+          "Faction": "Asmodian"
+        }
+      ]
+    },
+    {
+      "Id": 1014,
+      "Name": "Drakan Guard Dog",
+      "Family": "Fera",
+      "SummonSouls": 5,
+      "SoulSource": "Drakan Guard Dog",
+      "Source": "https://aion2data.com/pets/1014-drakan-guard-dog",
+      "Level2Souls": 25,
+      "Level3Souls": 75,
+      "DetailSha256": "7d2751b970acefa10b928e128792b6f99a97294f3d41756f2450f427d39473ee",
+      "Locations": [
+        {
+          "Region": "Chaotic Lower Reshanta",
+          "Faction": "Abyss"
+        },
+        {
+          "Region": "Altgard",
+          "Faction": "Asmodian"
+        },
+        {
+          "Region": "Verteron",
+          "Faction": "Elyos"
+        }
+      ]
+    },
+    {
+      "Id": 1015,
+      "Name": "Kailin",
+      "Family": "Fera",
+      "SummonSouls": 5,
+      "SoulSource": "Ellun River Kailin",
+      "Source": "https://aion2data.com/pets/1015-kailin",
+      "Level2Souls": 25,
+      "Level3Souls": 75,
+      "DetailSha256": "575cc28a2328dcf10cefa7a207d5ef9d91f0b0f7e7bfbc2ff72c73d90d7f4429",
+      "Locations": [
+        {
+          "Region": "Altgard",
+          "Faction": "Asmodian"
+        },
+        {
+          "Region": "Verteron",
+          "Faction": "Elyos"
+        }
+      ]
+    },
+    {
+      "Id": 1016,
+      "Name": "Slink",
+      "Family": "Fera",
+      "SummonSouls": 5,
+      "SoulSource": "Wetland Slink",
+      "Source": "https://aion2data.com/pets/1016-slink",
+      "Level2Souls": 25,
+      "Level3Souls": 75,
+      "DetailSha256": "1af4760c8a910b0a489eaf4b9798ec4a896b757adf44c2dd7b6a475779e460dd",
+      "Locations": [
+        {
+          "Region": "Verteron",
+          "Faction": "Elyos"
+        },
+        {
+          "Region": "Altgard",
+          "Faction": "Asmodian"
+        },
+        {
+          "Region": "Chaotic Lower Reshanta",
+          "Faction": "Abyss"
+        }
+      ]
+    },
+    {
+      "Id": 1017,
+      "Name": "Krall Warshaman",
+      "Family": "Cogni",
+      "SummonSouls": 5,
+      "SoulSource": "Krall Warshaman",
+      "Source": "https://aion2data.com/pets/1017-krall-warshaman",
+      "Level2Souls": 25,
+      "Level3Souls": 75,
+      "DetailSha256": "77fb9d50d199b325969d98c4318bf4fdc17309e2bd2a4fe5f69a1d8e58b433f5",
+      "Locations": [
+        {
+          "Region": "Verteron",
+          "Faction": "Elyos"
+        }
+      ]
+    },
+    {
+      "Id": 1018,
+      "Name": "Varg Berserker",
+      "Family": "Cogni",
+      "SummonSouls": 5,
+      "SoulSource": "Varg Berserker",
+      "Source": "https://aion2data.com/pets/1018-varg-berserker",
+      "Level2Souls": 25,
+      "Level3Souls": 75,
+      "DetailSha256": "c6d7e755802fc4b73b6c05db1abcdc5ba22a7b234669dfca6ec2ec2cd4df0d82",
+      "Locations": [
+        {
+          "Region": "Altgard",
+          "Faction": "Asmodian"
+        }
+      ]
+    },
+    {
+      "Id": 1021,
+      "Name": "Aberrant Odyle Spider",
+      "Family": "Fera",
+      "SummonSouls": 5,
+      "SoulSource": "chests",
+      "Source": "https://aion2data.com/pets/1021-aberrant-odyle-spider",
+      "Level2Souls": 25,
+      "Level3Souls": 75,
+      "DetailSha256": "da40d3b5cc4b261f04f43ffef1c024053ed1f6e0036ba4594cdc131d7c05f540",
+      "Locations": []
+    },
+    {
+      "Id": 1022,
+      "Name": "Crasaur",
+      "Family": "Fera",
+      "SummonSouls": 5,
+      "SoulSource": "Aquascale Crasaur",
+      "Source": "https://aion2data.com/pets/1022-crasaur",
+      "Level2Souls": 25,
+      "Level3Souls": 75,
+      "DetailSha256": "6c8241d079fe470ee652e18943ec05e3e6ec5b401777e226b72da1537a2a36cd",
+      "Locations": [
+        {
+          "Region": "Verteron",
+          "Faction": "Elyos"
+        },
+        {
+          "Region": "Altgard",
+          "Faction": "Asmodian"
+        }
+      ]
+    },
+    {
+      "Id": 1025,
+      "Name": "Mutated Aberrant Odyle Spider",
+      "Family": "Fera",
+      "SummonSouls": 5,
+      "SoulSource": "Marsh Odyle Spider",
+      "Source": "https://aion2data.com/pets/1025-mutated-aberrant-odyle-spider",
+      "Level2Souls": 25,
+      "Level3Souls": 75,
+      "DetailSha256": "39caf6615813bf3b77d81aa3e7da7d5014a03b5569e0a812779f632ffae46a05",
+      "Locations": [
+        {
+          "Region": "Verteron",
+          "Faction": "Elyos"
+        },
+        {
+          "Region": "Altgard",
+          "Faction": "Asmodian"
+        }
+      ]
+    },
+    {
+      "Id": 1026,
+      "Name": "Krall Warrior",
+      "Family": "Cogni",
+      "SummonSouls": 5,
+      "SoulSource": "Krall Assault Trooper",
+      "Source": "https://aion2data.com/pets/1026-krall-warrior",
+      "Level2Souls": 25,
+      "Level3Souls": 75,
+      "DetailSha256": "54dbee57ab176c4583826e07b81f1cbc3ea7bb6f99d30bd05efeac91a9e20dc8",
+      "Locations": [
+        {
+          "Region": "Verteron",
+          "Faction": "Elyos"
+        }
+      ]
+    },
+    {
+      "Id": 1027,
+      "Name": "Withered Agrint",
+      "Family": "Natura",
+      "SummonSouls": 5,
+      "SoulSource": "Withered Canyon Agrint",
+      "Source": "https://aion2data.com/pets/1027-withered-agrint",
+      "Level2Souls": 25,
+      "Level3Souls": 75,
+      "DetailSha256": "d6795f96e416ff11a51e15e2dce30237572d8448ff1025c2ba8c061c052a7e63",
+      "Locations": [
+        {
+          "Region": "Verteron",
+          "Faction": "Elyos"
+        },
+        {
+          "Region": "Chaotic Lower Reshanta",
+          "Faction": "Abyss"
+        }
+      ]
+    },
+    {
+      "Id": 1028,
+      "Name": "Krao Mutant",
+      "Family": "Varian",
+      "SummonSouls": 5,
+      "SoulSource": "chests",
+      "Source": "https://aion2data.com/pets/1028-krao-mutant",
+      "Level2Souls": 25,
+      "Level3Souls": 75,
+      "DetailSha256": "050bcd9f9b45052461967839559fb24f1345ccd40396686c6f1db93d8c18e6e9",
+      "Locations": []
+    },
+    {
+      "Id": 1029,
+      "Name": "Klaw Scout",
+      "Family": "Cogni",
+      "SummonSouls": 5,
+      "SoulSource": "Consumed Klaw",
+      "Source": "https://aion2data.com/pets/1029-klaw-scout",
+      "Level2Souls": 25,
+      "Level3Souls": 75,
+      "DetailSha256": "3a8b4434abb035d51f3ec1843abb841cf60f0e9221aea0bc48f2c65aba4122a9",
+      "Locations": [
+        {
+          "Region": "Chaotic Lower Reshanta",
+          "Faction": "Abyss"
+        },
+        {
+          "Region": "Altgard",
+          "Faction": "Asmodian"
+        }
+      ]
+    },
+    {
+      "Id": 1030,
+      "Name": "Nagarant Guardian Warrior",
+      "Family": "Cogni",
+      "SummonSouls": 5,
+      "SoulSource": "Abyss Nagarant Brawler",
+      "Source": "https://aion2data.com/pets/1030-nagarant-guardian-warrior",
+      "Level2Souls": 25,
+      "Level3Souls": 75,
+      "DetailSha256": "093ffdb3dc733d9a4b60ee9cf4a22a6afae7e9a959243c0df7c3634d67801464",
+      "Locations": [
+        {
+          "Region": "Chaotic Lower Reshanta",
+          "Faction": "Abyss"
+        }
+      ]
+    },
+    {
+      "Id": 1031,
+      "Name": "Konutin Worker",
+      "Family": "Natura",
+      "SummonSouls": 5,
+      "SoulSource": "Tolbas Konutin Worker",
+      "Source": "https://aion2data.com/pets/1031-konutin-worker",
+      "Level2Souls": 25,
+      "Level3Souls": 75,
+      "DetailSha256": "dd5ba7a09ff8889c68cd76cde87f99e1d1874a595294cc67eb772eb72f2651b8",
+      "Locations": [
+        {
+          "Region": "Verteron",
+          "Faction": "Elyos"
+        }
+      ]
+    },
+    {
+      "Id": 1032,
+      "Name": "Elite Keneire",
+      "Family": "Fera",
+      "SummonSouls": 5,
+      "SoulSource": "chests",
+      "Source": "https://aion2data.com/pets/1032-elite-keneire",
+      "Level2Souls": 25,
+      "Level3Souls": 75,
+      "DetailSha256": "e8a9c8e58630cde7a7ba698062612c9e0ee6a05e5de9a3061515dc8ca2657336",
+      "Locations": []
+    },
+    {
+      "Id": 1033,
+      "Name": "Elite Manduri Fighter",
+      "Family": "Cogni",
+      "SummonSouls": 5,
+      "SoulSource": "Wandering Manduri Fighter",
+      "Source": "https://aion2data.com/pets/1033-elite-manduri-fighter",
+      "Level2Souls": 25,
+      "Level3Souls": 75,
+      "DetailSha256": "c1a5d69dfd03463c70cef204c43b2a169509f86000dfcc630081fcd168da043c",
+      "Locations": [
+        {
+          "Region": "Altgard",
+          "Faction": "Asmodian"
+        },
+        {
+          "Region": "Verteron",
+          "Faction": "Elyos"
+        }
+      ]
+    },
+    {
+      "Id": 1034,
+      "Name": "Giant Sparkie",
+      "Family": "Fera",
+      "SummonSouls": 5,
+      "SoulSource": "Splendent Hill Sparkie",
+      "Source": "https://aion2data.com/pets/1034-giant-sparkie",
+      "Level2Souls": 25,
+      "Level3Souls": 75,
+      "DetailSha256": "ee2947194f219bb2213702246d4796f07a2e24770a6f0bed0b6cb98919fdc14f",
+      "Locations": [
+        {
+          "Region": "Verteron",
+          "Faction": "Elyos"
+        },
+        {
+          "Region": "Altgard",
+          "Faction": "Asmodian"
+        }
+      ]
+    },
+    {
+      "Id": 1035,
+      "Name": "Skama",
+      "Family": "Fera",
+      "SummonSouls": 5,
+      "SoulSource": "Foul Skama",
+      "Source": "https://aion2data.com/pets/1035-skama",
+      "Level2Souls": 25,
+      "Level3Souls": 75,
+      "DetailSha256": "948140dd654eb37c618bc5d4efb3689de992ff3b17a73f14ae98d6c4b3709ac7",
+      "Locations": [
+        {
+          "Region": "Verteron",
+          "Faction": "Elyos"
+        }
+      ]
+    },
+    {
+      "Id": 1036,
+      "Name": "Lupyllini",
+      "Family": "Fera",
+      "SummonSouls": 5,
+      "SoulSource": "Tail Feather Lupyllini",
+      "Source": "https://aion2data.com/pets/1036-lupyllini",
+      "Level2Souls": 25,
+      "Level3Souls": 75,
+      "DetailSha256": "5cce186b00a2edf1f717f102bb9b71f3acd4bce3c8829769b3c3eb93f8dc46a9",
+      "Locations": [
+        {
+          "Region": "Verteron",
+          "Faction": "Elyos"
+        }
+      ]
+    },
+    {
+      "Id": 1037,
+      "Name": "Male Crestlich",
+      "Family": "Fera",
+      "SummonSouls": 5,
+      "SoulSource": "Ellun River Crestlich Male",
+      "Source": "https://aion2data.com/pets/1037-male-crestlich",
+      "Level2Souls": 25,
+      "Level3Souls": 75,
+      "DetailSha256": "42b1dfcd9a5297b4e9933b86102e7befe6be62eae2a478f1dae46ff85606f4f3",
+      "Locations": [
+        {
+          "Region": "Verteron",
+          "Faction": "Elyos"
+        }
+      ]
+    },
+    {
+      "Id": 1038,
+      "Name": "Airon",
+      "Family": "Fera",
+      "SummonSouls": 5,
+      "SoulSource": "Pointbeak Airon",
+      "Source": "https://aion2data.com/pets/1038-airon",
+      "Level2Souls": 25,
+      "Level3Souls": 75,
+      "DetailSha256": "f4f2fa7dfd6f3fe84731078ed4e615dc3369f989488a49a53dbb14ad1823342d",
+      "Locations": [
+        {
+          "Region": "Altgard",
+          "Faction": "Asmodian"
+        },
+        {
+          "Region": "Verteron",
+          "Faction": "Elyos"
+        }
+      ]
+    },
+    {
+      "Id": 1039,
+      "Name": "Crestlich",
+      "Family": "Fera",
+      "SummonSouls": 5,
+      "SoulSource": "Stonebeak Crestlich",
+      "Source": "https://aion2data.com/pets/1039-crestlich",
+      "Level2Souls": 25,
+      "Level3Souls": 75,
+      "DetailSha256": "ff476b7a1edfdd0d17b64271eb267c376b76b62f3305d3b8d1acf15fe0e0ca4d",
+      "Locations": [
+        {
+          "Region": "Verteron",
+          "Faction": "Elyos"
+        }
+      ]
+    },
+    {
+      "Id": 1040,
+      "Name": "Aullaeu Shaman",
+      "Family": "Cogni",
+      "SummonSouls": 5,
+      "SoulSource": "Aullaeu Apprentice Shaman",
+      "Source": "https://aion2data.com/pets/1040-aullaeu-shaman",
+      "Level2Souls": 25,
+      "Level3Souls": 75,
+      "DetailSha256": "0b9140573d3dd9973279ea1b4b14159e52bbf24110b27cd1359dfc33bb43103e",
+      "Locations": [
+        {
+          "Region": "Verteron",
+          "Faction": "Elyos"
+        }
+      ]
+    },
+    {
+      "Id": 1041,
+      "Name": "Cave Bat",
+      "Family": "Fera",
+      "SummonSouls": 5,
+      "SoulSource": "Drana Mutated Bat",
+      "Source": "https://aion2data.com/pets/1041-cave-bat",
+      "Level2Souls": 25,
+      "Level3Souls": 75,
+      "DetailSha256": "98c3854c96d9c43d9ba581dc30c4409287cd13ba958fdeb947ee98b1f703266e",
+      "Locations": [
+        {
+          "Region": "Verteron",
+          "Faction": "Elyos"
+        }
+      ]
+    },
+    {
+      "Id": 1042,
+      "Name": "Ursus",
+      "Family": "Fera",
+      "SummonSouls": 5,
+      "SoulSource": "Ursus",
+      "Source": "https://aion2data.com/pets/1042-ursus",
+      "Level2Souls": 25,
+      "Level3Souls": 75,
+      "DetailSha256": "43343085aaca3475aad61ac479373e7a8c521273a506b466c3b9c1d84d7a590a",
+      "Locations": [
+        {
+          "Region": "Verteron",
+          "Faction": "Elyos"
+        },
+        {
+          "Region": "Altgard",
+          "Faction": "Asmodian"
+        }
+      ]
+    },
+    {
+      "Id": 1043,
+      "Name": "Elite Ursus",
+      "Family": "Fera",
+      "SummonSouls": 5,
+      "SoulSource": "chests",
+      "Source": "https://aion2data.com/pets/1043-elite-ursus",
+      "Level2Souls": 25,
+      "Level3Souls": 75,
+      "DetailSha256": "d916a7745ed2b7915f73c34554bb11f7cda36eeb0433d9c1d9215a8218bc4d17",
+      "Locations": []
+    },
+    {
+      "Id": 1044,
+      "Name": "Aultross's Doppelganger",
+      "Family": "Cogni",
+      "SummonSouls": 5,
+      "SoulSource": "chests",
+      "Source": "https://aion2data.com/pets/1044-aultrosss-doppelganger",
+      "Level2Souls": 25,
+      "Level3Souls": 75,
+      "DetailSha256": "c65bb84107ca385ec4740339149598e837fdf51e50504117ce07a6733a2523ad",
+      "Locations": []
+    },
+    {
+      "Id": 1045,
+      "Name": "Sylphen",
+      "Family": "Fera",
+      "SummonSouls": 5,
+      "SoulSource": "Highland Sylphen",
+      "Source": "https://aion2data.com/pets/1045-sylphen",
+      "Level2Souls": 25,
+      "Level3Souls": 75,
+      "DetailSha256": "227a20fe45a06f9e701f77b186aaaa087c81dd5bd7fe2c9a315e46b22b8a684e",
+      "Locations": [
+        {
+          "Region": "Verteron",
+          "Faction": "Elyos"
+        },
+        {
+          "Region": "Altgard",
+          "Faction": "Asmodian"
+        }
+      ]
+    },
+    {
+      "Id": 1046,
+      "Name": "Armadon",
+      "Family": "Fera",
+      "SummonSouls": 5,
+      "SoulSource": "Red Shell Mole",
+      "Source": "https://aion2data.com/pets/1046-armadon",
+      "Level2Souls": 25,
+      "Level3Souls": 75,
+      "DetailSha256": "297d68c49a7f20ca44ca9c3a9f97be0577458bb6859983a66d39ac13a32cd0d0",
+      "Locations": [
+        {
+          "Region": "Altgard",
+          "Faction": "Asmodian"
+        }
+      ]
+    },
+    {
+      "Id": 1047,
+      "Name": "Aberrant Armadon",
+      "Family": "Fera",
+      "SummonSouls": 5,
+      "SoulSource": "Splendent Armadon",
+      "Source": "https://aion2data.com/pets/1047-aberrant-armadon",
+      "Level2Souls": 25,
+      "Level3Souls": 75,
+      "DetailSha256": "3ac9b342bfe9cf2ccd4cac272bc50577930182fadd8f76ec2b24afbe4795ad55",
+      "Locations": [
+        {
+          "Region": "Verteron",
+          "Faction": "Elyos"
+        }
+      ]
+    },
+    {
+      "Id": 1048,
+      "Name": "Forest Spirit",
+      "Family": "Natura",
+      "SummonSouls": 5,
+      "SoulSource": "Marsh Vine Spirit",
+      "Source": "https://aion2data.com/pets/1048-forest-spirit",
+      "Level2Souls": 25,
+      "Level3Souls": 75,
+      "DetailSha256": "3b5bb677d9bbf25db65b80329ecf695d18f8719cf098c7dd7b8bad23335419d8",
+      "Locations": [
+        {
+          "Region": "Verteron",
+          "Faction": "Elyos"
+        },
+        {
+          "Region": "Altgard",
+          "Faction": "Asmodian"
+        }
+      ]
+    },
+    {
+      "Id": 1049,
+      "Name": "Mutated Forest Spirit",
+      "Family": "Natura",
+      "SummonSouls": 5,
+      "SoulSource": "Condensed Specter",
+      "Source": "https://aion2data.com/pets/1049-mutated-forest-spirit",
+      "Level2Souls": 25,
+      "Level3Souls": 75,
+      "DetailSha256": "0bed9ca51542e709d550518911e50bc9533a57ea2938d26bb9d6b5492aecdf84",
+      "Locations": [
+        {
+          "Region": "Verteron",
+          "Faction": "Elyos"
+        },
+        {
+          "Region": "Altgard",
+          "Faction": "Asmodian"
+        }
+      ]
+    },
+    {
+      "Id": 1050,
+      "Name": "Gravi",
+      "Family": "Natura",
+      "SummonSouls": 5,
+      "SoulSource": "Tolbas Gravi",
+      "Source": "https://aion2data.com/pets/1050-gravi",
+      "Level2Souls": 25,
+      "Level3Souls": 75,
+      "DetailSha256": "d19e6e95bb8a044d458d46587450c144074c7cb05edf9ebaa2422dce6df6611a",
+      "Locations": [
+        {
+          "Region": "Altgard",
+          "Faction": "Asmodian"
+        },
+        {
+          "Region": "Verteron",
+          "Faction": "Elyos"
+        }
+      ]
+    },
+    {
+      "Id": 1051,
+      "Name": "Magic Gravi",
+      "Family": "Natura",
+      "SummonSouls": 5,
+      "SoulSource": "Tolbas Magic Gravi",
+      "Source": "https://aion2data.com/pets/1051-magic-gravi",
+      "Level2Souls": 25,
+      "Level3Souls": 75,
+      "DetailSha256": "8210973473197f013899467e1475afab6946f6b0b14a4a228cdbf5a52d645751",
+      "Locations": [
+        {
+          "Region": "Altgard",
+          "Faction": "Asmodian"
+        },
+        {
+          "Region": "Verteron",
+          "Faction": "Elyos"
+        }
+      ]
+    },
+    {
+      "Id": 1052,
+      "Name": "Large Leaf Gravi",
+      "Family": "Natura",
+      "SummonSouls": 5,
+      "SoulSource": "Ellun River Hill Gravi",
+      "Source": "https://aion2data.com/pets/1052-large-leaf-gravi",
+      "Level2Souls": 25,
+      "Level3Souls": 75,
+      "DetailSha256": "7a6e90007c051a9e7e63e64e163c9640a64229f6fb1d533530e3c692b65338e0",
+      "Locations": [
+        {
+          "Region": "Altgard",
+          "Faction": "Asmodian"
+        },
+        {
+          "Region": "Verteron",
+          "Faction": "Elyos"
+        }
+      ]
+    },
+    {
+      "Id": 1053,
+      "Name": "Aberrant Potcrab",
+      "Family": "Fera",
+      "SummonSouls": 5,
+      "SoulSource": "Drana Mutated Potcrab",
+      "Source": "https://aion2data.com/pets/1053-aberrant-potcrab",
+      "Level2Souls": 25,
+      "Level3Souls": 75,
+      "DetailSha256": "110e43a2a90011bae9953d50b592e7541b1eefaf251074898f95bbf75cf89895",
+      "Locations": [
+        {
+          "Region": "Verteron",
+          "Faction": "Elyos"
+        }
+      ]
+    },
+    {
+      "Id": 1054,
+      "Name": "Mumu Warrior",
+      "Family": "Cogni",
+      "SummonSouls": 5,
+      "SoulSource": "Mumu Watcher",
+      "Source": "https://aion2data.com/pets/1054-mumu-warrior",
+      "Level2Souls": 25,
+      "Level3Souls": 75,
+      "DetailSha256": "0cc41fb8df943ef8d93b1e49c962601a0b779f99c393f85603e43d80e5f77612",
+      "Locations": [
+        {
+          "Region": "Altgard",
+          "Faction": "Asmodian"
+        }
+      ]
+    },
+    {
+      "Id": 1055,
+      "Name": "Grave Rat",
+      "Family": "Fera",
+      "SummonSouls": 5,
+      "SoulSource": "chests",
+      "Source": "https://aion2data.com/pets/1055-grave-rat",
+      "Level2Souls": 25,
+      "Level3Souls": 75,
+      "DetailSha256": "ff61eeb648bd9b8a37afabb8ae925b4a4d4462b78622e372970d516352061266",
+      "Locations": []
+    },
+    {
+      "Id": 1056,
+      "Name": "Drakan Probe",
+      "Family": "Varian",
+      "SummonSouls": 5,
+      "SoulSource": "Outpost Probe",
+      "Source": "https://aion2data.com/pets/1056-drakan-probe",
+      "Level2Souls": 25,
+      "Level3Souls": 75,
+      "DetailSha256": "01869d77850b104d75db1da760e07aa2e2fb8f464c7b5706438a6094f0d3c4c8",
+      "Locations": [
+        {
+          "Region": "Altgard",
+          "Faction": "Asmodian"
+        },
+        {
+          "Region": "Verteron",
+          "Faction": "Elyos"
+        }
+      ]
+    },
+    {
+      "Id": 1057,
+      "Name": "Coradon",
+      "Family": "Fera",
+      "SummonSouls": 5,
+      "SoulSource": "chests",
+      "Source": "https://aion2data.com/pets/1057-coradon",
+      "Level2Souls": 25,
+      "Level3Souls": 75,
+      "DetailSha256": "d1e9fa5705337d1410ee218660051908437f828905bf0def9a3ac701e51e2f6e",
+      "Locations": []
+    },
+    {
+      "Id": 1058,
+      "Name": "Black Smoke Murute",
+      "Family": "Natura",
+      "SummonSouls": 5,
+      "SoulSource": "Black Smoke Murute",
+      "Source": "https://aion2data.com/pets/1058-black-smoke-murute",
+      "Level2Souls": 25,
+      "Level3Souls": 75,
+      "DetailSha256": "cef457cbd39920b635a8264b2159b687e5a554f4582e205600e85d4f0119750b",
+      "Locations": []
+    },
+    {
+      "Id": 1059,
+      "Name": "Giant Bee",
+      "Family": "Fera",
+      "SummonSouls": 5,
+      "SoulSource": "Giant Stripe Bee",
+      "Source": "https://aion2data.com/pets/1059-giant-bee",
+      "Level2Souls": 25,
+      "Level3Souls": 75,
+      "DetailSha256": "d7f2fc70d39e5118dff3cf1c4d4178cbe6a086aa805ac712b084250adeb6c705",
+      "Locations": [
+        {
+          "Region": "Verteron",
+          "Faction": "Elyos"
+        }
+      ]
+    },
+    {
+      "Id": 1060,
+      "Name": "Starturtle",
+      "Family": "Fera",
+      "SummonSouls": 5,
+      "SoulSource": "Coastal Starturtle",
+      "Source": "https://aion2data.com/pets/1060-starturtle",
+      "Level2Souls": 25,
+      "Level3Souls": 75,
+      "DetailSha256": "57a6a402c7cb944a638c76354d83648097a534fab7aa7f59512640f1c4450a24",
+      "Locations": [
+        {
+          "Region": "Verteron",
+          "Faction": "Elyos"
+        },
+        {
+          "Region": "Altgard",
+          "Faction": "Asmodian"
+        }
+      ]
+    },
+    {
+      "Id": 1061,
+      "Name": "Slime",
+      "Family": "Varian",
+      "SummonSouls": 5,
+      "SoulSource": "Unruly Slime",
+      "Source": "https://aion2data.com/pets/1061-slime",
+      "Level2Souls": 25,
+      "Level3Souls": 75,
+      "DetailSha256": "c89a493c51818ea945ecadb7321318ffddc92e82760164b5c610e01a1074f2e2",
+      "Locations": [
+        {
+          "Region": "Altgard",
+          "Faction": "Asmodian"
+        }
+      ]
+    },
+    {
+      "Id": 1062,
+      "Name": "Contaminated Slime",
+      "Family": "Varian",
+      "SummonSouls": 5,
+      "SoulSource": "Marsh Slime",
+      "Source": "https://aion2data.com/pets/1062-contaminated-slime",
+      "Level2Souls": 25,
+      "Level3Souls": 75,
+      "DetailSha256": "3ac4f763723c73595835e063c2980eff632698ac336fe1e30113206710c4a312",
+      "Locations": [
+        {
+          "Region": "Verteron",
+          "Faction": "Elyos"
+        },
+        {
+          "Region": "Chaotic Lower Reshanta",
+          "Faction": "Abyss"
+        }
+      ]
+    },
+    {
+      "Id": 1063,
+      "Name": "Vigilant Oculazen",
+      "Family": "Varian",
+      "SummonSouls": 5,
+      "SoulSource": "Vigilant Oculazen",
+      "Source": "https://aion2data.com/pets/1063-vigilant-oculazen",
+      "Level2Souls": 25,
+      "Level3Souls": 75,
+      "DetailSha256": "f5a39174ea8f091222c14b253b9c68b4b6e1ee9c265c2155fb930cd33212088a",
+      "Locations": [
+        {
+          "Region": "Altgard",
+          "Faction": "Asmodian"
+        }
+      ]
+    },
+    {
+      "Id": 1064,
+      "Name": "Oculazen",
+      "Family": "Varian",
+      "SummonSouls": 5,
+      "SoulSource": "Labor Manager Oculazen",
+      "Source": "https://aion2data.com/pets/1064-oculazen",
+      "Level2Souls": 25,
+      "Level3Souls": 75,
+      "DetailSha256": "0d0340a58ffd84ea38b0133eec76752f095300e9b34258691c1fe42fbf2557e7",
+      "Locations": [
+        {
+          "Region": "Verteron",
+          "Faction": "Elyos"
+        },
+        {
+          "Region": "Altgard",
+          "Faction": "Asmodian"
+        }
+      ]
+    },
+    {
+      "Id": 1065,
+      "Name": "Biruta",
+      "Family": "Cogni",
+      "SummonSouls": 5,
+      "SoulSource": "Biruta Wanderer",
+      "Source": "https://aion2data.com/pets/1065-biruta",
+      "Level2Souls": 25,
+      "Level3Souls": 75,
+      "DetailSha256": "b5fa8a940811916be81ca100a7d3a853835b5a56524c5f974ea3c062550d1d2d",
+      "Locations": [
+        {
+          "Region": "Altgard",
+          "Faction": "Asmodian"
+        }
+      ]
+    },
+    {
+      "Id": 1066,
+      "Name": "Papis",
+      "Family": "Fera",
+      "SummonSouls": 5,
+      "SoulSource": "Gentle Papis",
+      "Source": "https://aion2data.com/pets/1066-papis",
+      "Level2Souls": 25,
+      "Level3Souls": 75,
+      "DetailSha256": "af4496bf678e0d5eacfd5232d4a4f98582819e5c2141947d88c26b26b88cc8ce",
+      "Locations": [
+        {
+          "Region": "Verteron",
+          "Faction": "Elyos"
+        },
+        {
+          "Region": "Altgard",
+          "Faction": "Asmodian"
+        }
+      ]
+    },
+    {
+      "Id": 1067,
+      "Name": "Scorpion",
+      "Family": "Fera",
+      "SummonSouls": 5,
+      "SoulSource": "Ore Scorpion",
+      "Source": "https://aion2data.com/pets/1067-scorpion",
+      "Level2Souls": 25,
+      "Level3Souls": 75,
+      "DetailSha256": "6fb1853a9cea6dd28e9173d2f826a6b9f5732c6c7470cb1ce32aba87d10b34a3",
+      "Locations": [
+        {
+          "Region": "Verteron",
+          "Faction": "Elyos"
+        },
+        {
+          "Region": "Altgard",
+          "Faction": "Asmodian"
+        }
+      ]
+    },
+    {
+      "Id": 1068,
+      "Name": "Krao Test Subject",
+      "Family": "Varian",
+      "SummonSouls": 5,
+      "SoulSource": "chests",
+      "Source": "https://aion2data.com/pets/1068-krao-test-subject",
+      "Level2Souls": 25,
+      "Level3Souls": 75,
+      "DetailSha256": "0e2249036ed3c89dce63595f63662484d098fe930f5354aaca024d218f120ada",
+      "Locations": []
+    },
+    {
+      "Id": 1069,
+      "Name": "Stone Spirit",
+      "Family": "Natura",
+      "SummonSouls": 5,
+      "SoulSource": "Faded Stone Spirit",
+      "Source": "https://aion2data.com/pets/1069-stone-spirit",
+      "Level2Souls": 25,
+      "Level3Souls": 75,
+      "DetailSha256": "51a331eeb2737fea503fb3758643398f91ab5ce39dceb143e8e07620edb46c8c",
+      "Locations": [
+        {
+          "Region": "Verteron",
+          "Faction": "Elyos"
+        },
+        {
+          "Region": "Chaotic Lower Reshanta",
+          "Faction": "Abyss"
+        },
+        {
+          "Region": "Altgard",
+          "Faction": "Asmodian"
+        }
+      ]
+    },
+    {
+      "Id": 1071,
+      "Name": "Cadaver Insectoid",
+      "Family": "Fera",
+      "SummonSouls": 5,
+      "SoulSource": "Drana Cadaver Insectoid",
+      "Source": "https://aion2data.com/pets/1071-cadaver-insectoid",
+      "Level2Souls": 25,
+      "Level3Souls": 75,
+      "DetailSha256": "c8de7571ed81d39a0b56ffaf06f97967948fc294561211180c0f9177d0dab2e9",
+      "Locations": [
+        {
+          "Region": "Altgard",
+          "Faction": "Asmodian"
+        }
+      ]
+    },
+    {
+      "Id": 1072,
+      "Name": "Tog",
+      "Family": "Fera",
+      "SummonSouls": 5,
+      "SoulSource": "Tog",
+      "Source": "https://aion2data.com/pets/1072-tog",
+      "Level2Souls": 25,
+      "Level3Souls": 75,
+      "DetailSha256": "2074fbb509bc756a54e0fad615235120484de296c7cbf38c8f928bcaa44de1dc",
+      "Locations": [
+        {
+          "Region": "Altgard",
+          "Faction": "Asmodian"
+        }
+      ]
+    },
+    {
+      "Id": 1073,
+      "Name": "Nepenthes",
+      "Family": "Natura",
+      "SummonSouls": 5,
+      "SoulSource": "Tolbas Nepenthes",
+      "Source": "https://aion2data.com/pets/1073-nepenthes",
+      "Level2Souls": 25,
+      "Level3Souls": 75,
+      "DetailSha256": "60b7b8187649b3edf5561d41962e8fa179cad6285733df0fb18953d181cafcf3",
+      "Locations": [
+        {
+          "Region": "Chaotic Lower Reshanta",
+          "Faction": "Abyss"
+        },
+        {
+          "Region": "Verteron",
+          "Faction": "Elyos"
+        }
+      ]
+    },
+    {
+      "Id": 1074,
+      "Name": "Kuru Worker",
+      "Family": "Cogni",
+      "SummonSouls": 5,
+      "SoulSource": "Tolbas Kuru Worker",
+      "Source": "https://aion2data.com/pets/1074-kuru-worker",
+      "Level2Souls": 25,
+      "Level3Souls": 75,
+      "DetailSha256": "e5fd70633c2539c6e002ba0b367d58028ae35584c29da5add96dfd07a1e6b4af",
+      "Locations": [
+        {
+          "Region": "Altgard",
+          "Faction": "Asmodian"
+        },
+        {
+          "Region": "Verteron",
+          "Faction": "Elyos"
+        }
+      ]
+    },
+    {
+      "Id": 1075,
+      "Name": "Kuru Tinkerer",
+      "Family": "Cogni",
+      "SummonSouls": 5,
+      "SoulSource": "Tolbas Kuru Tinkerer",
+      "Source": "https://aion2data.com/pets/1075-kuru-tinkerer",
+      "Level2Souls": 25,
+      "Level3Souls": 75,
+      "DetailSha256": "dcbe5510247494137cf04691be6c28c10e053172c5c9da2804dbce1f7ed41779",
+      "Locations": [
+        {
+          "Region": "Verteron",
+          "Faction": "Elyos"
+        },
+        {
+          "Region": "Altgard",
+          "Faction": "Asmodian"
+        }
+      ]
+    },
+    {
+      "Id": 1077,
+      "Name": "Harcon",
+      "Family": "Varian",
+      "SummonSouls": 5,
+      "SoulSource": "Enhanced Harcon",
+      "Source": "https://aion2data.com/pets/1077-harcon",
+      "Level2Souls": 25,
+      "Level3Souls": 75,
+      "DetailSha256": "e391c93639a55302415232a38e9ed3316468a1d3b477d2b476ce7456835eb908",
+      "Locations": []
+    },
+    {
+      "Id": 1078,
+      "Name": "Urugugu Brawler",
+      "Family": "Cogni",
+      "SummonSouls": 5,
+      "SoulSource": "chests",
+      "Source": "https://aion2data.com/pets/1078-urugugu-brawler",
+      "Level2Souls": 25,
+      "Level3Souls": 75,
+      "DetailSha256": "df6be75b7b336433ca182851d3bda6237b3e11254d2cebeccb9a67c38fa6cecd",
+      "Locations": []
+    },
+    {
+      "Id": 1079,
+      "Name": "Ultimate Wind Spirit",
+      "Family": "Natura",
+      "SummonSouls": 5,
+      "SoulSource": "chests",
+      "Source": "https://aion2data.com/pets/1079-ultimate-wind-spirit",
+      "Level2Souls": 25,
+      "Level3Souls": 75,
+      "DetailSha256": "02f6c8cd5314c785a409106afda4c2d2349188e16bd1003ea1851a57486882f7",
+      "Locations": []
+    },
+    {
+      "Id": 1080,
+      "Name": "Sentinel K'nash",
+      "Family": "Cogni",
+      "SummonSouls": 5,
+      "SoulSource": "chests",
+      "Source": "https://aion2data.com/pets/1080-sentinel-knash",
+      "Level2Souls": 25,
+      "Level3Souls": 75,
+      "DetailSha256": "02ad8ab8cb2f42d0109f98cbf9606687cbdac74480d1d3dc35feba4c1e1415cc",
+      "Locations": []
+    },
+    {
+      "Id": 1081,
+      "Name": "Dionae",
+      "Family": "Natura",
+      "SummonSouls": 5,
+      "SoulSource": "chests",
+      "Source": "https://aion2data.com/pets/1081-dionae",
+      "Level2Souls": 25,
+      "Level3Souls": 75,
+      "DetailSha256": "d2e0c348d22c3e4e2574c473f9a476de77de834c76b22ac359661a9af8d5f5f1",
+      "Locations": []
+    },
+    {
+      "Id": 1082,
+      "Name": "Ultimate Fire Spirit",
+      "Family": "Natura",
+      "SummonSouls": 5,
+      "SoulSource": "chests",
+      "Source": "https://aion2data.com/pets/1082-ultimate-fire-spirit",
+      "Level2Souls": 25,
+      "Level3Souls": 75,
+      "DetailSha256": "46509abd61809b9365793f65a02cb16bf365b5c2cb9bca4c48d48fd850d125e2",
+      "Locations": []
+    },
+    {
+      "Id": 1083,
+      "Name": "Spider",
+      "Family": "Fera",
+      "SummonSouls": 5,
+      "SoulSource": "Abyss Odyle Mutated Insectoid",
+      "Source": "https://aion2data.com/pets/1083-spider",
+      "Level2Souls": 25,
+      "Level3Souls": 75,
+      "DetailSha256": "20245647d04957e29e374c580a580e83c600c7064cad1ede06f88284782ea918",
+      "Locations": [
+        {
+          "Region": "Chaotic Lower Reshanta",
+          "Faction": "Abyss"
+        }
+      ]
+    },
+    {
+      "Id": 1084,
+      "Name": "Kalgolem",
+      "Family": "Varian",
+      "SummonSouls": 5,
+      "SoulSource": "Hard Kalgolem",
+      "Source": "https://aion2data.com/pets/1084-kalgolem",
+      "Level2Souls": 25,
+      "Level3Souls": 75,
+      "DetailSha256": "09c22fb5a8294f6c3990a88c3862383d2ce7516290ea0c90131d570b66c74dbe",
+      "Locations": [
+        {
+          "Region": "Verteron",
+          "Faction": "Elyos"
+        },
+        {
+          "Region": "Altgard",
+          "Faction": "Asmodian"
+        },
+        {
+          "Region": "Chaotic Lower Reshanta",
+          "Faction": "Abyss"
+        },
+        {
+          "Region": "Chaotic Middle Reshanta",
+          "Faction": "Abyss"
+        }
+      ]
+    },
+    {
+      "Id": 1086,
+      "Name": "Fungen",
+      "Family": "Natura",
+      "SummonSouls": 5,
+      "SoulSource": "Red Cap Fungen",
+      "Source": "https://aion2data.com/pets/1086-fungen",
+      "Level2Souls": 25,
+      "Level3Souls": 75,
+      "DetailSha256": "3ed7055432be0e10de9c54261c7e8f18911e2d2e0a51f53e8e31ae7bd1b5d74a",
+      "Locations": [
+        {
+          "Region": "Verteron",
+          "Faction": "Elyos"
+        }
+      ]
+    },
+    {
+      "Id": 1087,
+      "Name": "Pino",
+      "Family": "Varian",
+      "SummonSouls": 5,
+      "SoulSource": "Pino Laborer",
+      "Source": "https://aion2data.com/pets/1087-pino",
+      "Level2Souls": 25,
+      "Level3Souls": 75,
+      "DetailSha256": "74f71ca3bb98d4e9d57f178bbc15f8fef97d8d13706f9414d0f9116b8b847c6a",
+      "Locations": [
+        {
+          "Region": "Verteron",
+          "Faction": "Elyos"
+        }
+      ]
+    },
+    {
+      "Id": 1088,
+      "Name": "Pino Worker",
+      "Family": "Varian",
+      "SummonSouls": 5,
+      "SoulSource": "Harsh Pino Worker",
+      "Source": "https://aion2data.com/pets/1088-pino-worker",
+      "Level2Souls": 25,
+      "Level3Souls": 75,
+      "DetailSha256": "1f7324d0f7a99dafb54a1c37a0f5fcc13cf51337cb59fb7d0ca67312ed44abbb",
+      "Locations": [
+        {
+          "Region": "Verteron",
+          "Faction": "Elyos"
+        }
+      ]
+    },
+    {
+      "Id": 1089,
+      "Name": "Aberrant Skama",
+      "Family": "Fera",
+      "SummonSouls": 5,
+      "SoulSource": "Yellow-Tailed Skama",
+      "Source": "https://aion2data.com/pets/1089-aberrant-skama",
+      "Level2Souls": 25,
+      "Level3Souls": 75,
+      "DetailSha256": "abfd9cb04d7fcfa8d77705c9d2f25ff484777cb53073bc6668ef3f5e2aaa738f",
+      "Locations": [
+        {
+          "Region": "Chaotic Lower Reshanta",
+          "Faction": "Abyss"
+        },
+        {
+          "Region": "Verteron",
+          "Faction": "Elyos"
+        }
+      ]
+    },
+    {
+      "Id": 1090,
+      "Name": "Ultimate Water Spirit",
+      "Family": "Natura",
+      "SummonSouls": 5,
+      "SoulSource": "chests",
+      "Source": "https://aion2data.com/pets/1090-ultimate-water-spirit",
+      "Level2Souls": 25,
+      "Level3Souls": 75,
+      "DetailSha256": "bca1ba5845f41cc1c29279a219d3afb0c496c3b607482fad4cb8f40dead8bcaf",
+      "Locations": []
+    },
+    {
+      "Id": 1091,
+      "Name": "Red Spark Ignus",
+      "Family": "Natura",
+      "SummonSouls": 5,
+      "SoulSource": "Red Spark Ignus",
+      "Source": "https://aion2data.com/pets/1091-red-spark-ignus",
+      "Level2Souls": 25,
+      "Level3Souls": 75,
+      "DetailSha256": "1cbaa8c01146cd74440683ebde04b4a5bda56efb5b2fd00ddcb76c536db741d1",
+      "Locations": []
+    },
+    {
+      "Id": 1092,
+      "Name": "Lesser Wind Spirit",
+      "Family": "Natura",
+      "SummonSouls": 5,
+      "SoulSource": "Soft Breeze Spirit",
+      "Source": "https://aion2data.com/pets/1092-lesser-wind-spirit",
+      "Level2Souls": 25,
+      "Level3Souls": 75,
+      "DetailSha256": "a7422bec13e08d83604c6b80f2cd4cb38e3cbe8bbd18a9f05459106fffe9056d",
+      "Locations": [
+        {
+          "Region": "Altgard",
+          "Faction": "Asmodian"
+        },
+        {
+          "Region": "Verteron",
+          "Faction": "Elyos"
+        }
+      ]
+    },
+    {
+      "Id": 1093,
+      "Name": "Phantasmal Lakshmi",
+      "Family": "Cogni",
+      "SummonSouls": 5,
+      "SoulSource": "Phantasmal Lakshmi",
+      "Source": "https://aion2data.com/pets/1093-phantasmal-lakshmi",
+      "Level2Souls": 25,
+      "Level3Souls": 75,
+      "DetailSha256": "8644fc0ee6fe9ee5851d62864197c40e181d872d7dae971fc444fbc87ee68710",
+      "Locations": []
+    },
+    {
+      "Id": 1094,
+      "Name": "Intermediate Wind Spirit",
+      "Family": "Natura",
+      "SummonSouls": 5,
+      "SoulSource": "Wandering Wind Spirit",
+      "Source": "https://aion2data.com/pets/1094-intermediate-wind-spirit",
+      "Level2Souls": 25,
+      "Level3Souls": 75,
+      "DetailSha256": "0f3d22f1c8c14f7df94b92188c513bf2737f1ad98f84786f0186e453c95c565f",
+      "Locations": [
+        {
+          "Region": "Verteron",
+          "Faction": "Elyos"
+        },
+        {
+          "Region": "Altgard",
+          "Faction": "Asmodian"
+        }
+      ]
+    },
+    {
+      "Id": 1095,
+      "Name": "Superior Wind Spirit",
+      "Family": "Natura",
+      "SummonSouls": 5,
+      "SoulSource": "Whirlwind Spirit",
+      "Source": "https://aion2data.com/pets/1095-superior-wind-spirit",
+      "Level2Souls": 25,
+      "Level3Souls": 75,
+      "DetailSha256": "9567858476cb38c20bbfd93bd90b0aa21e8ba8a225590b964adc8077f2966fb2",
+      "Locations": [
+        {
+          "Region": "Altgard",
+          "Faction": "Asmodian"
+        },
+        {
+          "Region": "Verteron",
+          "Faction": "Elyos"
+        }
+      ]
+    },
+    {
+      "Id": 1096,
+      "Name": "Superior Fire Spirit",
+      "Family": "Natura",
+      "SummonSouls": 5,
+      "SoulSource": "Flame Spirit",
+      "Source": "https://aion2data.com/pets/1096-superior-fire-spirit",
+      "Level2Souls": 25,
+      "Level3Souls": 75,
+      "DetailSha256": "c3478649c0751e8f82434082f307574506c4e65e3a9e771b68e7e08c80442563",
+      "Locations": [
+        {
+          "Region": "Altgard",
+          "Faction": "Asmodian"
+        },
+        {
+          "Region": "Verteron",
+          "Faction": "Elyos"
+        }
+      ]
+    },
+    {
+      "Id": 1097,
+      "Name": "Karnif",
+      "Family": "Fera",
+      "SummonSouls": 5,
+      "SoulSource": "Ferocious Tolbas Karnif",
+      "Source": "https://aion2data.com/pets/1097-karnif",
+      "Level2Souls": 25,
+      "Level3Souls": 75,
+      "DetailSha256": "57b784dc134dd96e12e75d74b29c8a60bf498a68710368f842a11311599cf48b",
+      "Locations": [
+        {
+          "Region": "Verteron",
+          "Faction": "Elyos"
+        }
+      ]
+    },
+    {
+      "Id": 1098,
+      "Name": "Modified Karnif",
+      "Family": "Fera",
+      "SummonSouls": 5,
+      "SoulSource": "Unruly Karnif",
+      "Source": "https://aion2data.com/pets/1098-modified-karnif",
+      "Level2Souls": 25,
+      "Level3Souls": 75,
+      "DetailSha256": "96f81da679341ca1fafadf41da6f3c6074a18fab7d724f8b15873f24274dc6f6",
+      "Locations": [
+        {
+          "Region": "Chaotic Lower Reshanta",
+          "Faction": "Abyss"
+        },
+        {
+          "Region": "Verteron",
+          "Faction": "Elyos"
+        }
+      ]
+    },
+    {
+      "Id": 1099,
+      "Name": "Elite Karnif",
+      "Family": "Fera",
+      "SummonSouls": 5,
+      "SoulSource": "Crimson Blizzard Renulf",
+      "Source": "https://aion2data.com/pets/1099-elite-karnif",
+      "Level2Souls": 25,
+      "Level3Souls": 75,
+      "DetailSha256": "219990f8e9ce166e413bfd98ebf27e542173ea9d5a4bfbebf3d97d08f2774278",
+      "Locations": [
+        {
+          "Region": "Morheim",
+          "Faction": "Asmodian"
+        }
+      ]
+    },
+    {
+      "Id": 1100,
+      "Name": "Ultimate Earth Spirit",
+      "Family": "Natura",
+      "SummonSouls": 5,
+      "SoulSource": "chests",
+      "Source": "https://aion2data.com/pets/1100-ultimate-earth-spirit",
+      "Level2Souls": 25,
+      "Level3Souls": 75,
+      "DetailSha256": "d54d96522066696e0c730adfaf7f422cb98f37abf8bac64cf664b1565160d652",
+      "Locations": []
+    },
+    {
+      "Id": 1101,
+      "Name": "Forest Guardian",
+      "Family": "Natura",
+      "SummonSouls": 5,
+      "SoulSource": "Garden Guardian",
+      "Source": "https://aion2data.com/pets/1101-forest-guardian",
+      "Level2Souls": 25,
+      "Level3Souls": 75,
+      "DetailSha256": "1049aa4be2ea4a74cf2191f1d321b01acd3bc96f5bee97851bdee9fe6c074674",
+      "Locations": [
+        {
+          "Region": "Verteron",
+          "Faction": "Elyos"
+        }
+      ]
+    },
+    {
+      "Id": 1102,
+      "Name": "Dried Up Forest Guardian",
+      "Family": "Natura",
+      "SummonSouls": 5,
+      "SoulSource": "chests",
+      "Source": "https://aion2data.com/pets/1102-dried-up-forest-guardian",
+      "Level2Souls": 25,
+      "Level3Souls": 75,
+      "DetailSha256": "14a699c1c012317b7ed830045cffb17dc1d2f8eb9b2bd0ee53fb035c81922d18",
+      "Locations": []
+    },
+    {
+      "Id": 1103,
+      "Name": "Pretor Veil Administrator",
+      "Family": "Cogni",
+      "SummonSouls": 5,
+      "SoulSource": "Gluttonous Egetis",
+      "Source": "https://aion2data.com/pets/1103-pretor-veil-administrator",
+      "Level2Souls": 25,
+      "Level3Souls": 75,
+      "DetailSha256": "a6885392659ed219f3cb16ccf3e6ac5bc871966ab776ca377949d3791ac04202",
+      "Locations": [
+        {
+          "Region": "Eltnen",
+          "Faction": "Elyos"
+        }
+      ]
+    },
+    {
+      "Id": 1104,
+      "Name": "Manduri Trebuchet Worker",
+      "Family": "Cogni",
+      "SummonSouls": 5,
+      "SoulSource": "Hill Manduri",
+      "Source": "https://aion2data.com/pets/1104-manduri-trebuchet-worker",
+      "Level2Souls": 25,
+      "Level3Souls": 75,
+      "DetailSha256": "bcd663d34b340fdc191fb014a20e083e8021af9b5df949a4cc7fc327ae087ef1",
+      "Locations": [
+        {
+          "Region": "Verteron",
+          "Faction": "Elyos"
+        },
+        {
+          "Region": "Altgard",
+          "Faction": "Asmodian"
+        }
+      ]
+    },
+    {
+      "Id": 1105,
+      "Name": "Biruta Herbalist",
+      "Family": "Cogni",
+      "SummonSouls": 5,
+      "SoulSource": "Biruta Herbalist",
+      "Source": "https://aion2data.com/pets/1105-biruta-herbalist",
+      "Level2Souls": 25,
+      "Level3Souls": 75,
+      "DetailSha256": "4dc9e60ca2c5712b0057ab13b04084970a9e3812c60181e0d7c893e8e68580ed",
+      "Locations": [
+        {
+          "Region": "Altgard",
+          "Faction": "Asmodian"
+        }
+      ]
+    },
+    {
+      "Id": 1106,
+      "Name": "Tayga",
+      "Family": "Fera",
+      "SummonSouls": 5,
+      "SoulSource": "Guard Troopers Tayga",
+      "Source": "https://aion2data.com/pets/1106-tayga",
+      "Level2Souls": 25,
+      "Level3Souls": 75,
+      "DetailSha256": "c4e1f891ccf55893c122848afb2945734bab949363daddebcb423249efcd729c",
+      "Locations": [
+        {
+          "Region": "Altgard",
+          "Faction": "Asmodian"
+        }
+      ]
+    },
+    {
+      "Id": 1107,
+      "Name": "Krao Seal Guardian",
+      "Family": "Varian",
+      "SummonSouls": 5,
+      "SoulSource": "chests",
+      "Source": "https://aion2data.com/pets/1107-krao-seal-guardian",
+      "Level2Souls": 25,
+      "Level3Souls": 75,
+      "DetailSha256": "a28280ef01494cd77955bb845b0cf70abb358fb799ea74a43bdc3fbaa9f5b2bf",
+      "Locations": []
+    },
+    {
+      "Id": 1108,
+      "Name": "Enhanced Krall Combatant",
+      "Family": "Cogni",
+      "SummonSouls": 5,
+      "SoulSource": "Enhanced Krall Combatant",
+      "Source": "https://aion2data.com/pets/1108-enhanced-krall-combatant",
+      "Level2Souls": 25,
+      "Level3Souls": 75,
+      "DetailSha256": "bb4250e2194a0f7239308191eca60b2606857f962e869148f6b6a3b265cfaeb6",
+      "Locations": [
+        {
+          "Region": "Verteron",
+          "Faction": "Elyos"
+        }
+      ]
+    },
+    {
+      "Id": 1109,
+      "Name": "Enhanced Krall Sentry",
+      "Family": "Cogni",
+      "SummonSouls": 5,
+      "SoulSource": "Enhanced Krall Sentry",
+      "Source": "https://aion2data.com/pets/1109-enhanced-krall-sentry",
+      "Level2Souls": 25,
+      "Level3Souls": 75,
+      "DetailSha256": "737ae00093571f5e74805734da28fd55490e2915df44255dffeb262555a0acfb",
+      "Locations": [
+        {
+          "Region": "Verteron",
+          "Faction": "Elyos"
+        }
+      ]
+    },
+    {
+      "Id": 1110,
+      "Name": "Blue Kalgolem",
+      "Family": "Varian",
+      "SummonSouls": 5,
+      "SoulSource": "Splendent Kalgolem",
+      "Source": "https://aion2data.com/pets/1110-blue-kalgolem",
+      "Level2Souls": 25,
+      "Level3Souls": 75,
+      "DetailSha256": "f3e16bf1f148d6497002e57c63d560da6d52968b771fdc7ef894b79809cfdfc7",
+      "Locations": [
+        {
+          "Region": "Chaotic Lower Reshanta",
+          "Faction": "Abyss"
+        },
+        {
+          "Region": "Verteron",
+          "Faction": "Elyos"
+        },
+        {
+          "Region": "Chaotic Middle Reshanta",
+          "Faction": "Abyss"
+        },
+        {
+          "Region": "Altgard",
+          "Faction": "Asmodian"
+        }
+      ]
+    },
+    {
+      "Id": 1111,
+      "Name": "Swift Lugi",
+      "Family": "Special",
+      "SummonSouls": 5,
+      "SoulSource": "",
+      "Source": "https://aion2data.com/pets/1111-swift-lugi",
+      "Level2Souls": 25,
+      "Level3Souls": 75,
+      "DetailSha256": "eb258d9d98e5cf205f02fda39f48f0d0cf30d7461bb0dcc646bb1b107cffdd5e",
+      "Locations": []
+    },
+    {
+      "Id": 1112,
+      "Name": "Wandering Merchant Lugi",
+      "Family": "Special",
+      "SummonSouls": 5,
+      "SoulSource": "",
+      "Source": "https://aion2data.com/pets/1112-wandering-merchant-lugi",
+      "Level2Souls": 25,
+      "Level3Souls": 75,
+      "DetailSha256": "43af383ce913a725373ece6767324f21fb1b0f780f3ccb42f5ed839bdf64c5f0",
+      "Locations": []
+    },
+    {
+      "Id": 1114,
+      "Name": "Ashen Spider",
+      "Family": "Fera",
+      "SummonSouls": 5,
+      "SoulSource": "White Shell Octaside",
+      "Source": "https://aion2data.com/pets/1114-ashen-spider",
+      "Level2Souls": 25,
+      "Level3Souls": 75,
+      "DetailSha256": "f4063fffb2350164f2031f36468dee846c04df48c45d28ada9241c99d7ca7ea0",
+      "Locations": [
+        {
+          "Region": "Altgard",
+          "Faction": "Asmodian"
+        },
+        {
+          "Region": "Verteron",
+          "Faction": "Elyos"
+        }
+      ]
+    },
+    {
+      "Id": 1115,
+      "Name": "Kuru Overseer",
+      "Family": "Cogni",
+      "SummonSouls": 5,
+      "SoulSource": "Eternal Kuru Overseer",
+      "Source": "https://aion2data.com/pets/1115-kuru-overseer",
+      "Level2Souls": 25,
+      "Level3Souls": 75,
+      "DetailSha256": "7f8b81f4ad56ff00d38cb64ed918d2b1d4a9a3c120a8029d3246b9a192adabe0",
+      "Locations": [
+        {
+          "Region": "Verteron",
+          "Faction": "Elyos"
+        },
+        {
+          "Region": "Altgard",
+          "Faction": "Asmodian"
+        }
+      ]
+    },
+    {
+      "Id": 1116,
+      "Name": "Withered Branch Spider",
+      "Family": "Fera",
+      "SummonSouls": 5,
+      "SoulSource": "Withered Branch Spider",
+      "Source": "https://aion2data.com/pets/1116-withered-branch-spider",
+      "Level2Souls": 25,
+      "Level3Souls": 75,
+      "DetailSha256": "802a42fdc49012ae559d8a366d0e17867de8dde32fac389222ad4093d6ca7da5",
+      "Locations": [
+        {
+          "Region": "Altgard",
+          "Faction": "Asmodian"
+        }
+      ]
+    },
+    {
+      "Id": 1117,
+      "Name": "Unstable Spider",
+      "Family": "Fera",
+      "SummonSouls": 5,
+      "SoulSource": "Flame Rock Spider",
+      "Source": "https://aion2data.com/pets/1117-unstable-spider",
+      "Level2Souls": 25,
+      "Level3Souls": 75,
+      "DetailSha256": "581f052e6466fbe648284f619d02c610379399bb57897de22158b5e0092c864e",
+      "Locations": [
+        {
+          "Region": "Altgard",
+          "Faction": "Asmodian"
+        },
+        {
+          "Region": "Verteron",
+          "Faction": "Elyos"
+        },
+        {
+          "Region": "Chaotic Lower Reshanta",
+          "Faction": "Abyss"
+        }
+      ]
+    },
+    {
+      "Id": 1118,
+      "Name": "Aberrant Bee",
+      "Family": "Fera",
+      "SummonSouls": 5,
+      "SoulSource": "Black Armor Bee",
+      "Source": "https://aion2data.com/pets/1118-aberrant-bee",
+      "Level2Souls": 25,
+      "Level3Souls": 75,
+      "DetailSha256": "e763d64691a1ff33701ba5c6b326bbb04aa5997de79ef8a0c4ea4c8a5e42ba6c",
+      "Locations": [
+        {
+          "Region": "Altgard",
+          "Faction": "Asmodian"
+        },
+        {
+          "Region": "Verteron",
+          "Faction": "Elyos"
+        }
+      ]
+    },
+    {
+      "Id": 1119,
+      "Name": "Aberrant Coradon",
+      "Family": "Fera",
+      "SummonSouls": 5,
+      "SoulSource": "Aberrant Coradon",
+      "Source": "https://aion2data.com/pets/1119-aberrant-coradon",
+      "Level2Souls": 25,
+      "Level3Souls": 75,
+      "DetailSha256": "f683bc298f4309925b2ca9b1a258709d50dc1eb0555533dd432eecdcc3a39d61",
+      "Locations": [
+        {
+          "Region": "Verteron",
+          "Faction": "Elyos"
+        },
+        {
+          "Region": "Altgard",
+          "Faction": "Asmodian"
+        }
+      ]
+    },
+    {
+      "Id": 1120,
+      "Name": "Young Kailin",
+      "Family": "Fera",
+      "SummonSouls": 5,
+      "SoulSource": "Ellun River Young Kailin",
+      "Source": "https://aion2data.com/pets/1120-young-kailin",
+      "Level2Souls": 25,
+      "Level3Souls": 75,
+      "DetailSha256": "bde8a2c7ddedddf682e45d30701680089eee2cb83a28214a3042752769e4a473",
+      "Locations": [
+        {
+          "Region": "Altgard",
+          "Faction": "Asmodian"
+        },
+        {
+          "Region": "Verteron",
+          "Faction": "Elyos"
+        }
+      ]
+    },
+    {
+      "Id": 1121,
+      "Name": "Young Slink",
+      "Family": "Fera",
+      "SummonSouls": 5,
+      "SoulSource": "Young Wetland Slink",
+      "Source": "https://aion2data.com/pets/1121-young-slink",
+      "Level2Souls": 25,
+      "Level3Souls": 75,
+      "DetailSha256": "9870cd48da86f3423f1dfa321a72009de05afde08cb2b83f01fa2a8486ba03dd",
+      "Locations": [
+        {
+          "Region": "Verteron",
+          "Faction": "Elyos"
+        },
+        {
+          "Region": "Altgard",
+          "Faction": "Asmodian"
+        },
+        {
+          "Region": "Chaotic Lower Reshanta",
+          "Faction": "Abyss"
+        }
+      ]
+    },
+    {
+      "Id": 1122,
+      "Name": "Young Tog",
+      "Family": "Fera",
+      "SummonSouls": 5,
+      "SoulSource": "chests",
+      "Source": "https://aion2data.com/pets/1122-young-tog",
+      "Level2Souls": 25,
+      "Level3Souls": 75,
+      "DetailSha256": "3b54427ede5f6a1a142952362ed387dadd0c17a70a683b238cf242ba1cbc0d62",
+      "Locations": []
+    },
+    {
+      "Id": 1123,
+      "Name": "Young Ursus",
+      "Family": "Fera",
+      "SummonSouls": 5,
+      "SoulSource": "Young Ursus",
+      "Source": "https://aion2data.com/pets/1123-young-ursus",
+      "Level2Souls": 25,
+      "Level3Souls": 75,
+      "DetailSha256": "312f234a0eb0ab1806dafa19d28317c39e40e84e982faf18de2235e6e76ce49c",
+      "Locations": [
+        {
+          "Region": "Verteron",
+          "Faction": "Elyos"
+        },
+        {
+          "Region": "Altgard",
+          "Faction": "Asmodian"
+        }
+      ]
+    },
+    {
+      "Id": 1124,
+      "Name": "Zaif",
+      "Family": "Fera",
+      "SummonSouls": 5,
+      "SoulSource": "Rock Hill Zaif",
+      "Source": "https://aion2data.com/pets/1124-zaif",
+      "Level2Souls": 25,
+      "Level3Souls": 75,
+      "DetailSha256": "7951f8dabaed56c2aeeebc5e67eebf57439e8d7b98d8eccae784ea2017419d7a",
+      "Locations": [
+        {
+          "Region": "Verteron",
+          "Faction": "Elyos"
+        }
+      ]
+    },
+    {
+      "Id": 1125,
+      "Name": "Aberrant Zaif",
+      "Family": "Fera",
+      "SummonSouls": 5,
+      "SoulSource": "Yellow-Maned Zaif",
+      "Source": "https://aion2data.com/pets/1125-aberrant-zaif",
+      "Level2Souls": 25,
+      "Level3Souls": 75,
+      "DetailSha256": "87b5d3f9d0f678e6cd089eedd560a05604ab0dd97468b30ce368266bc2a3e4dc",
+      "Locations": [
+        {
+          "Region": "Verteron",
+          "Faction": "Elyos"
+        },
+        {
+          "Region": "Altgard",
+          "Faction": "Asmodian"
+        }
+      ]
+    },
+    {
+      "Id": 1126,
+      "Name": "Aberrant Tog",
+      "Family": "Fera",
+      "SummonSouls": 5,
+      "SoulSource": "Cairn Tog",
+      "Source": "https://aion2data.com/pets/1126-aberrant-tog",
+      "Level2Souls": 25,
+      "Level3Souls": 75,
+      "DetailSha256": "d975b35ba16f30ad7daf3b34c35b453ecbdb10b8e5ac4ebe319113c5847a72c0",
+      "Locations": [
+        {
+          "Region": "Verteron",
+          "Faction": "Elyos"
+        },
+        {
+          "Region": "Altgard",
+          "Faction": "Asmodian"
+        }
+      ]
+    },
+    {
+      "Id": 1127,
+      "Name": "Odyle Stone Spirit",
+      "Family": "Natura",
+      "SummonSouls": 5,
+      "SoulSource": "Faded Odyle Spirit",
+      "Source": "https://aion2data.com/pets/1127-odyle-stone-spirit",
+      "Level2Souls": 25,
+      "Level3Souls": 75,
+      "DetailSha256": "b1abd3e8b26d30edc7d1e0d0ef31d68730d64d0dc13049a3e7063d4e4d8f5343",
+      "Locations": [
+        {
+          "Region": "Altgard",
+          "Faction": "Asmodian"
+        }
+      ]
+    },
+    {
+      "Id": 1128,
+      "Name": "Drana Slime",
+      "Family": "Varian",
+      "SummonSouls": 5,
+      "SoulSource": "Drana Slime",
+      "Source": "https://aion2data.com/pets/1128-drana-slime",
+      "Level2Souls": 25,
+      "Level3Souls": 75,
+      "DetailSha256": "c15c50c721a21f95c40d5c748d1fa194ef5563502313e5f85e77b6567c74d0d8",
+      "Locations": [
+        {
+          "Region": "Altgard",
+          "Faction": "Asmodian"
+        }
+      ]
+    },
+    {
+      "Id": 1129,
+      "Name": "Drana Swarm",
+      "Family": "Varian",
+      "SummonSouls": 5,
+      "SoulSource": "Crimson Drana Swarm",
+      "Source": "https://aion2data.com/pets/1129-drana-swarm",
+      "Level2Souls": 25,
+      "Level3Souls": 75,
+      "DetailSha256": "77656fd3135fd7e7c6eaf316d25b9e35226568d6614070bccd461fe4389b5c3f",
+      "Locations": [
+        {
+          "Region": "Verteron",
+          "Faction": "Elyos"
+        }
+      ]
+    },
+    {
+      "Id": 1130,
+      "Name": "Mutated Cadaver Insectoid",
+      "Family": "Fera",
+      "SummonSouls": 5,
+      "SoulSource": "Ridge Spider",
+      "Source": "https://aion2data.com/pets/1130-mutated-cadaver-insectoid",
+      "Level2Souls": 25,
+      "Level3Souls": 75,
+      "DetailSha256": "647a095523655dd9d1a6b93c58f676c5eef6f4a573a196ca93239deaa0ecffd6",
+      "Locations": [
+        {
+          "Region": "Verteron",
+          "Faction": "Elyos"
+        }
+      ]
+    },
+    {
+      "Id": 1131,
+      "Name": "Drana Spore",
+      "Family": "Natura",
+      "SummonSouls": 5,
+      "SoulSource": "Crimson Mutated Spore",
+      "Source": "https://aion2data.com/pets/1131-drana-spore",
+      "Level2Souls": 25,
+      "Level3Souls": 75,
+      "DetailSha256": "7492c4e1d4b84e53650e44051c71c8633edda64b2f82e3971d057fb26eab24c4",
+      "Locations": [
+        {
+          "Region": "Verteron",
+          "Faction": "Elyos"
+        }
+      ]
+    },
+    {
+      "Id": 1132,
+      "Name": "Ashen Lupyllini",
+      "Family": "Fera",
+      "SummonSouls": 5,
+      "SoulSource": "chests",
+      "Source": "https://aion2data.com/pets/1132-ashen-lupyllini",
+      "Level2Souls": 25,
+      "Level3Souls": 75,
+      "DetailSha256": "3d700b1c1af314e147082060f2199dc14123798d6ff944e4897bb61d3c3a84ad",
+      "Locations": []
+    },
+    {
+      "Id": 1133,
+      "Name": "Forest Dionae",
+      "Family": "Natura",
+      "SummonSouls": 5,
+      "SoulSource": "chests",
+      "Source": "https://aion2data.com/pets/1133-forest-dionae",
+      "Level2Souls": 25,
+      "Level3Souls": 75,
+      "DetailSha256": "0491855af691049457f08eb74537f2177f4f1d8ca541e04ac5d40eb3c763208b",
+      "Locations": []
+    },
+    {
+      "Id": 1134,
+      "Name": "Eternal Coradon",
+      "Family": "Fera",
+      "SummonSouls": 5,
+      "SoulSource": "Eternal Coradon",
+      "Source": "https://aion2data.com/pets/1134-eternal-coradon",
+      "Level2Souls": 25,
+      "Level3Souls": 75,
+      "DetailSha256": "39be323c3d5ef752ea1f83b895c2061a558df218967add9fde7004f9c69ff0a6",
+      "Locations": [
+        {
+          "Region": "Altgard",
+          "Faction": "Asmodian"
+        },
+        {
+          "Region": "Chaotic Lower Reshanta",
+          "Faction": "Abyss"
+        },
+        {
+          "Region": "Chaotic Middle Reshanta",
+          "Faction": "Abyss"
+        }
+      ]
+    },
+    {
+      "Id": 1135,
+      "Name": "Ashen Dionae",
+      "Family": "Natura",
+      "SummonSouls": 5,
+      "SoulSource": "Ashen Dionae",
+      "Source": "https://aion2data.com/pets/1135-ashen-dionae",
+      "Level2Souls": 25,
+      "Level3Souls": 75,
+      "DetailSha256": "8f8e50d81047281607a6e03a1f99dbdd831bd2a7eb6c292c06e42b9b0c81c79c",
+      "Locations": [
+        {
+          "Region": "Altgard",
+          "Faction": "Asmodian"
+        }
+      ]
+    },
+    {
+      "Id": 1136,
+      "Name": "Rafflesia",
+      "Family": "Natura",
+      "SummonSouls": 5,
+      "SoulSource": "Rafflesia",
+      "Source": "https://aion2data.com/pets/1136-rafflesia",
+      "Level2Souls": 25,
+      "Level3Souls": 75,
+      "DetailSha256": "76029c1202f5e891f2c47d60a9730d869b508ece4203b28ab4072074715157b3",
+      "Locations": [
+        {
+          "Region": "Altgard",
+          "Faction": "Asmodian"
+        },
+        {
+          "Region": "Verteron",
+          "Faction": "Elyos"
+        }
+      ]
+    },
+    {
+      "Id": 1137,
+      "Name": "Mumu Worker",
+      "Family": "Cogni",
+      "SummonSouls": 5,
+      "SoulSource": "Mumu Worker",
+      "Source": "https://aion2data.com/pets/1137-mumu-worker",
+      "Level2Souls": 25,
+      "Level3Souls": 75,
+      "DetailSha256": "c8f580ca5a925e6cd46f33e8df491dd7cf4629acdd938f3eb654c37582027478",
+      "Locations": [
+        {
+          "Region": "Altgard",
+          "Faction": "Asmodian"
+        }
+      ]
+    },
+    {
+      "Id": 1138,
+      "Name": "Mumu Overseer",
+      "Family": "Cogni",
+      "SummonSouls": 5,
+      "SoulSource": "chests",
+      "Source": "https://aion2data.com/pets/1138-mumu-overseer",
+      "Level2Souls": 25,
+      "Level3Souls": 75,
+      "DetailSha256": "48a4854b1053f3d14b29663486a1b52dcd43f0d4430f1f51af8c0eacec1c2ef3",
+      "Locations": []
+    },
+    {
+      "Id": 1139,
+      "Name": "Swamp Monster",
+      "Family": "Varian",
+      "SummonSouls": 5,
+      "SoulSource": "chests",
+      "Source": "https://aion2data.com/pets/1139-swamp-monster",
+      "Level2Souls": 25,
+      "Level3Souls": 75,
+      "DetailSha256": "a21b2f764eb79d292956dbd0aa53167d776b5b7ea5f5927a65e39ec9d9ce228f",
+      "Locations": []
+    },
+    {
+      "Id": 1140,
+      "Name": "Forest Monster",
+      "Family": "Varian",
+      "SummonSouls": 5,
+      "SoulSource": "Burned Forester",
+      "Source": "https://aion2data.com/pets/1140-forest-monster",
+      "Level2Souls": 25,
+      "Level3Souls": 75,
+      "DetailSha256": "807eb62c3f752dcb054c3dbc584ae847bace9f4733acf18d31b9d36d0786e8e1",
+      "Locations": [
+        {
+          "Region": "Verteron",
+          "Faction": "Elyos"
+        },
+        {
+          "Region": "Altgard",
+          "Faction": "Asmodian"
+        }
+      ]
+    },
+    {
+      "Id": 1141,
+      "Name": "Marsh Targon",
+      "Family": "Varian",
+      "SummonSouls": 5,
+      "SoulSource": "Marsh Targon",
+      "Source": "https://aion2data.com/pets/1141-marsh-targon",
+      "Level2Souls": 25,
+      "Level3Souls": 75,
+      "DetailSha256": "6a38b92b3b0047c45cb8c9ce0581d80af4e87064450b6b4a9917367441288a01",
+      "Locations": [
+        {
+          "Region": "Verteron",
+          "Faction": "Elyos"
+        },
+        {
+          "Region": "Chaotic Middle Reshanta",
+          "Faction": "Abyss"
+        }
+      ]
+    },
+    {
+      "Id": 1142,
+      "Name": "Distorted Mutant",
+      "Family": "Varian",
+      "SummonSouls": 5,
+      "SoulSource": "Consumed Spirit Guardian",
+      "Source": "https://aion2data.com/pets/1142-distorted-mutant",
+      "Level2Souls": 25,
+      "Level3Souls": 75,
+      "DetailSha256": "0d090cfac3dc33ef4f69266b6dc7ebdf1d719b8503dd399985588fd01b545df1",
+      "Locations": [
+        {
+          "Region": "Altgard",
+          "Faction": "Asmodian"
+        }
+      ]
+    },
+    {
+      "Id": 1143,
+      "Name": "Mutated Ursus",
+      "Family": "Fera",
+      "SummonSouls": 5,
+      "SoulSource": "Ashen Ursus",
+      "Source": "https://aion2data.com/pets/1143-mutated-ursus",
+      "Level2Souls": 25,
+      "Level3Souls": 75,
+      "DetailSha256": "43b985923853308478d304fd9b92f89d912d5300bb2f22910dc1c97220f3d733",
+      "Locations": [
+        {
+          "Region": "Altgard",
+          "Faction": "Asmodian"
+        }
+      ]
+    },
+    {
+      "Id": 1144,
+      "Name": "Mutated Forest Guardian",
+      "Family": "Natura",
+      "SummonSouls": 5,
+      "SoulSource": "Mutated Forest Guardian",
+      "Source": "https://aion2data.com/pets/1144-mutated-forest-guardian",
+      "Level2Souls": 25,
+      "Level3Souls": 75,
+      "DetailSha256": "872a7f09cec59d75207d7af074d323bcb9d1f2c547867201437b88b25071b722",
+      "Locations": [
+        {
+          "Region": "Altgard",
+          "Faction": "Asmodian"
+        }
+      ]
+    },
+    {
+      "Id": 1145,
+      "Name": "Mutated Insectoid Valka",
+      "Family": "Fera",
+      "SummonSouls": 5,
+      "SoulSource": "chests",
+      "Source": "https://aion2data.com/pets/1145-mutated-insectoid-valka",
+      "Level2Souls": 25,
+      "Level3Souls": 75,
+      "DetailSha256": "b0bb5c7449efd151e33620da88c7974325f40d8a7372f986f19112c74c53a4f7",
+      "Locations": []
+    },
+    {
+      "Id": 1146,
+      "Name": "Gatekeeper Pinopi",
+      "Family": "Varian",
+      "SummonSouls": 5,
+      "SoulSource": "chests",
+      "Source": "https://aion2data.com/pets/1146-gatekeeper-pinopi",
+      "Level2Souls": 25,
+      "Level3Souls": 75,
+      "DetailSha256": "c4ac6d65bc1b6272647d15ff795581bbed49b5a7449178d0038912744c25ca20",
+      "Locations": []
+    },
+    {
+      "Id": 1147,
+      "Name": "Dratona",
+      "Family": "Cogni",
+      "SummonSouls": 5,
+      "SoulSource": "Dratona Tinkerer",
+      "Source": "https://aion2data.com/pets/1147-dratona",
+      "Level2Souls": 25,
+      "Level3Souls": 75,
+      "DetailSha256": "ae2708ae1a11092d0b588cbb73f636eb3ee893efbc3c5f3f706e54c5624d273b",
+      "Locations": [
+        {
+          "Region": "Altgard",
+          "Faction": "Asmodian"
+        },
+        {
+          "Region": "Verteron",
+          "Faction": "Elyos"
+        }
+      ]
+    },
+    {
+      "Id": 1148,
+      "Name": "Drakana Kalgolem",
+      "Family": "Varian",
+      "SummonSouls": 5,
+      "SoulSource": "Crash Site Kalgolem",
+      "Source": "https://aion2data.com/pets/1148-drakana-kalgolem",
+      "Level2Souls": 25,
+      "Level3Souls": 75,
+      "DetailSha256": "365bb5f6ea35c0d298f7ea2c2efdfe500efcca99b998dc5f00cfdae91e50e8c1",
+      "Locations": [
+        {
+          "Region": "Altgard",
+          "Faction": "Asmodian"
+        }
+      ]
+    },
+    {
+      "Id": 1153,
+      "Name": "Drana Mutant Brute",
+      "Family": "Varian",
+      "SummonSouls": 5,
+      "SoulSource": "Crimson Drana Mutant",
+      "Source": "https://aion2data.com/pets/1153-drana-mutant-brute",
+      "Level2Souls": 25,
+      "Level3Souls": 75,
+      "DetailSha256": "28e62e03305538904427eb657d46938ae49db93c6e375c4e4766a731e34d36db",
+      "Locations": [
+        {
+          "Region": "Verteron",
+          "Faction": "Elyos"
+        },
+        {
+          "Region": "Altgard",
+          "Faction": "Asmodian"
+        }
+      ]
+    },
+    {
+      "Id": 1154,
+      "Name": "Faded Mutant Brute",
+      "Family": "Varian",
+      "SummonSouls": 5,
+      "SoulSource": "Faded Mutant Brute",
+      "Source": "https://aion2data.com/pets/1154-faded-mutant-brute",
+      "Level2Souls": 25,
+      "Level3Souls": 75,
+      "DetailSha256": "91d7962d39671e36c49f4a73864450bf061797c0f2c3c6a396cd899be8bfbb83",
+      "Locations": [
+        {
+          "Region": "Chaotic Middle Reshanta",
+          "Faction": "Abyss"
+        },
+        {
+          "Region": "Altgard",
+          "Faction": "Asmodian"
+        }
+      ]
+    },
+    {
+      "Id": 1155,
+      "Name": "Superior Water Spirit",
+      "Family": "Natura",
+      "SummonSouls": 5,
+      "SoulSource": "Water Mist Spirit",
+      "Source": "https://aion2data.com/pets/1155-superior-water-spirit",
+      "Level2Souls": 25,
+      "Level3Souls": 75,
+      "DetailSha256": "fdcbf709f9c7131c5a455bce7d7992701a1e4b13de5aa55fa5a35a21d36fca71",
+      "Locations": [
+        {
+          "Region": "Altgard",
+          "Faction": "Asmodian"
+        },
+        {
+          "Region": "Verteron",
+          "Faction": "Elyos"
+        }
+      ]
+    },
+    {
+      "Id": 1156,
+      "Name": "Elite Klaw",
+      "Family": "Cogni",
+      "SummonSouls": 5,
+      "SoulSource": "Bodyguard Teegant",
+      "Source": "https://aion2data.com/pets/1156-elite-klaw",
+      "Level2Souls": 25,
+      "Level3Souls": 75,
+      "DetailSha256": "7339c629143724e10456e2d95f29096fc2f019c757b97358c56838c6f289394b",
+      "Locations": [
+        {
+          "Region": "Verteron",
+          "Faction": "Elyos"
+        }
+      ]
+    },
+    {
+      "Id": 1157,
+      "Name": "Cadaver Cleaner",
+      "Family": "Varian",
+      "SummonSouls": 5,
+      "SoulSource": "Ruins Corpse Cleaner",
+      "Source": "https://aion2data.com/pets/1157-cadaver-cleaner",
+      "Level2Souls": 25,
+      "Level3Souls": 75,
+      "DetailSha256": "429f2e65b469ecadcdb81e351f950a4b384e5884e4c1e7d32b2b91140a39a0b5",
+      "Locations": [
+        {
+          "Region": "Altgard",
+          "Faction": "Asmodian"
+        }
+      ]
+    },
+    {
+      "Id": 1158,
+      "Name": "Venomous Insect Sram",
+      "Family": "Fera",
+      "SummonSouls": 5,
+      "SoulSource": "chests",
+      "Source": "https://aion2data.com/pets/1158-venomous-insect-sram",
+      "Level2Souls": 25,
+      "Level3Souls": 75,
+      "DetailSha256": "d69eb0d3006ea14f6468bbbb23a3f7fca367dfd7dc43be68d7a0ba93e1e44b0b",
+      "Locations": []
+    },
+    {
+      "Id": 1159,
+      "Name": "Parasite Swarm",
+      "Family": "Varian",
+      "SummonSouls": 5,
+      "SoulSource": "Giant Ore Insectoid Adult",
+      "Source": "https://aion2data.com/pets/1159-parasite-swarm",
+      "Level2Souls": 25,
+      "Level3Souls": 75,
+      "DetailSha256": "dd32c69bd4130d3d26f5c611d5f961b899319f560ccc5d441f79f7070bbec5b5",
+      "Locations": [
+        {
+          "Region": "Altgard",
+          "Faction": "Asmodian"
+        }
+      ]
+    },
+    {
+      "Id": 1160,
+      "Name": "Drana Contaminant",
+      "Family": "Varian",
+      "SummonSouls": 5,
+      "SoulSource": "chests",
+      "Source": "https://aion2data.com/pets/1160-drana-contaminant",
+      "Level2Souls": 25,
+      "Level3Souls": 75,
+      "DetailSha256": "8d770b24725667eb5f1e073709c347a5eeb9aca0a8ac2d82167027e4c30ef6a5",
+      "Locations": []
+    },
+    {
+      "Id": 1161,
+      "Name": "Faded Floater",
+      "Family": "Varian",
+      "SummonSouls": 5,
+      "SoulSource": "Faded Floater",
+      "Source": "https://aion2data.com/pets/1161-faded-floater",
+      "Level2Souls": 25,
+      "Level3Souls": 75,
+      "DetailSha256": "f3aa372f30344c3ba98f0cf3f9436beb161e97348b3585b2a2c441fcdd51fd6a",
+      "Locations": [
+        {
+          "Region": "Altgard",
+          "Faction": "Asmodian"
+        }
+      ]
+    },
+    {
+      "Id": 1162,
+      "Name": "Kerubar",
+      "Family": "Cogni",
+      "SummonSouls": 5,
+      "SoulSource": "Eternal Kerubar",
+      "Source": "https://aion2data.com/pets/1162-kerubar",
+      "Level2Souls": 25,
+      "Level3Souls": 75,
+      "DetailSha256": "219f7dc5bb2cafe0603213659fbbb24b43e9ef4e9832ed6029423dbe0d8aa77e",
+      "Locations": [
+        {
+          "Region": "Altgard",
+          "Faction": "Asmodian"
+        },
+        {
+          "Region": "Verteron",
+          "Faction": "Elyos"
+        }
+      ]
+    },
+    {
+      "Id": 1163,
+      "Name": "Basilisk",
+      "Family": "Fera",
+      "SummonSouls": 5,
+      "SoulSource": "Black Ash Basilisk",
+      "Source": "https://aion2data.com/pets/1163-basilisk",
+      "Level2Souls": 25,
+      "Level3Souls": 75,
+      "DetailSha256": "e17a30356e2f8f9297cc8ceaf042652514139289d73a89df2ea36a570ab2d424",
+      "Locations": [
+        {
+          "Region": "Altgard",
+          "Faction": "Asmodian"
+        }
+      ]
+    },
+    {
+      "Id": 1164,
+      "Name": "Lesser Earth Spirit",
+      "Family": "Natura",
+      "SummonSouls": 5,
+      "SoulSource": "Eternal Earth Spirit",
+      "Source": "https://aion2data.com/pets/1164-lesser-earth-spirit",
+      "Level2Souls": 25,
+      "Level3Souls": 75,
+      "DetailSha256": "73f6481e1a312370b8264c427823bf3f27c6b64e875d742223f8d91c6e92e991",
+      "Locations": [
+        {
+          "Region": "Verteron",
+          "Faction": "Elyos"
+        }
+      ]
+    },
+    {
+      "Id": 1165,
+      "Name": "Intermediate Earth Spirit",
+      "Family": "Natura",
+      "SummonSouls": 5,
+      "SoulSource": "Wandering Earth Spirit",
+      "Source": "https://aion2data.com/pets/1165-intermediate-earth-spirit",
+      "Level2Souls": 25,
+      "Level3Souls": 75,
+      "DetailSha256": "1af9ef7eb543332a31fbcf25e559a0bf29049bc807d115ba57148d87038f75bb",
+      "Locations": [
+        {
+          "Region": "Verteron",
+          "Faction": "Elyos"
+        },
+        {
+          "Region": "Altgard",
+          "Faction": "Asmodian"
+        }
+      ]
+    },
+    {
+      "Id": 1166,
+      "Name": "Superior Earth Spirit",
+      "Family": "Natura",
+      "SummonSouls": 5,
+      "SoulSource": "Corroded Soil Spirit",
+      "Source": "https://aion2data.com/pets/1166-superior-earth-spirit",
+      "Level2Souls": 25,
+      "Level3Souls": 75,
+      "DetailSha256": "cd519d67f8454c20ff00f464e2c53bda07fda1e285cd568fd4f0e6be53de1ced",
+      "Locations": [
+        {
+          "Region": "Altgard",
+          "Faction": "Asmodian"
+        },
+        {
+          "Region": "Verteron",
+          "Faction": "Elyos"
+        }
+      ]
+    },
+    {
+      "Id": 1167,
+      "Name": "Flame Stone Guardian Statue",
+      "Family": "Varian",
+      "SummonSouls": 5,
+      "SoulSource": "chests",
+      "Source": "https://aion2data.com/pets/1167-flame-stone-guardian-statue",
+      "Level2Souls": 25,
+      "Level3Souls": 75,
+      "DetailSha256": "6b4c8162645ee564447614305114f446fbdf828635fa8fa2db2d857bd4d22d5d",
+      "Locations": []
+    },
+    {
+      "Id": 1168,
+      "Name": "Lesser Water Spirit",
+      "Family": "Natura",
+      "SummonSouls": 5,
+      "SoulSource": "Water Spirit",
+      "Source": "https://aion2data.com/pets/1168-lesser-water-spirit",
+      "Level2Souls": 25,
+      "Level3Souls": 75,
+      "DetailSha256": "88964f74a8b78f9462624b130732d9af0f4bed27c17f704a8d54a13be61c7f20",
+      "Locations": [
+        {
+          "Region": "Verteron",
+          "Faction": "Elyos"
+        }
+      ]
+    },
+    {
+      "Id": 1169,
+      "Name": "Intermediate Water Spirit",
+      "Family": "Natura",
+      "SummonSouls": 5,
+      "SoulSource": "Wandering Water Spirit",
+      "Source": "https://aion2data.com/pets/1169-intermediate-water-spirit",
+      "Level2Souls": 25,
+      "Level3Souls": 75,
+      "DetailSha256": "373885a29cd70fa88d527488447e159f69e2bd803aef2ca221688806761ba586",
+      "Locations": [
+        {
+          "Region": "Altgard",
+          "Faction": "Asmodian"
+        },
+        {
+          "Region": "Verteron",
+          "Faction": "Elyos"
+        }
+      ]
+    },
+    {
+      "Id": 1170,
+      "Name": "Kerubian",
+      "Family": "Cogni",
+      "SummonSouls": 5,
+      "SoulSource": "Eternal Kerubian",
+      "Source": "https://aion2data.com/pets/1170-kerubian",
+      "Level2Souls": 25,
+      "Level3Souls": 75,
+      "DetailSha256": "ff23c6d98ff88d73ec110b5ddd3b3ab9d52fac01f0b66221b1af27947bcb95ba",
+      "Locations": [
+        {
+          "Region": "Verteron",
+          "Faction": "Elyos"
+        },
+        {
+          "Region": "Altgard",
+          "Faction": "Asmodian"
+        }
+      ]
+    },
+    {
+      "Id": 1171,
+      "Name": "Kerubiel",
+      "Family": "Cogni",
+      "SummonSouls": 5,
+      "SoulSource": "Eternal Kerubiel",
+      "Source": "https://aion2data.com/pets/1171-kerubiel",
+      "Level2Souls": 25,
+      "Level3Souls": 75,
+      "DetailSha256": "251947be72fd97b094aa56fc18250502a96e8feff1894c1b6893fa1f50573b1b",
+      "Locations": [
+        {
+          "Region": "Verteron",
+          "Faction": "Elyos"
+        },
+        {
+          "Region": "Altgard",
+          "Faction": "Asmodian"
+        }
+      ]
+    },
+    {
+      "Id": 1172,
+      "Name": "Duduka Worker",
+      "Family": "Varian",
+      "SummonSouls": 5,
+      "SoulSource": "Duduka Worker",
+      "Source": "https://aion2data.com/pets/1172-duduka-worker",
+      "Level2Souls": 25,
+      "Level3Souls": 75,
+      "DetailSha256": "d71c33a030d539f128ad357392e16274206bb03f069d65812a0db2ce68de259f",
+      "Locations": [
+        {
+          "Region": "Altgard",
+          "Faction": "Asmodian"
+        }
+      ]
+    },
+    {
+      "Id": 1173,
+      "Name": "Duduka Trebuchet Worker",
+      "Family": "Varian",
+      "SummonSouls": 5,
+      "SoulSource": "Duduka Slinger",
+      "Source": "https://aion2data.com/pets/1173-duduka-trebuchet-worker",
+      "Level2Souls": 25,
+      "Level3Souls": 75,
+      "DetailSha256": "01cf3d524928c939054608b683a717679e932bd8051a99fc817f97879e9a850a",
+      "Locations": [
+        {
+          "Region": "Altgard",
+          "Faction": "Asmodian"
+        }
+      ]
+    },
+    {
+      "Id": 1174,
+      "Name": "Drana Predator",
+      "Family": "Varian",
+      "SummonSouls": 5,
+      "SoulSource": "Drana Predator",
+      "Source": "https://aion2data.com/pets/1174-drana-predator",
+      "Level2Souls": 25,
+      "Level3Souls": 75,
+      "DetailSha256": "544097787604a0526c885183b28531db88f0034a8abae15e7887ce6a01981108",
+      "Locations": [
+        {
+          "Region": "Verteron",
+          "Faction": "Elyos"
+        },
+        {
+          "Region": "Altgard",
+          "Faction": "Asmodian"
+        }
+      ]
+    },
+    {
+      "Id": 1175,
+      "Name": "Faded Predator",
+      "Family": "Varian",
+      "SummonSouls": 5,
+      "SoulSource": "Faded Predator",
+      "Source": "https://aion2data.com/pets/1175-faded-predator",
+      "Level2Souls": 25,
+      "Level3Souls": 75,
+      "DetailSha256": "bed25706444fae677197c4e9b93a42b231d36b2401b42587bd0288856cd3f329",
+      "Locations": [
+        {
+          "Region": "Altgard",
+          "Faction": "Asmodian"
+        }
+      ]
+    },
+    {
+      "Id": 1176,
+      "Name": "Mudthorn",
+      "Family": "Varian",
+      "SummonSouls": 5,
+      "SoulSource": "Addicted Mudthorn",
+      "Source": "https://aion2data.com/pets/1176-mudthorn",
+      "Level2Souls": 25,
+      "Level3Souls": 75,
+      "DetailSha256": "3e995550a28f06130a7fe7b31b9cbce8c60db4cd1404d6992b70dd5e8836f435",
+      "Locations": [
+        {
+          "Region": "Altgard",
+          "Faction": "Asmodian"
+        }
+      ]
+    },
+    {
+      "Id": 1177,
+      "Name": "Ancient Spirit",
+      "Family": "Natura",
+      "SummonSouls": 5,
+      "SoulSource": "chests",
+      "Source": "https://aion2data.com/pets/1177-ancient-spirit",
+      "Level2Souls": 25,
+      "Level3Souls": 75,
+      "DetailSha256": "9583264eefca22f99906470f9c5ce8cfdeca191c7e84197ddf3b492158fb182a",
+      "Locations": []
+    },
+    {
+      "Id": 1178,
+      "Name": "Spirit King's Bodyguard Warrior",
+      "Family": "Natura",
+      "SummonSouls": 5,
+      "SoulSource": "Old Tree Spirit Warrior",
+      "Source": "https://aion2data.com/pets/1178-spirit-kings-bodyguard-warrior",
+      "Level2Souls": 25,
+      "Level3Souls": 75,
+      "DetailSha256": "26f19b920b3dcf6f9deccf83ad57b278772aad05723a8432979837c01332d57c",
+      "Locations": [
+        {
+          "Region": "Chaotic Lower Reshanta",
+          "Faction": "Abyss"
+        },
+        {
+          "Region": "Chaotic Middle Reshanta",
+          "Faction": "Abyss"
+        }
+      ]
+    },
+    {
+      "Id": 1179,
+      "Name": "Drana Mutant",
+      "Family": "Varian",
+      "SummonSouls": 5,
+      "SoulSource": "Twisted Mutant",
+      "Source": "https://aion2data.com/pets/1179-drana-mutant",
+      "Level2Souls": 25,
+      "Level3Souls": 75,
+      "DetailSha256": "0c6ba7513ed7d4175cbf6536826e083a6874a6fd8fb8e32ab55f284abefd84a1",
+      "Locations": [
+        {
+          "Region": "Altgard",
+          "Faction": "Asmodian"
+        }
+      ]
+    },
+    {
+      "Id": 1180,
+      "Name": "Faded Mutant",
+      "Family": "Varian",
+      "SummonSouls": 5,
+      "SoulSource": "Faded Mutant",
+      "Source": "https://aion2data.com/pets/1180-faded-mutant",
+      "Level2Souls": 25,
+      "Level3Souls": 75,
+      "DetailSha256": "ac5cb38b6a1e5f18e686c3ba7d3fe685fcebd4426a4c7fa0f9d9da9472cd9e05",
+      "Locations": [
+        {
+          "Region": "Altgard",
+          "Faction": "Asmodian"
+        },
+        {
+          "Region": "Chaotic Middle Reshanta",
+          "Faction": "Abyss"
+        }
+      ]
+    },
+    {
+      "Id": 1181,
+      "Name": "Brax",
+      "Family": "Fera",
+      "SummonSouls": 5,
+      "SoulSource": "Field Brax",
+      "Source": "https://aion2data.com/pets/1181-brax",
+      "Level2Souls": 25,
+      "Level3Souls": 75,
+      "DetailSha256": "36629fe9aaa815be3942223a25117ecadac3bdb5356aba0ec55558853b3f439a",
+      "Locations": [
+        {
+          "Region": "Verteron",
+          "Faction": "Elyos"
+        },
+        {
+          "Region": "Altgard",
+          "Faction": "Asmodian"
+        }
+      ]
+    },
+    {
+      "Id": 1182,
+      "Name": "Elite Soulless Corpse Gnat",
+      "Family": "Varian",
+      "SummonSouls": 5,
+      "SoulSource": "chests",
+      "Source": "https://aion2data.com/pets/1182-elite-soulless-corpse-gnat",
+      "Level2Souls": 25,
+      "Level3Souls": 75,
+      "DetailSha256": "e1ddb069318c60a22969581ea153457cce95ce3846dbd8337c23947db6db2589",
+      "Locations": []
+    },
+    {
+      "Id": 1183,
+      "Name": "Soulless Corpse Gnat",
+      "Family": "Varian",
+      "SummonSouls": 5,
+      "SoulSource": "Soulless Corpse Gnat",
+      "Source": "https://aion2data.com/pets/1183-soulless-corpse-gnat",
+      "Level2Souls": 25,
+      "Level3Souls": 75,
+      "DetailSha256": "0d035420cda71f42db3e33fba304a5a78c930288cbabbd16c8e96704e8f47377",
+      "Locations": [
+        {
+          "Region": "Altgard",
+          "Faction": "Asmodian"
+        }
+      ]
+    },
+    {
+      "Id": 1184,
+      "Name": "Drakan Watcher",
+      "Family": "Cogni",
+      "SummonSouls": 5,
+      "SoulSource": "Drakan Manager",
+      "Source": "https://aion2data.com/pets/1184-drakan-watcher",
+      "Level2Souls": 25,
+      "Level3Souls": 75,
+      "DetailSha256": "dcb0488288c51e32518fe3d8aa4b52e12c3401a9f82d0640e16096ea8f21a3c7",
+      "Locations": [
+        {
+          "Region": "Altgard",
+          "Faction": "Asmodian"
+        },
+        {
+          "Region": "Verteron",
+          "Faction": "Elyos"
+        }
+      ]
+    },
+    {
+      "Id": 1185,
+      "Name": "Dratona Tinkerer",
+      "Family": "Cogni",
+      "SummonSouls": 5,
+      "SoulSource": "chests",
+      "Source": "https://aion2data.com/pets/1185-dratona-tinkerer",
+      "Level2Souls": 25,
+      "Level3Souls": 75,
+      "DetailSha256": "ed67d48b37818a3910ca3918ed6ccee70920b5c24873647e99e09409ed8c2887",
+      "Locations": []
+    },
+    {
+      "Id": 1186,
+      "Name": "Poison Blood",
+      "Family": "Varian",
+      "SummonSouls": 5,
+      "SoulSource": "Cursed Poison Blood",
+      "Source": "https://aion2data.com/pets/1186-poison-blood",
+      "Level2Souls": 25,
+      "Level3Souls": 75,
+      "DetailSha256": "e9d18f3ff789681049f6162b440a37815048235915547e2f7fc36831b7b2fa05",
+      "Locations": [
+        {
+          "Region": "Altgard",
+          "Faction": "Asmodian"
+        }
+      ]
+    },
+    {
+      "Id": 1187,
+      "Name": "Intermediate Fire Spirit",
+      "Family": "Natura",
+      "SummonSouls": 5,
+      "SoulSource": "Unstable Intermediate Fire Spirit",
+      "Source": "https://aion2data.com/pets/1187-intermediate-fire-spirit",
+      "Level2Souls": 25,
+      "Level3Souls": 75,
+      "DetailSha256": "b17c9cc910cb53b985bc8d71972b30d9fb4fd4926f10773f1ea004b1136713fb",
+      "Locations": [
+        {
+          "Region": "Altgard",
+          "Faction": "Asmodian"
+        },
+        {
+          "Region": "Verteron",
+          "Faction": "Elyos"
+        }
+      ]
+    },
+    {
+      "Id": 1188,
+      "Name": "Vivel",
+      "Family": "Fera",
+      "SummonSouls": 5,
+      "SoulSource": "Vampire Vivel",
+      "Source": "https://aion2data.com/pets/1188-vivel",
+      "Level2Souls": 25,
+      "Level3Souls": 75,
+      "DetailSha256": "82bea09c88f7ea00a6a91014c36c565f3f8c8636ce46e65fca3958e9d3854535",
+      "Locations": [
+        {
+          "Region": "Altgard",
+          "Faction": "Asmodian"
+        },
+        {
+          "Region": "Verteron",
+          "Faction": "Elyos"
+        }
+      ]
+    },
+    {
+      "Id": 1189,
+      "Name": "Tamed Zaif",
+      "Family": "Fera",
+      "SummonSouls": 5,
+      "SoulSource": "Marauders Zaif",
+      "Source": "https://aion2data.com/pets/1189-tamed-zaif",
+      "Level2Souls": 25,
+      "Level3Souls": 75,
+      "DetailSha256": "c0b2f5d41608eb31fd14279a160e843cb76c4bb1f1701621a71a8a906a6a28b8",
+      "Locations": [
+        {
+          "Region": "Chaotic Middle Reshanta",
+          "Faction": "Abyss"
+        },
+        {
+          "Region": "Verteron",
+          "Faction": "Elyos"
+        }
+      ]
+    },
+    {
+      "Id": 1190,
+      "Name": "Elite Poisonous Spore Fungen",
+      "Family": "Natura",
+      "SummonSouls": 5,
+      "SoulSource": "chests",
+      "Source": "https://aion2data.com/pets/1190-elite-poisonous-spore-fungen",
+      "Level2Souls": 25,
+      "Level3Souls": 75,
+      "DetailSha256": "3ba67c0ed617aece6ad7fa00a1dee2303eca4f1842a71b215ec39ea29262f12d",
+      "Locations": []
+    },
+    {
+      "Id": 1191,
+      "Name": "Furious Feruk",
+      "Family": "Cogni",
+      "SummonSouls": 5,
+      "SoulSource": "chests",
+      "Source": "https://aion2data.com/pets/1191-furious-feruk",
+      "Level2Souls": 25,
+      "Level3Souls": 75,
+      "DetailSha256": "ec10984c9918a3a76bae3d9fe5ca6ddd1f7df7f00d885895f689b4f3e2942382",
+      "Locations": []
+    },
+    {
+      "Id": 1192,
+      "Name": "Silver Blade Rotan",
+      "Family": "Varian",
+      "SummonSouls": 5,
+      "SoulSource": "Silver Blade Rotan",
+      "Source": "https://aion2data.com/pets/1192-silver-blade-rotan",
+      "Level2Souls": 25,
+      "Level3Souls": 75,
+      "DetailSha256": "ed125450dc1144609ad97cda76bab53a8abe113b629e379c7e273b163a7ee7db",
+      "Locations": [
+        {
+          "Region": "Chaotic Lower Reshanta",
+          "Faction": "Abyss"
+        },
+        {
+          "Region": "Chaotic Middle Reshanta",
+          "Faction": "Abyss"
+        }
+      ]
+    },
+    {
+      "Id": 1193,
+      "Name": "Addicted Shulak Cart Worker",
+      "Family": "Cogni",
+      "SummonSouls": 5,
+      "SoulSource": "Rampaging Shulak Cart Worker",
+      "Source": "https://aion2data.com/pets/1193-addicted-shulak-cart-worker",
+      "Level2Souls": 25,
+      "Level3Souls": 75,
+      "DetailSha256": "14491513eaa7d09b3428ae48df00b76d3b7d5a3daf45c94a8ce4569eba06524f",
+      "Locations": [
+        {
+          "Region": "Altgard",
+          "Faction": "Asmodian"
+        }
+      ]
+    },
+    {
+      "Id": 1194,
+      "Name": "Guardite",
+      "Family": "Varian",
+      "SummonSouls": 5,
+      "SoulSource": "Uncontrollable Guardite",
+      "Source": "https://aion2data.com/pets/1194-guardite",
+      "Level2Souls": 25,
+      "Level3Souls": 75,
+      "DetailSha256": "c900765ce33a4634deedb95b807f4f98cececeef69c94a4d62110c92e108c88c",
+      "Locations": [
+        {
+          "Region": "Verteron",
+          "Faction": "Elyos"
+        }
+      ]
+    },
+    {
+      "Id": 1195,
+      "Name": "Dracuni Herbalist",
+      "Family": "Cogni",
+      "SummonSouls": 5,
+      "SoulSource": "Dracuni Processing Laborer",
+      "Source": "https://aion2data.com/pets/1195-dracuni-herbalist",
+      "Level2Souls": 25,
+      "Level3Souls": 75,
+      "DetailSha256": "f9d606a2e42d5f16ce7189b8bf7666ea96ecb1fb86d7d685ce27dcd42fffd843",
+      "Locations": [
+        {
+          "Region": "Verteron",
+          "Faction": "Elyos"
+        },
+        {
+          "Region": "Altgard",
+          "Faction": "Asmodian"
+        }
+      ]
+    },
+    {
+      "Id": 1196,
+      "Name": "Elite Dratona",
+      "Family": "Cogni",
+      "SummonSouls": 5,
+      "SoulSource": "Predator Colossus Balakh",
+      "Source": "https://aion2data.com/pets/1196-elite-dratona",
+      "Level2Souls": 25,
+      "Level3Souls": 75,
+      "DetailSha256": "618f742d7d6a572e6cd6d3082586260a0b3fca77038178cd835153d57669e40e",
+      "Locations": [
+        {
+          "Region": "Morheim",
+          "Faction": "Asmodian"
+        }
+      ]
+    },
+    {
+      "Id": 1197,
+      "Name": "Watcher Guardite",
+      "Family": "Varian",
+      "SummonSouls": 5,
+      "SoulSource": "Contaminated Guardite",
+      "Source": "https://aion2data.com/pets/1197-watcher-guardite",
+      "Level2Souls": 25,
+      "Level3Souls": 75,
+      "DetailSha256": "e411c3b9122a3f4f09e6098ee41614f0f322a67a09b41f253100a726f61ec7ef",
+      "Locations": [
+        {
+          "Region": "Verteron",
+          "Faction": "Elyos"
+        }
+      ]
+    },
+    {
+      "Id": 1198,
+      "Name": "Ashen Basilisk",
+      "Family": "Fera",
+      "SummonSouls": 5,
+      "SoulSource": "chests",
+      "Source": "https://aion2data.com/pets/1198-ashen-basilisk",
+      "Level2Souls": 25,
+      "Level3Souls": 75,
+      "DetailSha256": "d097461d5567a3d5be55974fc4e86f7fb88c960f8ae654508771dc0daae4af5e",
+      "Locations": []
+    },
+    {
+      "Id": 1199,
+      "Name": "Flame Barghest",
+      "Family": "Fera",
+      "SummonSouls": 5,
+      "SoulSource": "chests",
+      "Source": "https://aion2data.com/pets/1199-flame-barghest",
+      "Level2Souls": 25,
+      "Level3Souls": 75,
+      "DetailSha256": "f60003bae8e241de8bb4365607f9ff51efdd2f5f33528faf5a3c617e127c9f92",
+      "Locations": []
+    },
+    {
+      "Id": 1200,
+      "Name": "Naga Elite Priest",
+      "Family": "Cogni",
+      "SummonSouls": 5,
+      "SoulSource": "Abyss Naga Dark Mage",
+      "Source": "https://aion2data.com/pets/1200-naga-elite-priest",
+      "Level2Souls": 25,
+      "Level3Souls": 75,
+      "DetailSha256": "de2f88238a89cd35fe458c8032c34759e3f4a92c0421638df89cd837b45ef7d0",
+      "Locations": [
+        {
+          "Region": "Chaotic Lower Reshanta",
+          "Faction": "Abyss"
+        }
+      ]
+    },
+    {
+      "Id": 1201,
+      "Name": "Modified Lupyllini",
+      "Family": "Cogni",
+      "SummonSouls": 5,
+      "SoulSource": "Lupyllini Test Subject",
+      "Source": "https://aion2data.com/pets/1201-modified-lupyllini",
+      "Level2Souls": 25,
+      "Level3Souls": 75,
+      "DetailSha256": "d5514bf058b577d9b7e49536746fb5fd6890343b855be29699d6565107e60f0d",
+      "Locations": [
+        {
+          "Region": "Altgard",
+          "Faction": "Asmodian"
+        },
+        {
+          "Region": "Verteron",
+          "Faction": "Elyos"
+        }
+      ]
+    },
+    {
+      "Id": 1202,
+      "Name": "Decomposed Lupyllini",
+      "Family": "Cogni",
+      "SummonSouls": 5,
+      "SoulSource": "Decomposed Lupyllini",
+      "Source": "https://aion2data.com/pets/1202-decomposed-lupyllini",
+      "Level2Souls": 25,
+      "Level3Souls": 75,
+      "DetailSha256": "604ff61d869ac900628c676810b99c31e5f7a3e0824fe410e34c8580b0e0ece1",
+      "Locations": [
+        {
+          "Region": "Altgard",
+          "Faction": "Asmodian"
+        },
+        {
+          "Region": "Verteron",
+          "Faction": "Elyos"
+        }
+      ]
+    },
+    {
+      "Id": 1203,
+      "Name": "Tamed Karnif",
+      "Family": "Fera",
+      "SummonSouls": 5,
+      "SoulSource": "Blades Karnif",
+      "Source": "https://aion2data.com/pets/1203-tamed-karnif",
+      "Level2Souls": 25,
+      "Level3Souls": 75,
+      "DetailSha256": "b6845f21d258237de9bdca7e5adfdf66a1c3725bdba9a34049706f1d4a3d7ede",
+      "Locations": [
+        {
+          "Region": "Altgard",
+          "Faction": "Asmodian"
+        }
+      ]
+    },
+    {
+      "Id": 1204,
+      "Name": "Pagati",
+      "Family": "Special",
+      "SummonSouls": 5,
+      "SoulSource": "",
+      "Source": "https://aion2data.com/pets/1204-pagati",
+      "Level2Souls": 25,
+      "Level3Souls": 75,
+      "DetailSha256": "fc1c390a4d3b2a81100dfd865543b1a8d3466d650042faee95f8d48ee7861db0",
+      "Locations": []
+    },
+    {
+      "Id": 1206,
+      "Name": "Elite Guardite",
+      "Family": "Varian",
+      "SummonSouls": 5,
+      "SoulSource": "Divine Ansas",
+      "Source": "https://aion2data.com/pets/1206-elite-guardite",
+      "Level2Souls": 25,
+      "Level3Souls": 75,
+      "DetailSha256": "880ae51f9c5bd299e7ca42c09427fed64856f57ca6bc103ce57c9677628f1f36",
+      "Locations": [
+        {
+          "Region": "Verteron",
+          "Faction": "Elyos"
+        }
+      ]
+    },
+    {
+      "Id": 1207,
+      "Name": "Agrint",
+      "Family": "Natura",
+      "SummonSouls": 5,
+      "SoulSource": "Decaying Agrint",
+      "Source": "https://aion2data.com/pets/1207-agrint",
+      "Level2Souls": 25,
+      "Level3Souls": 75,
+      "DetailSha256": "98d66853a6b342b86908c48af07ec3c7ba50a6224607d115734b4ea3f5846ec9",
+      "Locations": [
+        {
+          "Region": "Verteron",
+          "Faction": "Elyos"
+        },
+        {
+          "Region": "Altgard",
+          "Faction": "Asmodian"
+        },
+        {
+          "Region": "Chaotic Lower Reshanta",
+          "Faction": "Abyss"
+        },
+        {
+          "Region": "Chaotic Middle Reshanta",
+          "Faction": "Abyss"
+        }
+      ]
+    },
+    {
+      "Id": 1208,
+      "Name": "Ashen Agrint",
+      "Family": "Natura",
+      "SummonSouls": 5,
+      "SoulSource": "Unstable Agrint",
+      "Source": "https://aion2data.com/pets/1208-ashen-agrint",
+      "Level2Souls": 25,
+      "Level3Souls": 75,
+      "DetailSha256": "58cfd7fbf473979fb5091448421599dbeadfd5c3032c26fd5b81f80301769f81",
+      "Locations": [
+        {
+          "Region": "Altgard",
+          "Faction": "Asmodian"
+        }
+      ]
+    },
+    {
+      "Id": 1209,
+      "Name": "Thin Agrint",
+      "Family": "Natura",
+      "SummonSouls": 5,
+      "SoulSource": "Red Eye Agrint",
+      "Source": "https://aion2data.com/pets/1209-thin-agrint",
+      "Level2Souls": 25,
+      "Level3Souls": 75,
+      "DetailSha256": "528b8495bf25336c27e557222b870133cbc5f05dd31e4ff58265dfb61a723350",
+      "Locations": [
+        {
+          "Region": "Chaotic Lower Reshanta",
+          "Faction": "Abyss"
+        },
+        {
+          "Region": "Verteron",
+          "Faction": "Elyos"
+        },
+        {
+          "Region": "Altgard",
+          "Faction": "Asmodian"
+        }
+      ]
+    },
+    {
+      "Id": 1210,
+      "Name": "Dry Leaf Agrint",
+      "Family": "Natura",
+      "SummonSouls": 5,
+      "SoulSource": "Forest Agrint",
+      "Source": "https://aion2data.com/pets/1210-dry-leaf-agrint",
+      "Level2Souls": 25,
+      "Level3Souls": 75,
+      "DetailSha256": "9eb4388e0f5fc97e161502a32443e6287e4350ca05b46b66a512b141a6acb6ea",
+      "Locations": [
+        {
+          "Region": "Verteron",
+          "Faction": "Elyos"
+        }
+      ]
+    },
+    {
+      "Id": 1213,
+      "Name": "Lesser Fire Spirit",
+      "Family": "Natura",
+      "SummonSouls": 5,
+      "SoulSource": "Burning Ember Spirit",
+      "Source": "https://aion2data.com/pets/1213-lesser-fire-spirit",
+      "Level2Souls": 25,
+      "Level3Souls": 75,
+      "DetailSha256": "54270190e5ce966421cd744e01eeaa043dde42f211fa996ff2b01e4247c6d5e9",
+      "Locations": [
+        {
+          "Region": "Altgard",
+          "Faction": "Asmodian"
+        },
+        {
+          "Region": "Verteron",
+          "Faction": "Elyos"
+        }
+      ]
+    },
+    {
+      "Id": 1214,
+      "Name": "Black Spirit",
+      "Family": "Natura",
+      "SummonSouls": 5,
+      "SoulSource": "Contaminated Spirit",
+      "Source": "https://aion2data.com/pets/1214-black-spirit",
+      "Level2Souls": 25,
+      "Level3Souls": 75,
+      "DetailSha256": "fa883c99891b2dceb18d5c3cac5a09cbd6fd32189ee1af1a22717b009849f3db",
+      "Locations": [
+        {
+          "Region": "Verteron",
+          "Faction": "Elyos"
+        },
+        {
+          "Region": "Altgard",
+          "Faction": "Asmodian"
+        },
+        {
+          "Region": "Chaotic Lower Reshanta",
+          "Faction": "Abyss"
+        }
+      ]
+    },
+    {
+      "Id": 1215,
+      "Name": "Predator Saraswati",
+      "Family": "Cogni",
+      "SummonSouls": 5,
+      "SoulSource": "Predator Saraswati",
+      "Source": "https://aion2data.com/pets/1215-predator-saraswati",
+      "Level2Souls": 25,
+      "Level3Souls": 75,
+      "DetailSha256": "29e1de210e2efd195a29541cb345772858e5b127d7dca81b06dfbc8ee0167130",
+      "Locations": []
+    },
+    {
+      "Id": 1216,
+      "Name": "Dark Spirit",
+      "Family": "Varian",
+      "SummonSouls": 5,
+      "SoulSource": "Corrupted Spirit",
+      "Source": "https://aion2data.com/pets/1216-dark-spirit",
+      "Level2Souls": 25,
+      "Level3Souls": 75,
+      "DetailSha256": "9973539092cb0b222e3ddeda7182d3288321d4e57dd34d429f484ad3590b18e4",
+      "Locations": [
+        {
+          "Region": "Verteron",
+          "Faction": "Elyos"
+        }
+      ]
+    },
+    {
+      "Id": 1217,
+      "Name": "Congealed Drana",
+      "Family": "Varian",
+      "SummonSouls": 5,
+      "SoulSource": "Congealed Drana",
+      "Source": "https://aion2data.com/pets/1217-congealed-drana",
+      "Level2Souls": 25,
+      "Level3Souls": 75,
+      "DetailSha256": "415c96897e38d6d6f72baf01585794b21cc53dfde9ae9cc39def98cf5e35088e",
+      "Locations": [
+        {
+          "Region": "Altgard",
+          "Faction": "Asmodian"
+        }
+      ]
+    },
+    {
+      "Id": 1218,
+      "Name": "Faded Drana",
+      "Family": "Varian",
+      "SummonSouls": 5,
+      "SoulSource": "Faded Chunk",
+      "Source": "https://aion2data.com/pets/1218-faded-drana",
+      "Level2Souls": 25,
+      "Level3Souls": 75,
+      "DetailSha256": "380c3303c14e9ad31db60e14ade1825115b3684d86b91404261e3d0b764070bc",
+      "Locations": [
+        {
+          "Region": "Altgard",
+          "Faction": "Asmodian"
+        }
+      ]
+    },
+    {
+      "Id": 1219,
+      "Name": "Zelophi",
+      "Family": "Natura",
+      "SummonSouls": 5,
+      "SoulSource": "Coastal Zelophi",
+      "Source": "https://aion2data.com/pets/1219-zelophi",
+      "Level2Souls": 25,
+      "Level3Souls": 75,
+      "DetailSha256": "5862309f1bc4a930f7c271ca47e5b2603ad59cbce9bc8f76151e27e6b9efa9ae",
+      "Locations": [
+        {
+          "Region": "Chaotic Lower Reshanta",
+          "Faction": "Abyss"
+        },
+        {
+          "Region": "Verteron",
+          "Faction": "Elyos"
+        },
+        {
+          "Region": "Altgard",
+          "Faction": "Asmodian"
+        }
+      ]
+    },
+    {
+      "Id": 1240,
+      "Name": "White Bunny",
+      "Family": "Special",
+      "SummonSouls": 5,
+      "SoulSource": "",
+      "Source": "https://aion2data.com/pets/1240-white-bunny",
+      "Level2Souls": 25,
+      "Level3Souls": 75,
+      "DetailSha256": "3689f629dbf87dce5ecc75301319801b380ccbe437a753f313ed59f1665d42f8",
+      "Locations": []
+    },
+    {
+      "Id": 1245,
+      "Name": "Azure Flame Kumiho",
+      "Family": "Special",
+      "SummonSouls": 5,
+      "SoulSource": "",
+      "Source": "https://aion2data.com/pets/1245-azure-flame-kumiho",
+      "Level2Souls": 25,
+      "Level3Souls": 75,
+      "DetailSha256": "ecd1aed98f792c4b974cca0cff7cbf66b7c71c4d3645efc3b45b6a1910009f25",
+      "Locations": []
+    },
+    {
+      "Id": 1250,
+      "Name": "Glossy Pink Puppy",
+      "Family": "Special",
+      "SummonSouls": 5,
+      "SoulSource": "",
+      "Source": "https://aion2data.com/pets/1250-glossy-pink-puppy",
+      "Level2Souls": 25,
+      "Level3Souls": 75,
+      "DetailSha256": "a436817a53350f1704506230c79b0c440b207b18c059184dece4a573e0a3dab4",
+      "Locations": []
+    },
+    {
+      "Id": 1278,
+      "Name": "Chonky Hamster",
+      "Family": "Special",
+      "SummonSouls": 5,
+      "SoulSource": "",
+      "Source": "https://aion2data.com/pets/1278-chonky-hamster",
+      "Level2Souls": 25,
+      "Level3Souls": 75,
+      "DetailSha256": "987b918a5ca69b18becc670439c1e53d36e21a438d23aa9bdd796781623561c9",
+      "Locations": []
+    },
+    {
+      "Id": 1299,
+      "Name": "Two",
+      "Family": "Special",
+      "SummonSouls": 5,
+      "SoulSource": "",
+      "Source": "https://aion2data.com/pets/1299-two",
+      "Level2Souls": 25,
+      "Level3Souls": 75,
+      "DetailSha256": "1c5f519b93cd5ee95cd9d93d6063db628ba5d11c49a06fe050e9f07bc7eca098",
+      "Locations": []
+    },
+    {
+      "Id": 1343,
+      "Name": "Little Ghost",
+      "Family": "Special",
+      "SummonSouls": 5,
+      "SoulSource": "",
+      "Source": "https://aion2data.com/pets/1343-little-ghost",
+      "Level2Souls": 25,
+      "Level3Souls": 75,
+      "DetailSha256": "aa836c90e9dfa235c35225c1dea43fb5522ecf2137f56aa5522807bf47ed0d2e",
+      "Locations": []
+    },
+    {
+      "Id": 1363,
+      "Name": "Pumpkin Carriage",
+      "Family": "Special",
+      "SummonSouls": 5,
+      "SoulSource": "",
+      "Source": "https://aion2data.com/pets/1363-pumpkin-carriage",
+      "Level2Souls": 25,
+      "Level3Souls": 75,
+      "DetailSha256": "fb4f417df9da3d758a78ec9ff9a35934109c6b8b8c98f907bbd98745773ea42c",
+      "Locations": []
+    }
+  ]
+}

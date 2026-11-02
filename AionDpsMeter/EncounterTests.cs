@@ -51,6 +51,18 @@ internal static class EncounterTests
         Metadata(hinted, "boss-cast", 1200, new { CasterId = 10 });
         hinted.AdvanceTime(16000); Hit(hinted, 20000, 20);
         check(hinted.Fight.Id == hintedId, "Captured NPC activity allows short boss encounters to recover through adds");
+        var guardBoss = Engine(); string guardId = guardBoss.Fight.Id;
+        Metadata(guardBoss, "guard", 1200, new { ActorId = 10, State = 1, MaxGuard = 300, CurrentGuard = 300 });
+        guardBoss.AdvanceTime(16000); Hit(guardBoss, 20000, 20);
+        check(guardBoss.Fight.Id == guardId, "Guard-identified boss anchors short encounter recovery through adds");
+        var otherGuardBoss = Engine(); string otherGuardId = otherGuardBoss.Fight.Id;
+        Metadata(otherGuardBoss, "guard", 1200, new { ActorId = 10, State = 1, MaxGuard = 300, CurrentGuard = 300 });
+        otherGuardBoss.AdvanceTime(16000);
+        otherGuardBoss.Apply(new("actor", Actor: new(20, "Another boss", false, false, 0, "Unknown", 0) { NpcId = 101 }));
+        Metadata(otherGuardBoss, "guard", 19000, new { ActorId = 20, State = 1, MaxGuard = 300, CurrentGuard = 300 });
+        Hit(otherGuardBoss, 20000, 20);
+        check(otherGuardBoss.Fight.Id != otherGuardId && otherGuardBoss.Fight.Damage.Count == 1,
+            "A different guard-identified boss after an idle pause starts a separate fight");
         var incoming = Engine(true); string incomingId = incoming.Fight.Id;
         incoming.AdvanceTime(46000); Hit(incoming, 50000, 1, 20);
         check(incoming.Fight.Id == incomingId, "An add attacking the party can resume the same encounter");
@@ -112,8 +124,10 @@ internal static class EncounterTests
         check(nearby.Fight.Id == nearbyId, "Nearby unrelated combat cannot discard our party's recovery candidate");
         var quiet = Engine(); Hit(quiet, 14000, 99, 98); quiet.AdvanceTime(16000);
         check(!quiet.Fight.HasEvents, "Nearby unrelated combat cannot keep our idle meter active indefinitely");
-        var clear = Engine(true); string clearId = clear.Fight.Id;
-        Metadata(clear, "dungeon-result", 32000, new { Cleared = true }); Hit(clear, 50000);
-        check(clear.Fight.Id != clearId, "A confirmed dungeon clear prevents recovery");
+        foreach (string kind in new[] { "scene-result-signal", "dungeon-result" }) {
+            var signal = Engine(true); string signalId = signal.Fight.Id;
+            Metadata(signal, kind, 32000, new { RawId = 100, Flag = 1, Cleared = true }); Hit(signal, 50000);
+            check(signal.Fight.Id == signalId, "Unverified scene-result semantics cannot end an encounter, including legacy dungeon-result events: " + kind);
+        }
     }
 }

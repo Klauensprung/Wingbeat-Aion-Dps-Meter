@@ -85,7 +85,8 @@ internal static class PlayerTelemetry
         foreach (var actor in fight.Actors.Values.ToArray()) {
             if (actor.OriginalEntityId > 0 || actor.NpcId > 0 || (!actor.Player && actor.CharacterId == 0)) continue;
             if (actor.Cp > 0 && (actor.CpSource == "Entered locally" || (actor.CpSource == "Unknown" && actor.ProfileSource == "Entered locally"))) continue;
-            if (actor.Id == fight.LocalPlayer && actor.Cp > 0 && actor.CpSource == "Local character packet") continue;
+            if (actor.Id == fight.LocalPlayer && actor.Cp > 0 && actor.CpSource is "Local character packet" or "Local CP update") continue;
+            if (actor.CpSource is "Captured party" or "Player spawn packet" or "Local character packet" or "Local CP update") continue;
             bool linked = actor.CharacterId > 0;
             var candidates = fight.PartyProfiles.Where(p =>
                 (linked ? p.CharacterId == actor.CharacterId && (!actor.Player || p.Name == actor.Name) : p.Name == actor.Name) &&

@@ -18,13 +18,37 @@
     <PackageReference Include="PacketDotNet" Version="1.4.7" />
   </ItemGroup>
   <ItemGroup>
+    <EmbeddedResource Include="Assets/boss-hp-alerts.json" LogicalName="Wingbeat.BossHpAlerts.json" />
+    <EmbeddedResource Include="Assets/appearance-sliders.json" LogicalName="Wingbeat.AppearanceSliders.json" />
+    <EmbeddedResource Include="Assets/appearance-palette.json" LogicalName="Wingbeat.AppearancePalette.json" />
     <EmbeddedResource Include="Assets/skill-icons.json" LogicalName="Wingbeat.SkillIcons.json" />
     <EmbeddedResource Include="Assets/skill-icons/*.png" LogicalName="Wingbeat.SkillIcons.%(Filename)%(Extension)" />
     <EmbeddedResource Include="Assets/bosses.json" LogicalName="Wingbeat.Bosses.json">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </EmbeddedResource>
     <EmbeddedResource Include="Assets/npc-names.json" LogicalName="Wingbeat.NpcNames.json" />
+    <EmbeddedResource Include="Assets/pet-farming.json" LogicalName="Wingbeat.PetFarmLinks.json" />
+    <EmbeddedResource Include="Assets/stat-names.json" LogicalName="Wingbeat.StatNames.json" />
+    <EmbeddedResource Include="Assets/pets.json" LogicalName="Wingbeat.Pets.json" />
+    <EmbeddedResource Include="Assets/pet-spawns.json" LogicalName="Wingbeat.PetSpawns.json" />
+    <EmbeddedResource Include="Assets/map-worlds.json" LogicalName="Wingbeat.MapWorlds.json" />
+    <EmbeddedResource Include="Assets/map-markers.zip" LogicalName="Wingbeat.MapMarkers.zip" />
+    <EmbeddedResource Include="Assets/map-terrain.json" LogicalName="Wingbeat.Terrain.json" />
+    <EmbeddedResource Include="Assets/map-tiles/verteron/*.jpg" LogicalName="Wingbeat.MapTiles.verteron.%(Filename)%(Extension)" />
+    <EmbeddedResource Include="Assets/map-tiles/altgard/*.jpg" LogicalName="Wingbeat.MapTiles.altgard.%(Filename)%(Extension)" />
+    <EmbeddedResource Include="Assets/map-tiles/abyss/*.jpg" LogicalName="Wingbeat.MapTiles.abyss.%(Filename)%(Extension)" />
+    <EmbeddedResource Include="Assets/effects.json" LogicalName="Wingbeat.Effects.json" />
+    <EmbeddedResource Include="Assets/combat-effects.json" LogicalName="Wingbeat.CombatEffects.json" />
+    <EmbeddedResource Include="Assets/world-object-names.json" LogicalName="Wingbeat.WorldObjectNames.json" />
+    <EmbeddedResource Include="Assets/items.json" LogicalName="Wingbeat.Items.json" />
+    <EmbeddedResource Include="Assets/tickets.json" LogicalName="Wingbeat.Tickets.json" />
+    <EmbeddedResource Include="Assets/appearance-labels.json" LogicalName="Wingbeat.AppearanceLabels.json" />
+    <EmbeddedResource Include="Assets/zones.json" LogicalName="Wingbeat.Zones.json" />
+    <EmbeddedResource Include="Assets/dungeon-maps.json" LogicalName="Wingbeat.DungeonMaps.json" />
+    <EmbeddedResource Include="Assets/field-bosses.json" LogicalName="Wingbeat.FieldBosses.json" />
     <EmbeddedResource Include="Assets/skill-names.json" LogicalName="Wingbeat.SkillNames.json" />
+    <EmbeddedResource Include="Assets/skill-charges.json" LogicalName="Wingbeat.SkillCharges.json" />
+    <EmbeddedResource Include="Assets/item-farming.json" LogicalName="Wingbeat.ItemFarmLinks.json" />
     <Content Include="../Update-GameData.ps1" Link="Update-GameData.ps1" CopyToOutputDirectory="PreserveNewest" />
     <Content Include="../THIRD-PARTY-NOTICES.txt" Link="THIRD-PARTY-NOTICES.txt" CopyToOutputDirectory="PreserveNewest" />
     <Content Include="../licenses/*.txt" Link="licenses/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />

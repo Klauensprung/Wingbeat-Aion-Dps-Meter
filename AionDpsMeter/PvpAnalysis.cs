@@ -1,6 +1,10 @@
 namespace AionDpsMeter.Local;
 
-public sealed record PvpCombatant(int Id, string Name, string Job, string Identity, bool Friendly, long Damage, long Healing);
+public sealed record PvpCombatant(int Id, string Name, string Job, string Identity, bool Friendly, long Damage, long Healing)
+{
+    public int ConfirmedKills { get; init; }
+    public long Peak5sDamage { get; init; }
+}
 public sealed record PvpData(long Start, long End, int LocalPlayer, PvpCombatant[] Combatants, OpponentRow[] Opponents)
 {
     public double Seconds => Math.Max(1, (End - Start) / 1000d);
@@ -36,11 +40,16 @@ public static class PvpAnalysis
         var healing = fight.Healing.Where(e => hits.Length > 0 && e.Timestamp >= start && e.Timestamp <= end).ToLookup(e => e.ActorId);
         var ids = hits.SelectMany(e => new[] { e.ActorId, e.TargetId }).ToHashSet();
         if (fight.LocalPlayer > 0) ids.Add(fight.LocalPlayer);
+        var kills = PvpCombatStats.Kills(fight, ids);
+        var deaths = fight.Deaths.GroupBy(d => d.EntityId).ToDictionary(g => g.Key, g => g.Count());
         var combatants = ids.Select(id => new PvpCombatant(id, Name(id), Job(id), Identity(id), Friendly(id),
-            outgoing[id].Sum(e => (long)e.Damage), healing[id].Sum(e => (long)e.Damage)))
+            outgoing[id].Sum(e => (long)e.Damage), healing[id].Sum(e => (long)e.Damage)) {
+                ConfirmedKills = kills.GetValueOrDefault(id), Peak5sDamage = PvpCombatStats.PeakFiveSeconds(outgoing[id]) })
             .OrderByDescending(c => c.Id == fight.LocalPlayer).ThenByDescending(c => c.Damage).ThenBy(c => c.Id).ToArray();
         var opponents = combatants.Where(c => !c.Friendly).Select(c => new OpponentRow(c.Id, c.Name, c.Identity,
-            c.Damage, incoming[c.Id].Sum(e => (long)e.Damage), Math.Round(c.Damage / seconds, 1), c.Healing)).ToArray();
+            c.Damage, incoming[c.Id].Sum(e => (long)e.Damage), Math.Round(c.Damage / seconds, 1), c.Healing) {
+                ConfirmedKills = c.ConfirmedKills, ObservedDeaths = deaths.GetValueOrDefault(c.Id), Peak5sToUs = c.Peak5sDamage,
+                Peak5sFromUs = PvpCombatStats.PeakFiveSeconds(incoming[c.Id]) }).ToArray();
         return new(start, end, fight.LocalPlayer, combatants, opponents);
     }
 
@@ -56,7 +65,8 @@ public static class PvpAnalysis
             string color = c.Friendly ? MeterPresentation.ColorFor(new Actor(c.Id, c.Name, true, false, 0, c.Job, 0)) : "#EF8792";
             return new MeterRow(c.Id, c.Name, c.Job, amount, amount / pvp.Seconds,
                 total == 0 ? 0 : 100d * amount / total, maximum == 0 ? 0 : (double)amount / maximum,
-                color, c.Id == fight.LocalPlayer, true) { Detail = (c.Friendly ? "Your side" : "Opponent") + (c.Identity == "Named" ? "" : " · name pending; class inferred from skills"),
+                color, c.Id == fight.LocalPlayer, true) { Detail = (c.Friendly ? "Your side" : "Opponent") + (c.Identity == "Named" ? "" : " · name pending; class inferred from skills") +
+                    $"\n{c.ConfirmedKills} confirmed kills · peak 5s damage {c.Peak5sDamage:N0}",
                     LocalCombatPower = fight.Actors.GetValueOrDefault(fight.LocalPlayer)?.Cp ?? 0,
                     Deaths = deathCounts.GetValueOrDefault(c.Id), CombatPower = fight.Actors.GetValueOrDefault(c.Id)?.Cp ?? 0,
                     CombatPowerSource = fight.Actors.GetValueOrDefault(c.Id)?.CpSource ?? "Unknown", LocalPingMs = PlayerTelemetry.PingFor(fight, c.Id) };

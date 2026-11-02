@@ -2,7 +2,13 @@ using System.IO;
 
 namespace AionDpsMeter.Local;
 
-public sealed record PartyRoster(int[] Members, string Source = "Imported");
+public sealed record PartyMemberSummary(string Name, int Server, string Job, int Level, int GearScore, int CombatPower);
+public sealed record PartyRoster(int[] Members, string Source = "Imported", bool Complete = true, bool Replace = true, bool Alliance = false)
+{
+    public string? LeaderName { get; init; }
+    public PartyMemberSummary[] Summaries { get; init; } = [];
+    public long Timestamp { get; init; }
+}
 public sealed record ActorBuild(int ActorId, Spec[] Skills, bool Complete = false, string Source = "Imported")
 {
     public Dictionary<string, string> Equipment { get; init; } = new();
@@ -22,9 +28,12 @@ public static class FightMetadata
     }
     public static void Validate(PartyRoster roster)
     {
-        if (roster.Members == null || roster.Members.Length > 10 || roster.Members.Any(id => id <= 0) ||
+        if (roster.Timestamp < 0 || roster.Summaries == null || roster.Summaries.Length > 64 || roster.Summaries.Any(m => m == null ||
+            string.IsNullOrWhiteSpace(m.Name) || m.Name.Length > 4096 || m.Job == null || m.Job.Length > 80 || m.Server < 0 || m.Level < 0 || m.CombatPower < 0))
+            throw new InvalidDataException("Invalid roster member summaries.");
+        if (roster.LeaderName?.Length > 4096 || roster.Members == null || roster.Members.Length > (roster.Alliance ? 64 : 10) || roster.Members.Any(id => id <= 0) ||
             roster.Members.Distinct().Count() != roster.Members.Length || string.IsNullOrWhiteSpace(roster.Source) || roster.Source.Length > 80)
-            throw new InvalidDataException("A party can contain up to ten distinct players.");
+            throw new InvalidDataException("Roster exceeds its distinct-player limit.");
     }
     public static void SetRoster(Fight fight, PartyRoster roster)
     {
@@ -32,10 +41,11 @@ public static class FightMetadata
         if (roster.Members.Any(id => fight.Actors.GetValueOrDefault(id)?.Player != true) || (fight.LocalPlayer > 0 && fight.Actors.GetValueOrDefault(fight.LocalPlayer)?.Player != true))
             throw new InvalidDataException("Identify party members as players before assigning the roster.");
         var members = roster.Members.ToHashSet();
+        if (!roster.Replace) members.UnionWith(fight.Actors.Values.Where(a => a.Party).Select(a => a.Id));
         if (fight.LocalPlayer > 0) members.Add(fight.LocalPlayer);
-        if (members.Count > 10) throw new InvalidDataException("The ten-player roster includes your own character.");
+        if (members.Count > (roster.Alliance ? 64 : 10)) throw new InvalidDataException("Roster capacity includes your own character.");
         foreach (var (id, actor) in fight.Actors.ToArray()) fight.Actors[id] = actor with { Party = members.Contains(id) };
-        fight.PartyKnown = true; fight.PartySource = roster.Source;
+        fight.PartyKnown = roster.Complete || !roster.Replace && fight.PartyKnown; fight.PartySource = roster.Source; fight.PartyLeaderName = roster.LeaderName;
     }
     public static void SetBuild(Fight fight, ActorBuild build)
     {
@@ -47,7 +57,7 @@ public static class FightMetadata
         Skills = build.Skills.Select(s => s with { Choices = s.Choices.ToArray() }).ToArray(), Equipment = new(build.Equipment)
     };
     public static ActorBuild? BuildFor(Fight fight, int actor)
-        => fight.Builds.GetValueOrDefault(actor) ?? (actor == fight.LocalPlayer && fight.Specs.Count > 0
+        => fight.Builds.GetValueOrDefault(actor) ?? (fight.Actors.TryGetValue(actor, out var identity) ? CapturedSkills.Build(identity) : null) ?? (actor == fight.LocalPlayer && fight.Specs.Count > 0
             ? new(actor, fight.Specs.Values.ToArray(), false, "Legacy captured/imported") : null);
     public static bool InParty(Fight fight, int id) => id == fight.LocalPlayer || fight.Actors.GetValueOrDefault(id)?.Party == true;
 }

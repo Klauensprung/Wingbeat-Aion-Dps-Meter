@@ -87,6 +87,8 @@ public static class DisplayTests
         engine.Apply(new("actor", Actor: new(1, "Named actor", true, true, 100, "Unknown", 1)));
         var actor = engine.SnapshotIfChanged(damage, ref revision);
         check(!ReferenceEquals(damage, actor) && actor.Name(1) == "Named actor" && damage.Name(1) != actor.Name(1), "Identity-only updates invalidate snapshot");
+        engine.Apply(new("local-player", Actor: new(1, "Named actor", true, true, 100, "Unknown", 1)));
+        actor = engine.SnapshotIfChanged(actor, ref revision);
         engine.Apply(new("energy", Energy: new(1, 2, true, 1000)));
         var energy = engine.SnapshotIfChanged(actor, ref revision);
         check(!ReferenceEquals(actor, energy) && energy.Energy?.Daily == 1, "Energy-only updates invalidate snapshot");

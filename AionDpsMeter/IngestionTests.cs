@@ -38,7 +38,7 @@ internal static class IngestionTests
             });
             check(ingestion.Wait(TimeSpan.FromSeconds(5)), "Ingestion and snapshots continue while a completed fight is saving");
             var snapshot = ingestion.Result;
-            check(snapshot.Damage.Select(e => e.Damage).SequenceEqual(Enumerable.Range(1, 10000)),
+            check(snapshot.Damage.Select(e => e.Damage).SequenceEqual(Enumerable.Range(1, 10000).Select(i => (long)i)),
                 "Ten thousand decoded events retain order without missing or duplicated hits during a blocked save");
         }
         finally { release.Set(); save.GetAwaiter().GetResult(); }

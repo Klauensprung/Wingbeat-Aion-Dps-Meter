@@ -129,7 +129,8 @@ internal sealed class BossAnalysisView : Grid
         duration.Text = BossDrawing.Time(boss.Seconds); dealt.Text = MeterPresentation.Number(boss.DamageToBoss); received.Text = MeterPresentation.Number(boss.DamageFromBoss); casts.Text = boss.Casts.ToString("N0");
         coverage.Text = $"{boss.Abilities.Length} observed skills / {boss.Participants.Length} participants / {boss.Hp.Length} HP readings. " +
             (boss.AmbiguousNetworkIdentity ? "Entity ID was reused: ambiguous cast, HP and enrage packets are omitted; attributed hits remain available." :
-             boss.Casts == 0 ? "No cast signals captured; the rotation below shows impacts and outcomes only." : "Rotation shows captured signals and impacts; missing actions and unconfirmed casts remain unknown.");
+             boss.Casts == 0 ? "No cast signals captured; warnings, impacts and outcomes are shown when available." : "Rotation shows captured signals and impacts; missing actions and unconfirmed casts remain unknown.");
+        if (source.OmittedTelegraphs > 0) coverage.Text += $" {source.OmittedTelegraphs:N0} additional area notices omitted from this fight.";
         bool switched = shownEntity != boss.EntityId || shownFight != source.Id; shownEntity = boss.EntityId; shownFight = source.Id;
         updating = true; if (switched) abilities.SelectedItem = null; abilities.SetRows(boss.Abilities); participants.SetRows(boss.Participants); updating = false;
         timeline.Update(boss, source.Name); trend.Update(boss); UpdateTargets();
@@ -179,5 +180,17 @@ internal sealed class BossAnalysisView : Grid
         Update(fixture, "no matching boss"); if (body.Visibility != Visibility.Collapsed) throw new Exception("Empty boss search retained stale details.");
         Update(fixture, ""); timeline.Filter(null); timeline.Resume();
         if (timeline.Span != SelectedBoss!.Seconds) throw new Exception("Changing bosses did not restore whole-window zoom.");
+    }
+    internal void CheckStaggerPresentation()
+    {
+        var boss = SelectedBoss ?? throw new Exception("Missing boss for stagger presentation.");
+        var moment = boss.Moments.First(m => m.Kind == "Stagger break");
+        abilities.SelectedIndex = 0; timeline.Resume(); UpdateLayout();
+        var plot = timeline.Plot;
+        double x = BossTimelinePlot.LabelWidth + (moment.Timestamp - boss.Start) / 1000d / boss.Seconds *
+            Math.Max(1, plot.ActualWidth - BossTimelinePlot.LabelWidth - 12);
+        var hit = plot.At(new(x, plot.Height - 20));
+        if (hit != moment) throw new Exception("Stagger marker is missing from the filtered rendered timeline.");
+        timeline.Inspect(hit, true); UpdateLayout();
     }
 }

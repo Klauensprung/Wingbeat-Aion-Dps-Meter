@@ -36,18 +36,4 @@ public sealed class NpcNames
 
     public string GetName(int npcId) => names.GetValueOrDefault(npcId) ?? BossCatalogue.Default.Find(npcId)?.Name ?? $"NPC {npcId}";
 
-    internal Actor Spawn(ref WireReader reader)
-    {
-        int entity = reader.Var();
-        if (entity <= 0) throw new InvalidDataException("Invalid NPC entity ID.");
-        reader.Take(2); // Appearance/type flags. They are not the NPC template ID.
-        int named = reader.Byte();
-        if (named is not (0 or 1)) throw new InvalidDataException("Unknown NPC name layout.");
-        // A summon can carry its owner's name here, not the creature's name.
-        if (named == 1) PlayerIdentity.Name(ref reader);
-        uint rawNpcId = reader.U32();
-        if (rawNpcId is 0 or > int.MaxValue) throw new InvalidDataException("Invalid NPC template ID.");
-        int npcId = (int)rawNpcId;
-        return new(entity, GetName(npcId), false, false, 0, "Unknown", 0) { NpcId = npcId };
-    }
 }

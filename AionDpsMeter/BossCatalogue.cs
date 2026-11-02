@@ -69,15 +69,15 @@ public static class BossAnalysis
     {
         var catalog = BossCatalogue.Default;
         var engaged = fight.Damage.SelectMany(h => new[] { h.ActorId, h.TargetId }).ToHashSet();
-        var targets = fight.Actors.Values.Where(a => !a.Player && a.NpcId > 0 && engaged.Contains(a.Id) && catalog.IsEncounterBoss(a.NpcId))
-            .GroupBy(a => catalog.Find(a.NpcId)!.Key);
+        var targets = fight.Actors.Values.Where(a => a.NpcId > 0 && engaged.Contains(a.Id) && CapturedBoss.IsBoss(a))
+            .GroupBy(a => (Known: catalog.Find(a.NpcId) != null, Key: catalog.Find(a.NpcId)?.Key ?? a.NpcId));
         var outgoing = fight.Damage.ToLookup(h => h.TargetId); var incoming = fight.Damage.ToLookup(h => h.ActorId);
         var deaths = fight.Deaths.ToLookup(d => d.EntityId);
         return targets.Select(group => {
-            var boss = catalog.Find(group.First().NpcId)!;
+            var boss = catalog.Find(group.First().NpcId);
             var dealt = group.SelectMany(a => outgoing[a.Id]).ToArray(); var received = group.SelectMany(a => incoming[a.Id]).ToArray();
             var times = dealt.Concat(received).Select(h => h.Timestamp).ToArray();
-            return new BossAnalysisRow(boss.Name, catalog.PossibleInstances(boss), string.Join(", ", group.Select(a => a.NpcId).Distinct().Order()), group.Count(),
+            return new BossAnalysisRow(boss?.Name ?? fight.Name(group.First().Id), boss == null ? "Observed boss" : catalog.PossibleInstances(boss), string.Join(", ", group.Select(a => a.NpcId).Distinct().Order()), group.Count(),
                 dealt.Length, dealt.Sum(h => (long)h.Damage), received.Sum(h => (long)h.Damage), group.Sum(a => deaths[a.Id].Count()),
                 Math.Round((times.Min() - fight.Start) / 1000d, 1), Math.Round((times.Max() - fight.Start) / 1000d, 1));
         }).OrderBy(b => b.FirstSeen).ToArray();

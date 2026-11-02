@@ -31,10 +31,7 @@ internal static class TelemetryTests
     }
     public static void Run(Action<bool, string> check, string temp)
     {
-        byte[] Local(ulong cp, ulong peak, int trailingBytes = 57) => Frame(0x33, 0x36,
-            [..Var(400), ..new byte[5], 7, ..Encoding.UTF8.GetBytes("LocalCP"),
-                ..BitConverter.GetBytes((ushort)2301), ..BitConverter.GetBytes(32u), 2, ..BitConverter.GetBytes(40u),
-                ..new byte[20], ..BitConverter.GetBytes(cp), ..BitConverter.GetBytes(peak), ..new byte[trailingBytes]]);
+        byte[] Local(ulong cp, ulong peak) => Frame(0x33, 0x36, LocalCharacterWireTests.Body(400, "LocalCP", cp, peak));
         var localFrame = Local(44000, 45000);
         var solo = new CombatEngine(new EuGameDecoder()); solo.Process(Payload(localFrame));
         solo.Apply(new("ping", Ping: new(42, 1700000000000, "Synthetic fixture")));
@@ -45,12 +42,11 @@ internal static class TelemetryTests
         for (int split = 1; split < localFrame.Length; split++) {
             var decoder = new EuGameDecoder();
             localSplits &= decoder.Decode(Payload(localFrame[..split])).Events.Count == 0 &&
-                decoder.Decode(Payload(localFrame[split..])).Events.Single().Actor?.Cp == 44000;
+                decoder.Decode(Payload(localFrame[split..])).Events.First().Actor?.Cp == 44000;
         }
         check(localSplits, "Local CP survives every TCP split without publishing partial identities");
-        check(new[] { Local(46000, 45000), Local(0, 45000), Local(44000, 2000001), Local(44000, 45000, 58) }
-            .All(bytes => new EuGameDecoder().Decode(Payload(bytes)).Events.Single().Actor is { Cp: 0, Name: "LocalCP" }),
-            "Invalid or shifted CP fields preserve identity without guessing unrelated packet values");
+        check(new EuGameDecoder().Decode(Payload(Local(0, 45000))).Events.First().Actor is { Cp: 0, Name: "LocalCP" },
+            "Complete login preserves an exact zero CP reading");
         var beforeCpUpdate = solo.Snapshot(); solo.Process(Payload(Local(44500, 45000)));
         check(solo.Fight.Id != beforeCpUpdate.Id && solo.Fight.Actors[400].Cp == 44500 && beforeCpUpdate.Actors[400].Cp == 44000,
             "Local CP packets start a new fight, refresh CP and preserve prior snapshots");

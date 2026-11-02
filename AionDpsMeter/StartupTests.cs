@@ -7,6 +7,17 @@ internal static class StartupTests
     internal static void Run(Action<bool, string> check, string temp)
     {
         var settings = JsonSerializer.Deserialize<Preferences>("{}")!;
+        check(!settings.OverlayPlacementSetupCompleted,"Fresh and older settings offer the new one-time overlay placement step");
+        settings.OverlayPlacementSetupCompleted=true;
+        check(JsonSerializer.Deserialize<Preferences>(JsonSerializer.Serialize(settings))!.OverlayPlacementSetupCompleted,"Completed overlay placement survives restart");
+        var second=new SecondMeterSettings();var secondRuntime=second.Create();
+        check(!second.Enabled&&secondRuntime.OverlayPartyHealth,"DPS2 is optional and defaults to party health");
+        secondRuntime.OverlayLeft=-400;secondRuntime.OverlayTop=80;secondRuntime.OverlayWidth=470;
+        secondRuntime.OverlayHealing=true;secondRuntime.OverlayPartyHealth=false;secondRuntime.OverlayLocked=true;
+        second.Capture(secondRuntime);settings.SecondMeter=second;second.Enabled=true;
+        var roundTrip=JsonSerializer.Deserialize<Preferences>(JsonSerializer.Serialize(settings))!;
+        check(roundTrip.SecondMeter?.Create() is {OverlayLeft:-400,OverlayTop:80,OverlayWidth:470,OverlayHealing:true,OverlayPartyHealth:false,OverlayLocked:true}&&roundTrip.SecondMeter.Enabled&&!roundTrip.OverlayHealing,
+            "DPS2 mode, position, size, lock and enabled state survive restart independently of DPS1");
         var fresh = StartupPlan.Create(settings, ["fixture-adapter"], false);
         check(settings.AutoStartConfigured && !fresh.StartCapture && !fresh.OpenMeter && !fresh.OpenCooldowns && fresh.SetupMessage != null,
             "First launch defaults to automatic setup but never captures an arbitrary adapter");

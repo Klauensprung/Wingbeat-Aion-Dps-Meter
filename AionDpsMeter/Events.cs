@@ -9,9 +9,12 @@ public sealed record DamageEvent
 {
     public long Timestamp { get; init; }
     public int ActorId { get; init; }
+    // For summon hits ActorId is the owner captured at the time of the hit.
+    // Zero means the hit came directly from ActorId.
+    public int SourceActorId { get; init; }
     public int TargetId { get; init; }
     public int SkillCode { get; init; }
-    public int Damage { get; init; }
+    public long Damage { get; init; }
     public bool IsHeal { get; init; }
     public bool IsCritical { get; init; }
     public bool IsBackAttack { get; init; }
@@ -25,6 +28,8 @@ public sealed record DefenseEvent
     public long Timestamp { get; init; }
     public int ActorId { get; init; }
     public int TargetId { get; init; }
+    public int SourceActorId { get; init; }
+    public int SourceTargetId { get; init; }
     public int SkillCode { get; init; }
     public DefenseOutcome Outcome { get; init; }
 }

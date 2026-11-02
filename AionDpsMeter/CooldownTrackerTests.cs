@@ -11,6 +11,58 @@ internal static class CooldownTrackerTests
         var fight = new Fight { LocalPlayer = 1 };
         fight.Actors[1] = new(1, "Example", true, true, 0, "Cleric", 2301);
         NetworkEvent Cooldown(long time, int ms) => new("skill-cooldown", time, "47 38", JsonSerializer.SerializeToElement(new { SkillCode = 17100000, RemainingMs = ms }));
+        var compactEngine = new CombatEngine(); compactEngine.Apply(new("local-player", Actor: fight.Actors[1]));
+        compactEngine.Apply(new("network", Network: Cooldown(1000, 10000)));
+        var earlyCompact = compactEngine.Snapshot();
+        compactEngine.Apply(new("network", Network: Cooldown(2000, 5000)));
+        var compactObserver = new CooldownTracker(); compactObserver.Observe(compactEngine.Snapshot(), 2000, 100);
+        var compactNames = new SkillNames();
+        check(compactObserver.Remaining(17100000, 100) == 5 && compactObserver.ReductionSeconds(17100000, 100, compactNames) == 4 &&
+            compactEngine.Fight.Network.Count == 0 && earlyCompact.LiveCooldowns!.Remaining(17100000, 1000) == 10,
+            "Compact cooldown snapshots retain reductions and independent earlier state without raw cooldown events");
+        compactObserver.Observe(compactEngine.Snapshot(), 2000, 1100);
+        check(compactObserver.Remaining(17100000, 1100) == 4, "Repeated compact snapshots do not restart monotonic cooldown deadlines");
+        compactEngine.NewFight("Manual reset");
+        var afterReset = new CooldownTracker(); afterReset.Observe(compactEngine.Snapshot(), 3000, 200);
+        check(afterReset.Remaining(17100000, 200) == 4, "Manual fight reset preserves compact session cooldowns for a newly opened overlay");
+        for (int i = 0; i < 10000; i++) {
+            compactEngine.Apply(new("network", Network: new("skill-use", 4000 + i, "test", JsonSerializer.SerializeToElement(new { ActorId = 1, SkillCode = 17100000, Sequence = i % 256 }))));
+            compactEngine.Apply(new("network", Network: Cooldown(4000 + i, 5000)));
+        }
+        check(compactEngine.Fight.Network.Count == 0 && compactEngine.Snapshot().LiveCooldowns!.RetainedCount == 2,
+            "Twenty thousand skill-use and cooldown events retain only one timer and one cast timestamp");
+        compactEngine.Apply(new("local-player", Actor: fight.Actors[1]));
+        check(compactEngine.Snapshot().LiveCooldowns!.RetainedCount == 0, "Character re-entry clears prior compact cooldown state");
+        var legacySequence = new Fight { LocalPlayer = 1 }; legacySequence.Actors[1] = fight.Actors[1];
+        var legacyObserver = new CooldownTracker(); var compactSequenceObserver = new CooldownTracker();
+        int[] variantsToCompare = [17100000, 17100120, 17100121]; bool sameSequence = true;
+        for (int i = 0; i < 120; i++) {
+            long at = 20000 + i / 2 * 100;
+            int skill = variantsToCompare[i % variantsToCompare.Length];
+            var e = i % 4 == 0
+                ? new NetworkEvent("skill-use", at, "test", JsonSerializer.SerializeToElement(new { ActorId = 1, SkillCode = skill }))
+                : new NetworkEvent("skill-cooldown", at, "test", JsonSerializer.SerializeToElement(new { SkillCode = skill, RemainingMs = i % 7 == 0 ? 0 : 10000 - i * 25 }));
+            legacySequence.Network.Add(e); compactEngine.Apply(new("network", Network: e));
+            legacyObserver.Observe(legacySequence, at, at - 19000);
+            compactSequenceObserver.Observe(compactEngine.Snapshot(), at, at - 19000);
+            foreach (int id in variantsToCompare) sameSequence &= legacyObserver.Reading(id, at - 19000, compactNames, null) == compactSequenceObserver.Reading(id, at - 19000, compactNames, null) &&
+                legacyObserver.ReductionSeconds(id, at - 19000, compactNames) == compactSequenceObserver.ReductionSeconds(id, at - 19000, compactNames);
+        }
+        check(sameSequence, "Compact live cooldowns match legacy history at every mixed cast, tier, reset and same-timestamp checkpoint");
+        var crowded = new CooldownTracker();
+        for (int id = 1; id <= 5000; id++) {
+            crowded.Capture(new("skill-use", id, "test", JsonSerializer.SerializeToElement(new { ActorId = 1, SkillCode = id })), 1);
+            crowded.Capture(new("skill-cooldown", id, "test", JsonSerializer.SerializeToElement(new { SkillCode = id, RemainingMs = 60000 })), 1);
+        }
+        var crowdedSnapshot = crowded.Copy();
+        var crowdedFight = new Fight { LocalPlayer = 1, LiveCooldowns = crowdedSnapshot }; crowdedFight.Actors[1] = fight.Actors[1];
+        var crowdedObserver = new CooldownTracker(); crowdedObserver.Observe(crowdedFight, 5000, 100);
+        check(crowded.RetainedCount == 8192 && crowdedObserver.RetainedCount == 8192 && crowdedObserver.Remaining(1, 100) == null &&
+            crowdedObserver.Remaining(5000, 100) == 60,
+            "Distinct cooldown and cast dictionaries remain capped and an observer receives the newest retained skills");
+        crowded.Reset();
+        check(crowded.RetainedCount == 0 && crowdedSnapshot.RetainedCount == 8192,
+            "Resetting bounded live cooldown state leaves an earlier detached snapshot intact");
         check(tracker.Remaining(17100000, 1000) == null, "Unobserved cooldown is unknown, not ready");
         fight.Network.Add(Cooldown(10000, 5000)); tracker.Observe(fight, 11000, 1000);
         check(tracker.Remaining(17100000, 1000) == 4 && tracker.Remaining(17100000, 2500) == 2.5 && tracker.Remaining(17100000, 6000) == 0,
@@ -37,6 +89,23 @@ internal static class CooldownTrackerTests
         string catalog = System.IO.Path.Combine(temp, "cooldown-name-groups.json");
         System.IO.File.WriteAllText(catalog, """{"17100000":"Healing Light","17100120":"Healing Light","17200000":"Other skill"}""");
         var names = new SkillNames(catalog);
+        var shortened = new CooldownTracker(); var reductionFight = new Fight { LocalPlayer = 1 };
+        reductionFight.Network.Add(Cooldown(10000, 30000)); shortened.Observe(reductionFight, 10000, 1000);
+        reductionFight.Network.Add(Cooldown(15000, 25000)); shortened.Observe(reductionFight, 17000, 8000);
+        check(shortened.ReductionSeconds(17100000, 8000, names) == null,
+            "Natural countdown and delayed packet delivery do not create cooldown-reduction markers");
+        reductionFight.Network.Add(Cooldown(18000, 10000)); shortened.Observe(reductionFight, 20000, 11000);
+        check(shortened.ReductionSeconds(17100000, 11000, names) == 12 && shortened.Remaining(17100000, 11000, names) == 8,
+            "A shorter server deadline reports the measured reduction without changing the age-corrected timer");
+        shortened.Observe(reductionFight.Copy(), 21000, 12000);
+        check(shortened.ReductionSeconds(17100000, 12000, names) == 12 && shortened.ReductionSeconds(17100000, 19000, names) == null,
+            "Repeated snapshots preserve reduction evidence and the marker expires with its timer");
+        reductionFight.Network.Add(new("skill-use", 19000, "02 38", JsonSerializer.SerializeToElement(new { ActorId = 1, SkillCode = 17100120 })));
+        shortened.Observe(reductionFight, 21000, 12000);
+        check(shortened.ReductionSeconds(17100000, 12000, names) == null,
+            "A newer cast in the same skill family suppresses an ambiguous reduction marker");
+        shortened.Reset();
+        check(shortened.ReductionSeconds(17100000, 12000, names) == null, "Capture reset clears all cooldown-reduction evidence");
         var grouped = CooldownSkillChoice.Group(new[] { 17100000, 17100120, 17100999, 17200000, 99, 100 }, names);
         check(grouped.Length == 4 && grouped[0].Id == 17100000, "Cooldown selection merges equal names and family variants while keeping distinct unknown IDs separate");
         var variants = new Fight();
@@ -65,6 +134,14 @@ internal static class CooldownTrackerTests
         check(CooldownDurations.Seconds(17150000, names, null) == 30 && CooldownDurations.Seconds(17060000, names, null) == 45,
             "Documented base estimates remain separate from captured cooldown values");
         CheckChargeSkills(check, temp);
+        var styled = JsonSerializer.Deserialize<Preferences>(JsonSerializer.Serialize(new Preferences { CooldownStyle = "Round", CooldownReadyGlow = false }))!;
+        check(styled.CooldownStyle == "Round" && !styled.CooldownReadyGlow && JsonSerializer.Deserialize<Preferences>("{}")!.CooldownStyle == "Square" &&
+            CooldownPresentation.Style("unsupported") == "Square" && CooldownPresentation.Style("Bars") == "Bars",
+            "Cooldown layouts and glow persist, with safe square defaults for older or unknown preferences");
+        check(CooldownPresentation.RemainingFraction(15, 30) == .5 && CooldownPresentation.RemainingFraction(null, 30) == 0 &&
+            CooldownPresentation.RemainingFraction(0, 30) == 0 && CooldownPresentation.RemainingFraction(90, 30) == 1 &&
+            CooldownPresentation.RemainingFraction(10, 0) == 0 && CooldownPresentation.RemainingFraction(double.NaN, 30) == 0,
+            "Cooldown bars show bounded remaining progress and never manufacture progress for unknown readings");
         var preferences = new Preferences { CooldownSkills = [17100000, 17010000], CooldownLocked = true, CooldownShowReady = false, CooldownOneSecondEarly = false, CooldownLeft = 20, CooldownTop = 40 };
         var loaded = JsonSerializer.Deserialize<Preferences>(JsonSerializer.Serialize(preferences))!;
         check(loaded.CooldownSkills.SequenceEqual(preferences.CooldownSkills) && loaded.CooldownLocked && !loaded.CooldownShowReady && loaded.CooldownLeft == 20 &&

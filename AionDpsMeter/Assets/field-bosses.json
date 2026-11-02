@@ -1,0 +1,342 @@
+{
+  "Source": "https://github.com/SkeeveAN/Aion-DPS-Meter/blob/c668aad9832963d6bf45cd3f8062e7172f5ae95c/Client/assets/aion2/bosses/field_bosses.json",
+  "SourceSha256": "d9277e11d61f823fc68ad728aeba9a626dc51a88a774231582823ceb91a75e37",
+  "Rows": [
+    {
+      "MapId": 1010,
+      "Slot": 1,
+      "Map": "Verteron",
+      "NpcId": 2100003,
+      "Name": "Neikel of the East"
+    },
+    {
+      "MapId": 1010,
+      "Slot": 2,
+      "Map": "Verteron",
+      "NpcId": 2100040,
+      "Name": "Rotten Kutar"
+    },
+    {
+      "MapId": 1010,
+      "Slot": 3,
+      "Map": "Verteron",
+      "NpcId": 2100050,
+      "Name": "Kernon of the West"
+    },
+    {
+      "MapId": 1010,
+      "Slot": 4,
+      "Map": "Verteron",
+      "NpcId": 2100076,
+      "Name": "Kusan the Mad Gladiator"
+    },
+    {
+      "MapId": 1010,
+      "Slot": 5,
+      "Map": "Verteron",
+      "NpcId": 2100077,
+      "Name": "Ritualist Garshim"
+    },
+    {
+      "MapId": 1010,
+      "Slot": 6,
+      "Map": "Verteron",
+      "NpcId": 2100079,
+      "Name": "Bodyguard Teegant"
+    },
+    {
+      "MapId": 1010,
+      "Slot": 7,
+      "Map": "Verteron",
+      "NpcId": 2100141,
+      "Name": "Blooming Korin"
+    },
+    {
+      "MapId": 1010,
+      "Slot": 8,
+      "Map": "Verteron",
+      "NpcId": 2100177,
+      "Name": "Furious Saursus"
+    },
+    {
+      "MapId": 1010,
+      "Slot": 9,
+      "Map": "Verteron",
+      "NpcId": 2100178,
+      "Name": "Bloodfang Pnyn"
+    },
+    {
+      "MapId": 1010,
+      "Slot": 10,
+      "Map": "Verteron",
+      "NpcId": 2100582,
+      "Name": "Heretic Layla"
+    },
+    {
+      "MapId": 1010,
+      "Slot": 11,
+      "Map": "Verteron",
+      "NpcId": 2100617,
+      "Name": "Black Tentacle Lawa"
+    },
+    {
+      "MapId": 1010,
+      "Slot": 12,
+      "Map": "Verteron",
+      "NpcId": 2100661,
+      "Name": "Phantasm Kasia"
+    },
+    {
+      "MapId": 1010,
+      "Slot": 13,
+      "Map": "Verteron",
+      "NpcId": 2100708,
+      "Name": "Centurion Demiros"
+    },
+    {
+      "MapId": 1010,
+      "Slot": 14,
+      "Map": "Verteron",
+      "NpcId": 2100718,
+      "Name": "Divine Ansas"
+    },
+    {
+      "MapId": 1010,
+      "Slot": 15,
+      "Map": "Verteron",
+      "NpcId": 2100876,
+      "Name": "Harvest Manager Moshav"
+    },
+    {
+      "MapId": 1010,
+      "Slot": 16,
+      "Map": "Verteron",
+      "NpcId": 2100877,
+      "Name": "Sentinel K'nash"
+    },
+    {
+      "MapId": 1010,
+      "Slot": 17,
+      "Map": "Verteron",
+      "NpcId": 2100988,
+      "Name": "Scholar Aulla"
+    },
+    {
+      "MapId": 1010,
+      "Slot": 18,
+      "Map": "Verteron",
+      "NpcId": 2100989,
+      "Name": "Forest Warrior Aullamu"
+    },
+    {
+      "MapId": 1010,
+      "Slot": 19,
+      "Map": "Verteron",
+      "NpcId": 2100991,
+      "Name": "Chaser Taulo"
+    },
+    {
+      "MapId": 1010,
+      "Slot": 20,
+      "Map": "Verteron",
+      "NpcId": 2101016,
+      "Name": "Researcher Setram"
+    },
+    {
+      "MapId": 1010,
+      "Slot": 21,
+      "Map": "Verteron",
+      "NpcId": 2101074,
+      "Name": "Eternal Gartua"
+    },
+    {
+      "MapId": 1010,
+      "Slot": 22,
+      "Map": "Verteron",
+      "NpcId": 2101120,
+      "Name": "Silent Dartan"
+    },
+    {
+      "MapId": 1010,
+      "Slot": 23,
+      "Map": "Verteron",
+      "NpcId": 2101122,
+      "Name": "Soul Ruler Kashapa"
+    },
+    {
+      "MapId": 1010,
+      "Slot": 24,
+      "Map": "Verteron",
+      "NpcId": 2101131,
+      "Name": "High Commander Lagta"
+    },
+    {
+      "MapId": 1110,
+      "Slot": 1,
+      "Map": "Altgard",
+      "NpcId": 2400017,
+      "Name": "Melted Danar"
+    },
+    {
+      "MapId": 1110,
+      "Slot": 2,
+      "Map": "Altgard",
+      "NpcId": 2400074,
+      "Name": "Black Warrior Aed"
+    },
+    {
+      "MapId": 1110,
+      "Slot": 3,
+      "Map": "Altgard",
+      "NpcId": 2400140,
+      "Name": "Faithful Rajit"
+    },
+    {
+      "MapId": 1110,
+      "Slot": 4,
+      "Map": "Altgard",
+      "NpcId": 2400141,
+      "Name": "Berserker Vargor"
+    },
+    {
+      "MapId": 1110,
+      "Slot": 5,
+      "Map": "Altgard",
+      "NpcId": 2400212,
+      "Name": "Predator Garsan"
+    },
+    {
+      "MapId": 1110,
+      "Slot": 6,
+      "Map": "Altgard",
+      "NpcId": 2400223,
+      "Name": "Blood Warrior Lannar"
+    },
+    {
+      "MapId": 1110,
+      "Slot": 7,
+      "Map": "Altgard",
+      "NpcId": 2400274,
+      "Name": "Deceiver Trid"
+    },
+    {
+      "MapId": 1110,
+      "Slot": 8,
+      "Map": "Altgard",
+      "NpcId": 2400335,
+      "Name": "Blue Wave Kelpina"
+    },
+    {
+      "MapId": 1110,
+      "Slot": 9,
+      "Map": "Altgard",
+      "NpcId": 2400353,
+      "Name": "High Overseer Nutah"
+    },
+    {
+      "MapId": 1110,
+      "Slot": 10,
+      "Map": "Altgard",
+      "NpcId": 2400358,
+      "Name": "Advisor Resana"
+    },
+    {
+      "MapId": 1110,
+      "Slot": 11,
+      "Map": "Altgard",
+      "NpcId": 2400419,
+      "Name": "Special Operations Leader Linx"
+    },
+    {
+      "MapId": 1110,
+      "Slot": 12,
+      "Map": "Altgard",
+      "NpcId": 2400424,
+      "Name": "Desecrator Newbold"
+    },
+    {
+      "MapId": 1110,
+      "Slot": 13,
+      "Map": "Altgard",
+      "NpcId": 2400425,
+      "Name": "Specter Archon Axios"
+    },
+    {
+      "MapId": 1110,
+      "Slot": 14,
+      "Map": "Altgard",
+      "NpcId": 2400474,
+      "Name": "Addicted Hardirun"
+    },
+    {
+      "MapId": 1110,
+      "Slot": 15,
+      "Map": "Altgard",
+      "NpcId": 2400504,
+      "Name": "Executioner Barthien"
+    },
+    {
+      "MapId": 1110,
+      "Slot": 16,
+      "Map": "Altgard",
+      "NpcId": 2400593,
+      "Name": "Drakan Battalion Weapon Guruta"
+    },
+    {
+      "MapId": 1110,
+      "Slot": 17,
+      "Map": "Altgard",
+      "NpcId": 2400607,
+      "Name": "Veteran Shujakan"
+    },
+    {
+      "MapId": 1110,
+      "Slot": 18,
+      "Map": "Altgard",
+      "NpcId": 2400608,
+      "Name": "Visionary Karuka"
+    },
+    {
+      "MapId": 1110,
+      "Slot": 19,
+      "Map": "Altgard",
+      "NpcId": 2400659,
+      "Name": "Dark Shadow Vishwada"
+    },
+    {
+      "MapId": 1110,
+      "Slot": 20,
+      "Map": "Altgard",
+      "NpcId": 2400709,
+      "Name": "Sharp Shylak"
+    },
+    {
+      "MapId": 1110,
+      "Slot": 21,
+      "Map": "Altgard",
+      "NpcId": 2400800,
+      "Name": "Immortal Gartua"
+    },
+    {
+      "MapId": 1110,
+      "Slot": 22,
+      "Map": "Altgard",
+      "NpcId": 2400853,
+      "Name": "High Commander Lagta"
+    },
+    {
+      "MapId": 1110,
+      "Slot": 23,
+      "Map": "Altgard",
+      "NpcId": 2400854,
+      "Name": "Soul Ruler Kashapa"
+    },
+    {
+      "MapId": 1110,
+      "Slot": 24,
+      "Map": "Altgard",
+      "NpcId": 2400855,
+      "Name": "Silent Dartan"
+    }
+  ]
+}

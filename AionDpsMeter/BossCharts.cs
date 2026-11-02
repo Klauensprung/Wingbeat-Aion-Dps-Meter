@@ -18,7 +18,7 @@ internal static class BossDrawing
             MaxTextWidth = Math.Max(1, width), MaxLineCount = 1, Trimming = TextTrimming.CharacterEllipsis };
         dc.DrawText(label, new(x, y));
     }
-    internal static Brush Colour(string kind) => kind switch { "Cast signal" => Cast, "Hit" => Hit, "Enrage" => Gold, "Defense" => Blue, _ => Text };
+    internal static Brush Colour(string kind) => kind switch { "Cast signal" => Cast, "Hit" => Hit, "Enrage" or "Stagger break" or "Stagger coverage" => Gold, "Telegraph" => Cast, "Defense" => Blue, _ => Text };
     internal static string Time(double seconds) => $"{(int)seconds / 60:00}:{seconds % 60:00.0}";
 }
 
@@ -99,8 +99,8 @@ internal sealed class BossTimelinePlot : FrameworkElement
         if (!ReferenceEquals(value, data) || skill != filter) {
             data = value; filter = skill;
             lanes = value.Abilities.Where(a => skill == null || a.SkillCode == skill).OrderBy(a => a.SkillCode)
-                .Select(a => (a.SkillCode, a.Skill, value.Moments.Where(m => m.SkillCode == a.SkillCode && m.Kind is not ("Enrage" or "Boss death")).ToArray())).ToArray();
-            var markers = value.Moments.Where(m => m.Kind is "Enrage" or "Boss death").ToArray();
+                .Select(a => (a.SkillCode, a.Skill, value.Moments.Where(m => m.SkillCode == a.SkillCode && !BossTimelineEvents.IsMarker(m)).ToArray())).ToArray();
+            var markers = value.Moments.Where(BossTimelineEvents.IsMarker).ToArray();
             if (markers.Length > 0) lanes = [..lanes, (-1, "Encounter markers", markers)];
         }
         start = offset; span = Math.Max(1, seconds); Height = Math.Max(78, Axis + lanes.Length * RowHeight + 8); ClearScene();
@@ -215,7 +215,7 @@ internal sealed class BossTimelineView : Grid
         if (!hover && !pinned) ApplyPending();
     }
     void ApplyPending() { if (pending == null) return; source = pending; pending = null; targetName = pendingNames ?? targetName; selected = null; IndexEvents(); Draw(); }
-    void IndexEvents() { events = source?.Moments.Where(m => skill == null || m.SkillCode == skill || m.Kind is "Enrage" or "Boss death").ToArray() ?? []; indices = events.Select((m, i) => (m, i)).ToDictionary(p => p.m, p => p.i); }
+    void IndexEvents() { events = source?.Moments.Where(m => BossTimelineEvents.Includes(m, skill)).ToArray() ?? []; indices = events.Select((m, i) => (m, i)).ToDictionary(p => p.m, p => p.i); }
     internal void Filter(int? code) { skill = code; selected = null; pinned = false; ApplyPending(); IndexEvents(); Draw(); }
     internal void Resume() { hover = pinned = false; selected = null; ApplyPending(); Draw(); }
     internal void Zoom(double factor, double fraction)
@@ -245,7 +245,7 @@ internal sealed class BossTimelineView : Grid
     }
     void State()
     {
-        state.Text = (pinned ? "Pinned / Resume for live updates" : hover ? "Held while inspecting" : "Observed sequence") + "  |  Circle: cast / Red: hit / Blue: defense / Gold: enrage";
+        state.Text = (pinned ? "Pinned / Resume for live updates" : hover ? "Held while inspecting" : "Observed sequence") + "  |  Circle: cast / Green: telegraph / Red: hit / Blue: defense / Gold: enrage / stagger";
         int at = selected == null ? -1 : indices.GetValueOrDefault(selected, -1);
         previous.IsEnabled = at > 0; next.IsEnabled = events.Length > 0 && at < events.Length - 1;
         detail.Text = selected == null || source == null ? "Point at a skill lane to inspect. Click to pin; Previous / Next steps through simultaneous hits. Ctrl + wheel zooms. Cast signals do not confirm completed casts." :

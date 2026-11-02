@@ -38,6 +38,15 @@ internal static class EncounterOverviewTests
             fight.Damage.Add(new() { ActorId = id, TargetId = 10, Timestamp = 2000, Damage = 10000 });
         fight.Actors[3] = fight.Actors[3] with { Job = "Unknown", CachedJob = "Cleric" };
         var people = EncounterOverview.Participants(fight);
+        var timeline = EncounterTimeline.Build(fight, people.Select(p => p.Id));
+        check(timeline.Sum(b => b.Damage) == 350 && Math.Abs(timeline.Sum(b => b.Dps * (b.To - b.From)) - 350) < .001,
+            "Encounter DPS timeline conserves participant damage and excludes enemies and unnamed bystanders");
+        check(EncounterTimeline.Build(fight, [1]).Sum(b => b.Damage) == 150 && EncounterTimeline.Build(fight, []).All(b => b.Dps == 0),
+            "Timeline player selection isolates their damage and empty selections remain zero");
+        var longFight = fight.Copy(); longFight.Damage.Add(new() { ActorId = 1, TargetId = 10, Damage = 10, Timestamp = 7200000 });
+        var longTimeline = EncounterTimeline.Build(longFight, [1]);
+        check(longTimeline.Length == 120 && longTimeline[^1].Damage == 10 && longTimeline.Sum(b => b.Damage) == 160 && longTimeline.Any(b => b.Damage == 0),
+            "Long fight timelines use at most 120 buckets, retain endpoint hits and show idle intervals");
         check(people.Single(p => p.Id == 3).Class == "Cleric", "Encounter class display resolves cached class when captured class and skill evidence are unavailable");
         check(people.Length == 3 && people.Sum(p => p.Damage) == 350 && people.Single(p => p.Id == 3).Healing == 70 && people.Single(p => p.Id == 1).Deaths == 1,
             "Encounter participants retain add damage, healing-only players and deaths while excluding known enemies");

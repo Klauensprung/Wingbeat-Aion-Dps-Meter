@@ -7,6 +7,14 @@ namespace AionDpsMeter.Local;
 // see licenses/SkeeveTV-MIT.txt. Entity IDs always come from the current packet.
 internal static class HealingSkills
 {
+    // Summoned spirits initialize HP/resources with these self-targeted effects.
+    // They are not recovery performed by the spirit's owner.
+    internal static bool SummonInitialization(int skill,int effect,int actor,int target)=>
+        skill==16990004&&effect is 1699000411 or 1699000412&&actor>0&&actor==target;
+    internal static bool SummonInitialization(AionDpsMeter.Models.DamageEvent hit)=>
+        hit.AdditionalData?.TryGetValue("EffectId",out var effect)==true&&effect.ValueKind==System.Text.Json.JsonValueKind.Number&&effect.TryGetInt32(out int id)&&
+        SummonInitialization(hit.SkillCode,id,hit.SourceActorId>0?hit.SourceActorId:hit.ActorId,hit.TargetId);
+
     // Cleric and Chanter recovery families. These may heal another recipient.
     static readonly FrozenSet<int> Support = new[] {
         17090000, 17100000, 17120000, 17160000, 17240000, 17270000, 17290000,

@@ -1,10 +1,10 @@
 namespace AionDpsMeter.Local;
 
-public sealed record HealingRow(string Healer, string Skill, int SkillCode, string Target, int Ticks, long Healing, double HPS, double Average, int Largest, double HealerShare)
+public sealed record HealingRow(string Healer, string Skill, int SkillCode, string Target, int Ticks, long Healing, double HPS, double Average, long Largest, double HealerShare)
 {
     public double HealingShare { get; init; }
 }
-public sealed record OpenerRow(int ActorId, string Character, int Order, double Seconds, string Event, string Skill, int SkillCode, string Target, int Amount, bool Critical);
+public sealed record OpenerRow(int ActorId, string Character, int Order, double Seconds, string Event, string Skill, int SkillCode, string Target, long Amount, bool Critical);
 public sealed record SpecRow(string Character, string Skill, int SkillCode, int? Level, string Choices, string Loadout, string Source, int RecordedEvents);
 public sealed record EquipmentRow(string Character, string Slot, string Item, string Source);
 
@@ -42,7 +42,7 @@ public static class DetailedAnalysis
             if (codes.Length == 0) return new[] { new SpecRow(actor.Name, "No loadout supplied", 0, null, "Unknown", "Not captured", "Not captured", 0) };
             return codes.Select(code => {
                 var spec = configured.GetValueOrDefault(code);
-                return new SpecRow(actor.Name, name(code), code, spec?.Level, spec == null ? "Unknown" : string.Join(", ", spec.Choices),
+                return new SpecRow(actor.Name, name(code), code, spec?.Level == 0 && build?.Source == "Captured skill packets" ? null : spec?.Level, spec == null ? "Unknown" : string.Join(", ", spec.Choices),
                     spec != null && build?.Complete == true ? "Complete (supplied)" : "Partial / unknown", spec == null ? "Observed skill only" : build!.Source,
                     counts.GetValueOrDefault(Family(code)));
             }).ToArray();

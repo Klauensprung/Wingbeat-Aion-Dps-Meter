@@ -5,16 +5,25 @@ using AionDpsMeter.Models;
 
 namespace AionDpsMeter.Local;
 
-public sealed record PlayerStatReading(long Timestamp, Dictionary<ushort, int> Values);
+public sealed record PlayerStatReading(long Timestamp, Dictionary<ushort, int> Values, bool IsComplete = true, long? MaximumHp = null);
 public sealed record CharacterLink(int EntityId, uint CharacterId);
 public sealed record CooldownRow(string Skill, int SkillCode, int RemainingMs, long Timestamp);
-public sealed record PlayerStatRow(int StatId, string Stat, string Value, int RawValue)
+public sealed record PlayerStatRow(int? StatId, string Stat, string Value, long RawValue)
 {
-    public string Detail => $"ID {StatId}  /  Raw {RawValue:N0}";
+    public string Detail => StatId == null ? "Captured resource value" : $"ID {StatId}  /  Raw {RawValue:N0}";
 }
 
 internal static class CharacterReadings
 {
+    internal static PlayerStatReading? Update(PlayerStatReading? current, NetworkEvent message, int localPlayer) {
+        if (message.Kind != "actor-stats" || message.Timestamp < 0 || message.Timestamp < current?.Timestamp || localPlayer <= 0) return current;
+        var update = message.Fields.Deserialize<StatUpdateReading>();
+        if (update == null || update.ActorId != localPlayer || update.Values == null || update.Values.Count > 2048 || update.MaximumHp < 0) return current;
+        var merged = current == null ? new Dictionary<ushort, int>() : new(current.Values);
+        foreach (var pair in update.Values) merged[pair.Key] = pair.Value;
+        if (merged.Count > 2048) return current;
+        return new(message.Timestamp, merged, current?.IsComplete ?? false, update.MaximumHp);
+    }
     // Display labels and units are protocol metadata; unknown IDs remain visible.
     static readonly Dictionary<ushort, (string Label, bool Percent)> Labels = new() {
         [19] = ("Base attack", false), [317] = ("Equipment attack", false), [31] = ("Maximum attack", false),
@@ -25,22 +34,21 @@ internal static class CharacterReadings
         [102] = ("Back damage boost", true), [483] = ("Congni damage boost", true), [485] = ("Fera damage boost", true),
         [487] = ("Nature damage boost", true), [489] = ("Varien damage boost", true), [282] = ("Combat speed", true)
     };
-    internal static PlayerStatReading Stats(ref WireReader reader, long time)
+    internal static PlayerStatReading? Stats(ref WireReader reader, long time)
     {
-        reader.Take(2);
+        ushort result = reader.U16();
         int count = reader.Var();
-        if (count is < 1 or > 2048 || reader.Remaining < count * 6) throw new InvalidDataException("Invalid player stat count.");
+        if (count > 2048 || reader.Remaining < count * 6) throw new InvalidDataException("Invalid player stat count.");
         var values = new Dictionary<ushort, int>();
         for (int i = 0; i < count; i++)
             if (!values.TryAdd(reader.U16(), unchecked((int)reader.U32()))) throw new InvalidDataException("Duplicate player stat ID.");
-        // EU captures append an opaque uint64. Its meaning is not a stat or CP.
-        if (reader.Remaining == 8) reader.U64();
-        if (reader.Remaining != 0) throw new InvalidDataException("Unknown player stat trailer.");
-        return new(time, values);
+        long maximumHp = unchecked((long)reader.U64());
+        if (maximumHp < 0 || reader.Remaining != 0) throw new InvalidDataException("Invalid player stat trailer.");
+        return result == 0 ? new(time, values, true, maximumHp) : null;
     }
     internal static void Validate(PlayerStatReading stats)
     {
-        if (stats.Timestamp < 0 || stats.Values == null || stats.Values.Count is < 1 or > 2048)
+        if (stats.Timestamp < 0 || stats.Values == null || stats.Values.Count > 2048 || stats.MaximumHp < 0)
             throw new InvalidDataException("Invalid player stats.");
     }
     internal static PlayerStatReading? Copy(PlayerStatReading? stats) => stats == null ? null : stats with { Values = new(stats.Values) };

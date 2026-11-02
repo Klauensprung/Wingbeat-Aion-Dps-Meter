@@ -17,6 +17,8 @@ internal sealed class CharacterEditor : Window
         public string Class { get; set; } = "Unknown";
         public int CP { get; set; }
         public int Server { get; set; }
+        public string Level { get; init; } = "Unknown";
+        public string Guild { get; init; } = "Unknown";
         public bool CompleteLoadout { get; set; }
     }
     internal sealed class SkillEntry
@@ -37,7 +39,7 @@ internal sealed class CharacterEditor : Window
     readonly ObservableCollection<SkillEntry> skills = new();
     readonly ObservableCollection<GearEntry> gear = new();
     readonly List<DataGrid> grids = new();
-    readonly TabControl tabs = new() { TabStripPlacement = Dock.Left };
+    readonly ContentControl editor = new() { HorizontalContentAlignment = HorizontalAlignment.Stretch, VerticalContentAlignment = VerticalAlignment.Stretch };
     readonly CheckBox roster = new() { Content = "Use checked Party members as the current roster (up to 10)", Margin = new(8, 12, 8, 12) };
     readonly TextBlock error = new() { Margin = new(10), TextWrapping = TextWrapping.Wrap };
     public Fight? Result { get; private set; }
@@ -51,6 +53,7 @@ internal sealed class CharacterEditor : Window
         {
             var build = FightMetadata.BuildFor(fight, actor.Id);
             characters.Add(new() { Id = actor.Id, Character = actor.Name, Player = actor.Player, Party = actor.Party || actor.Id == fight.LocalPlayer,
+                Level = actor.Metadata?.Level?.ToString() ?? "Unknown", Guild = actor.Metadata?.Guild ?? "Unknown",
                 Class = actor.Job, CP = actor.Cp, Server = actor.Server, CompleteLoadout = build?.Complete == true });
             if (build == null) continue;
             foreach (var skill in build.Skills) skills.Add(new() { ActorId = actor.Id, SkillId = skill.Skill, Level = skill.Level, Choices = string.Join(", ", skill.Choices) });
@@ -62,9 +65,10 @@ internal sealed class CharacterEditor : Window
         var buttons = new StackPanel { Orientation = Orientation.Horizontal, HorizontalAlignment = HorizontalAlignment.Right }; footer.Children.Add(buttons);
         var cancel = new Button { Content = "Cancel", IsCancel = true, Margin = new(4), Padding = new(15, 6, 15, 6) }; buttons.Children.Add(cancel);
         var save = new Button { Content = "Save details", Margin = new(4), Padding = new(15, 6, 15, 6) }; buttons.Children.Add(save); save.Click += (_, _) => Save();
-        var help = new TextBlock { Text = "Add class, Combat Power and server for comparisons. Changes are stored with this fight and marked as entered locally. Player names come from capture.", TextWrapping = TextWrapping.Wrap, Margin = new(8, 4, 8, 12) };
+        var help = UiSections.Heading("Party and character details", "Set your roster, class and Combat Power for local comparisons.",
+            "Changes are stored with this fight and marked as entered locally. Player names come from capture.");
         DockPanel.SetDock(help, Dock.Top); root.Children.Add(help);
-        root.Children.Add(tabs);
+        root.Children.Add(editor);
         DataGrid Grid(string title, object source)
         {
             var grid = new DataGrid { ItemsSource = (System.Collections.IEnumerable)source, AutoGenerateColumns = false, CanUserAddRows = false,
@@ -81,9 +85,10 @@ internal sealed class CharacterEditor : Window
         TextColumn(actors, "Id", "ID", true, .6); TextColumn(actors, "Character", "Character", true, 1.8);
         CheckColumn(actors, "Player", "Player"); CheckColumn(actors, "Party", "Party");
         actors.Columns.Add(new DataGridComboBoxColumn { Header = "Class", ItemsSource = FightMetadata.Jobs, SelectedItemBinding = new Binding("Class"), Width = 115 });
+        TextColumn(actors, "Level", "Level", true); TextColumn(actors, "Guild", "Guild", true, 1.8);
         TextColumn(actors, "CP", "CP"); TextColumn(actors, "Server", "Server");
         var actorPanel = new DockPanel(); DockPanel.SetDock(roster, Dock.Top); actorPanel.Children.Add(roster); actorPanel.Children.Add(actors);
-        tabs.Items.Add(new TabItem { Header = "Characters", Content = actorPanel });
+        editor.Content = actorPanel;
     }
     internal static Fight Apply(Fight original, IEnumerable<CharacterEntry> characterEntries, IEnumerable<SkillEntry> skillEntries, IEnumerable<GearEntry> gearEntries, bool explicitRoster)
     {
@@ -130,12 +135,9 @@ internal sealed class CharacterEditor : Window
     }
     internal void CheckViews(Action<FrameworkElement, string> render)
     {
-        foreach (TabItem tab in tabs.Items)
-        {
-            tabs.SelectedItem = tab; UpdateLayout();
-            render(this, "test-artifacts/Details-" + tab.Header + ".png");
-        }
-        if (grids.Count != 1 || grids[0].Items.Count != 10 || tabs.Items.Count != 1)
+        UpdateLayout(); render(this, "test-artifacts/Details-Characters.png");
+        Width = MinWidth; Height = MinHeight; UpdateLayout(); render(this, "test-artifacts/Details-Characters-compact.png");
+        if (grids.Count != 1 || grids[0].Items.Count != 10 || grids[0].ActualHeight < 120)
             throw new InvalidOperationException("Character editor must show just the party and character table.");
     }
 }

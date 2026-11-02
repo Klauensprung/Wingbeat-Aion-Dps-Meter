@@ -107,6 +107,170 @@ skill IDs also identify the victim and may supply the killer identity. This layo
 was checked against preceding hits in EU captures. Empty appearance responses
 without killer/skill evidence are not counted as deaths.
 
+Effect persistence research
+---------------------------
+The nonzero persistence field in the bounded 0x2a38/0x2b38 effect layout is
+interpreted as active until removal, retaining raw duration and flag values:
+https://github.com/SkeeveAN/Aion-DPS-Meter/blob/a0e8897414278b82f3005e1e93b524810c07c019/docs/protocol/combat-frames.md
+This reference does not establish a stack-count field. Stack counts remain
+unavailable; regional persistence behavior still requires live validation.
+
+Pet terrain reference
+---------------------
+Assets/map-tiles contains the original 64 JPEG terrain tiles for Verteron,
+Altgard and the lower Abyss from the pinned source:
+https://github.com/SkeeveAN/Aion-DPS-Meter/tree/a0e8897414278b82f3005e1e93b524810c07c019/Client/assets/aion2/maps
+Assets/map-terrain.json records per-tile SHA-256 hashes and the hash of maps.json,
+which supplies the factual tile sizes and linear coordinate calibration.
+Terrain artwork belongs to NCSOFT and its respective owners. The application
+license does not relicense that artwork or imply endorsement. Source repository:
+Copyright (c) 2026 SkeeveTV, MIT; see licenses/SkeeveTV-MIT.txt. No source renderer
+was copied. Wingbeat independently projects tiles and bounds decoded image memory.
+
+Pet protocol
+Assets/pet-spawns.json joins factual monster-to-pet links, coordinate triples
+and English area names from the following pinned reference data:
+https://github.com/SkeeveAN/Aion-DPS-Meter/tree/a0e8897414278b82f3005e1e93b524810c07c019/Client/assets/aion2/pets
+Files: pets.json, spawns.json, instances.json, plus ../maps/maps.json at the
+same revision. Each input SHA-256 is recorded in the compact output. Unnamed
+areas are excluded and their count is reported; these are reference spawn
+locations, not live availability, navigable paths or regional verification.
+No artwork is included in the spawn-coordinate JSON; terrain assets are covered
+separately above. No source implementation is bundled. Game facts belong to
+NCSOFT and their respective owners. Source repository: Copyright (c) 2026
+SkeeveTV, MIT; see licenses/SkeeveTV-MIT.txt.
+
+The 0x0990 pet-added ID/level layout and meaning were additionally researched from:
+https://github.com/SkeeveAN/Aion-DPS-Meter/blob/a0e8897414278b82f3005e1e93b524810c07c019/Client/Aion2/Protocol/Aion2FrameDecoder.cs
+https://github.com/SkeeveAN/Aion-DPS-Meter/blob/a0e8897414278b82f3005e1e93b524810c07c019/Client/Aion2/Aion2EntityDirectory.cs
+Only the factual layout is used in the independent bounded reader. Acquisition
+notices remain experimental until checked against regional game traffic.
+Pet roster/progress/level wire-field reference:
+https://github.com/SkeeveAN/Aion-DPS-Meter/blob/c668aad9832963d6bf45cd3f8062e7172f5ae95c/Client/Aion2/Protocol/Aion2FrameDecoder.cs
+Opcode reference: Client/assets/aion2/protocol/opcodes.json at the same revision.
+Wingbeat independently reads bounded roster entries, progress gains and level
+updates. Trailing species data and level-message prefix bytes remain opaque.
+Synthetic fixtures verify these layouts; regional live-capture parity is unverified.
+
+Target and scene protocol research
+The preceding reference calls 35 38 a local selection, while Aion2Flow reads
+target/state/source varints. Wingbeat preserves these raw fields without
+asserting local targeting. Aion2Flow also treats 00 61 / 01 61 as scene signals,
+so those packets do not establish dungeon clears or stop encounter recovery.
+Field-layout references (no implementation code copied):
+https://github.com/cloris-chan/Aion2Flow/blob/ab0d6833b7a8d757bb8ba5a212cf0e96709395b2/src/Aion2Flow.Protocol/Packets/Packet3538SidecarParser.cs
+https://github.com/cloris-chan/Aion2Flow/blob/ab0d6833b7a8d757bb8ba5a212cf0e96709395b2/src/Aion2Flow.Protocol/Packets/PacketScopeSignalParser.cs
+Regional live-capture semantics remain unverified.
+
+Compact item names
+------------------
+Assets/zones.json similarly keeps only zone IDs and English names from:
+https://github.com/SkeeveAN/Aion-DPS-Meter/blob/a0e8897414278b82f3005e1e93b524810c07c019/Client/assets/aion2/zones/zones.json
+Its source hash is recorded in the compact file. No map artwork is bundled.
+Assets/items.json contains only factual item IDs and English names extracted from:
+https://github.com/SkeeveAN/Aion-DPS-Meter/blob/a0e8897414278b82f3005e1e93b524810c07c019/Client/assets/aion2/items/item_names.json
+The importer records the source SHA-256 in the bundled file. Other languages,
+grades, artwork and item descriptions are not included. Game names/data belong
+to NCSOFT and their respective owners; the application license does not relicense
+the game data. Source repository: Copyright (c) 2026 SkeeveTV, MIT;
+see licenses/SkeeveTV-MIT.txt. Catalogue IDs still require regional validation.
+
+Ground-loot protocol research
+-----------------------------
+The 0x2336 load-complete coordinate layout and the 0x2136 coordinate offsets
+also support the last-captured-position marker, researched from:
+https://github.com/SkeeveAN/Aion-DPS-Meter/blob/a0e8897414278b82f3005e1e93b524810c07c019/docs/protocol/sitzungs-frames.md
+Explicit zone-to-terrain mappings use factual associations from Protocol/Aion2Maps.cs
+at the same revision. No continuous position updates or inferred movement are
+claimed. Marker age is displayed; unknown terrain mappings remain unavailable.
+The local-zone ID offset in 0x2136 was researched from:
+https://github.com/SkeeveAN/Aion-DPS-Meter/blob/a0e8897414278b82f3005e1e93b524810c07c019/docs/protocol/position-frames.md
+Map ID, finite XYZ coordinates and opaque remainder length are retained.
+The same position notes and Aion2FrameDecoder.cs at the pinned revision document
+the final three f32 coordinates in effect apply/refresh frames as the caster's
+position. Wingbeat retains plausible finite coordinates separately from the
+target and uses them only for the identified local caster, on an already known
+map, without rewinding newer observations. This improves action-based updates;
+the reference explicitly reports no continuous self-position stream during
+ordinary walking/flying. Regional live validation remains outstanding.
+Transition kind is not interpreted. Synthetic tests do not verify regional wire
+compatibility. The map ID is attached to subsequent attributed loot events.
+Fixed record sizes, offsets and disappearance flags were researched from:
+https://github.com/SkeeveAN/Aion-DPS-Meter/blob/a0e8897414278b82f3005e1e93b524810c07c019/docs/protocol/inventar-quest-frames.md
+The notes distinguish pickup flag 1 from disappearance flag 0 and document
+multi-entry packets. GroundLootWire independently implements bounded readers
+for these factual layouts; no source implementation or captured player records
+are bundled. Synthetic fixtures check framing and field extraction, not live
+regional compatibility or completed local-player pickup attribution.
+Source repository: Copyright (c) 2026 SkeeveTV, MIT; see licenses/SkeeveTV-MIT.txt.
+
+Health/stat and effect protocol follow-up (experimental)
+The same pinned Aion2FrameDecoder.cs and combat-frames.md document health/stat
+format flags with type/u32 prefixes and counted type/u64 fields. HealthWire
+independently implements exact-length reading, emitting only explicit kind-0
+current HP. Other stat kinds are ignored, including ambiguous kind 7; no maximum
+HP is inferred. The existing compact single-u32 current-HP form remains accepted.
+Ordinary form-17 effect headers now use the shared effect layout instead of being
+assumed to be enrage; only the previously recognized ID/duration pair emits the
+boss-enrage signal. These changes follow a live aggregate baseline that observed
+rejected health/stat and form-17 records. Synthetic checks validate the added
+layouts; those counts alone do not establish live semantic equivalence.
+
+Zone-state protocol (experimental)
+The factual 0x0140 short/extended record layouts were researched from:
+https://github.com/SkeeveAN/Aion-DPS-Meter/blob/a0e8897414278b82f3005e1e93b524810c07c019/docs/protocol/sitzungs-frames.md
+ZoneStateWire independently reads exact-size fields for zone, raw phase,
+timestamp, variant and opaque reference. The source labels the interpretation
+of phase 3 as an ended dungeon run a hypothesis. Wingbeat therefore preserves
+observations without asserting clears or ending combat. Repeated phases retain
+their first observation and history is bounded. Synthetic checks verify framing
+and retention, not regional compatibility or dungeon completion semantics.
+
+Field-boss map list protocol
+Field-layout research reference:
+https://github.com/SkeeveAN/Aion-DPS-Meter/blob/c668aad9832963d6bf45cd3f8062e7172f5ae95c/Client/Aion2/Aion2FieldBosses.cs
+The independent bounded decoder retains map/slot IDs, alive flags, positions and
+reported epoch timestamps from 01 91. It validates all optional-byte candidates
+before accepting a list. No NPC identity is inferred from the slot number.
+Synthetic fixtures validate parsing; live region compatibility remains unverified.
+Assets/field-bosses.json contains only factual map/slot/NPC identifiers and English
+names from the same revision's Client/assets/aion2/bosses/field_bosses.json.
+Its source URL and SHA-256 are retained. Only maps with explicit IDs are imported;
+names are reference mappings until regional capture validation is complete.
+
+Effect catalogue
+Assets/effects.json imports factual effect IDs, English labels and explicit
+variant-level Buff/DeBuff/Passive attributes from these pinned data files:
+https://github.com/SkeeveAN/Aion-DPS-Meter/blob/c668aad9832963d6bf45cd3f8062e7172f5ae95c/Client/assets/aion2/skills/buff_names_en.json
+https://github.com/SkeeveAN/Aion-DPS-Meter/blob/c668aad9832963d6bf45cd3f8062e7172f5ae95c/Client/assets/aion2/skills/skill_abnormal_types.json
+Input hashes and the source revision are retained. No source implementation or
+descriptive skill prose is copied. Missing variant classifications stay unknown;
+rank-base fallbacks are intentionally excluded. Regional runtime ID equivalence
+still requires live-capture validation.
+
+Event schedule reference
+https://aion2data.com/timers (reviewed 2026-10-31): reported Global hourly Shugo,
+daily 07:00 UTC and Wednesday 07:00 UTC resets; reported Global rifts every
+three hours from 00:00 UTC; client-listed hourly :30 invasion, UTC+9 siege,
+scheduled Reshanta boss and Arena opening times converted to UTC. Rift reports
+differ from the client table, so the chosen basis is shown in settings.
+These factual recurrence values drive optional reminders, not live server confirmation. No site prose,
+artwork or code is included; schedule changes require a catalogue update.
+
+Pet catalogue
+Per-pet level-up soul costs are imported from the linked detail pages, with
+SHA-256 hashes stored per entry. Only factual values are bundled; source pages
+remain in the ignored import cache. Farming calculations do not establish live
+protocol completeness or ownership of pets absent from a capture.
+Region and side/area tags are imported from those pages' map sections. No map
+artwork or source implementation is bundled. Missing locations remain unknown.
+The bundled Assets/pets.json contains factual pet IDs, names, families, summon
+soul requirements and listed farming-source names from https://aion2data.com/pets
+(source game version 2026.10.28). Retrieval time, source links and source-page
+SHA-256 are recorded in the JSON. No site prose, artwork or implementation code
+is bundled. Game names and data belong to NCSOFT and their respective owners.
+The application's source-code license does not relicense this game data.
+
 Boss and dungeon catalogue
 -------------------------
 Assets/bosses.json contains factual game names, NPC template IDs, variant
@@ -128,3 +292,132 @@ Divine Aura: 30 seconds; Bolt: 45 seconds.
 Source: https://aion2data.com/classes/cleric
 Client 2.0.6.0 hotfix 1; checked 2026-10-12. Factual values only, no artwork or
 site prose. These seed editable cast estimates, not server readings.
+
+Inventory protocol observations
+-------------------------------
+Inventory packet IDs, field types, packed-boolean behavior and reward-reason
+values were inspected in a locally installed Questlog desktop 0.1.46 combat
+worker. protocol/inventory-reference.json records its SHA-256 and the limits
+of this evidence; protocol/questlog-packet-audit.json inventories packet IDs
+for further review. The C# readers and synthetic fixtures are independently
+written. No Questlog source files or assets are redistributed. Static layout
+agreement does not establish regional live compatibility or feature parity.
+
+The offline tools/compare-reference-packets.cjs diagnostic accepts a separately
+supplied installed worker matching that hash. It executes isolated readers for
+comparison without bundling their source or launching the reference app.
+protocol/reference-comparison.json records the observed-field comparison scope.
+
+Combat effect classification
+---------------------------
+Assets/combat-effects.json contains factual numeric game effect IDs classified
+as direct healing or resource-only by the same inspected Questlog 0.1.46
+worker. Its source hash is included. No program text is bundled with the
+classification. Independent hit parsing and replay evidence are recorded in
+protocol/hit-layout-reference.json. This reference is version-specific and
+does not establish complete combat coverage for other client versions.
+
+Dungeon map classification
+--------------------------
+Assets/dungeon-maps.json contains factual numeric dungeon/nightmare map IDs
+extracted from the installed Questlog 0.1.46 game-data-v2 cache. The source
+cache hash is retained; no reference program code or visual assets are bundled.
+Classification is a snapshot and does not prove a complete or current map list.
+
+Appearance slider classification
+--------------------------------
+Assets/appearance-sliders.json contains 184 factual field identifiers classified
+as creator sliders or pad axes in the installed Questlog 0.1.46 renderer.
+The pinned renderer hash and independent comparison scope are recorded in
+protocol/appearance-layout-reference.json. No reference program text, models,
+icons or remote catalogue are bundled. The local display is independently written.
+
+Appearance choice names
+-----------------------
+Twelve short English game-option names in AppearanceDisplay.cs were checked
+against the public Questlog appearance catalogue. Catalogue provenance and
+SHA-256 are recorded in protocol/appearance-layout-reference.json. The full
+catalogue and reference program are not distributed or fetched at runtime.
+
+Appearance skin palette
+-----------------------
+Assets/appearance-palette.json contains only factual indices and linear RGB
+triples for 100 male and 100 female skin colors from the same pinned public
+appearance catalogue. tools/import-appearance-palette.py reproduces extraction
+from a separately supplied catalogue. No models, icons or reference program
+text are included. Color conversion is independently implemented and compared
+with the pinned reference functions; provenance is in the appearance report.
+
+Ticket catalogue
+----------------
+Assets/tickets.json contains factual ticket IDs, English names, capacity/refill
+rules and consumable mappings from the public Questlog ticket catalogue.
+Source URL and SHA-256 are recorded in protocol/ticket-reference.json.
+tools/import-ticket-catalogue.py reproduces extraction from a supplied copy.
+No icons or reference application source are included; no runtime fetch occurs.
+
+Appearance setting labels
+-------------------------
+Assets/appearance-labels.json contains short factual game setting names mapped
+to captured protocol fields, including gender-specific labels. Source hashes
+and extraction instructions are recorded in protocol/appearance-layout-reference.json
+and tools/import-appearance-labels.cjs. No icons, models or executable reference
+application code are distributed.
+
+World-object names
+------------------
+Assets/world-object-names.json contains 31 factual gathering object ID/name
+pairs extracted from public Questlog map markers. The source URL and SHA-256
+are embedded in the file. tools/import-world-object-names.py reproduces the
+extraction. No marker coordinates, icons or reference program code are bundled.
+
+Map marker catalogue
+--------------------
+Assets/map-markers.zip contains factual map IDs, place names, categories and
+2D coordinates, database IDs and packet gathering object IDs from the public
+Questlog map.getMarkers catalogue. Its index
+records the source URL and SHA-256. tools/import-map-markers.py reproduces the
+compact per-world extraction. The optional altitude field is not used by the
+2D map. No icons, marker artwork or reference executable source are included.
+The catalogue is local; no runtime fetch occurs.
+
+Map world names
+---------------
+Assets/map-worlds.json contains 47 factual map IDs and English names from the
+installed Questlog map configuration. The renderer SHA-256 is embedded; the
+reproducible extractor is tools/import-map-worlds.cjs. No executable reference
+code or artwork is included in this catalogue.
+
+Pet farming links
+-----------------
+Assets/pet-farming.json contains factual pet IDs/names, NPC-to-pet links and
+soul-item IDs from the same pinned public Aion-DPS-Meter game-data revision
+used for pet spawn locations. The source URL and SHA-256 are embedded;
+tools/import-pet-farming.py reproduces the extraction. No artwork or source
+program text is included. This lookup loads locally on demand.
+
+Stat names
+----------
+Assets/stat-names.json contains 540 factual English stat ID/name pairs from
+the installed Questlog 0.1.46 cached combatLog.catalog.stats. Source SHA-256
+is embedded; tools/import-stat-names.py reproduces the extraction. No HTML
+descriptions, formatting logic, artwork or reference program code is included.
+The dictionary loads locally on demand. It also retains factual percentage
+indicators and the two independently verified hundredth-unit stat IDs used by
+our own value formatter. Raw packet values remain available for inspection.
+
+Skill charge capacity
+---------------------
+Assets/skill-charges.json contains factual skill IDs and charge-capacity rules
+from the public combatLog.entities.skills catalogue. Source URL and SHA-256
+are embedded; tools/import-skill-charges.py reproduces the compact extraction.
+Only 16 rule-bearing skills and lookup precedence IDs are retained. No skill
+descriptions, artwork or reference program code is included.
+
+Item farming sources
+--------------------
+Assets/item-farming.json contains factual item-to-NPC and item-to-gathering IDs
+from the public map.getFarmItems catalogue. Source URL and SHA-256 are embedded;
+tools/import-item-farming.py reproduces the extraction. Identical source lists
+are stored once and shared by item entries. Names, artwork, descriptions and
+reference program code are not included in this lookup.

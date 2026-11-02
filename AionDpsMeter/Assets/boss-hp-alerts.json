@@ -1,0 +1,124 @@
+[
+  {
+    "Boss": "Enhanced Harcon",
+    "Thresholds": [
+      75.0,
+      35.0
+    ],
+    "Cue": "Centre leap",
+    "Response": "Avoid crossing ground lines.",
+    "Mode": "Conquest (approximate)",
+    "ResearchId": "krao-1"
+  },
+  {
+    "Boss": "Neglected Gadioton",
+    "Thresholds": [
+      35.0
+    ],
+    "Cue": "Pull and blast",
+    "Response": "Escape the close explosion.",
+    "Mode": "Conquest (approximate)",
+    "ResearchId": "krao-2"
+  },
+  {
+    "Boss": "Ultimate Berk",
+    "Thresholds": [
+      75
+    ],
+    "Cue": "Cover phase",
+    "Response": "Shelter behind an intact rock.",
+    "Mode": "Conquest (approximate)",
+    "ResearchId": "krao-3"
+  },
+  {
+    "Boss": "Ultimate Berk",
+    "Thresholds": [
+      50.0
+    ],
+    "Cue": "Stagger check",
+    "Response": "Reserve stagger attacks for the cast.",
+    "Mode": "Conquest (approximate)",
+    "ResearchId": "krao-4"
+  },
+  {
+    "Boss": "Phantasmal Lakshmi",
+    "Thresholds": [
+      75.0
+    ],
+    "Cue": "Reflect buff begins",
+    "Response": "Stop damage until reflection ends.",
+    "Mode": "Conquest (approximate)",
+    "ResearchId": "draupnir-5"
+  },
+  {
+    "Boss": "Phantasmal Lakshmi",
+    "Thresholds": [
+      50.0
+    ],
+    "Cue": "Handmaiden appears below half HP",
+    "Response": "Kill the add.",
+    "Mode": "Conquest (approximate)",
+    "ResearchId": "draupnir-6"
+  },
+  {
+    "Boss": "Transcendent Bakarma",
+    "Thresholds": [
+      75
+    ],
+    "Cue": "Conquest stagger checks",
+    "Response": "Save stagger; late threshold is disputed.",
+    "Mode": "Conquest (approximate)",
+    "ResearchId": "draupnir-8"
+  },
+  {
+    "Boss": "Red Spark Ignus",
+    "Thresholds": [
+      75.0
+    ],
+    "Cue": "Puddle marks",
+    "Response": "Place pools away from the group.",
+    "Mode": "Conquest (approximate)",
+    "ResearchId": "fire-11"
+  },
+  {
+    "Boss": "Red Spark Ignus",
+    "Thresholds": [
+      65.0
+    ],
+    "Cue": "Donut and jump",
+    "Response": "Move to the safe area; expect follow-up.",
+    "Mode": "Conquest (approximate)",
+    "ResearchId": "fire-12"
+  },
+  {
+    "Boss": "Black Smoke Murute",
+    "Thresholds": [
+      50.0
+    ],
+    "Cue": "Expanding waves",
+    "Response": "Dodge successive rings.",
+    "Mode": "Conquest (approximate)",
+    "ResearchId": "fire-13"
+  },
+  {
+    "Boss": "Guardian Captain Raur",
+    "Thresholds": [
+      66.7
+    ],
+    "Cue": "Counter stance",
+    "Response": "Stop attacking and leave melee range.",
+    "Mode": "Conquest (approximate)",
+    "ResearchId": "urugugu-17"
+  },
+  {
+    "Boss": "Vakron",
+    "Thresholds": [
+      60.0,
+      30.0
+    ],
+    "Cue": "Rock enclosure",
+    "Response": "Destroy the glowing red rock before the slam.",
+    "Mode": "Conquest (approximate)",
+    "ResearchId": "vakron-24"
+  }
+]

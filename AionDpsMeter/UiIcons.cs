@@ -57,7 +57,7 @@ internal static class UiIcons
         "Healing" => UiIcon.Healing, "PvP" => UiIcon.Pvp, "Rotations" => UiIcon.Rotation, "Player stats" => UiIcon.Player,
         "Saved fights" => UiIcon.Folder, "Trends" => UiIcon.Chart, "Openers" => UiIcon.Opener, "Boss analysis" => UiIcon.Boss,
         "Boss catalogue" => UiIcon.Catalogue, "Report card" => UiIcon.Report, "Top 5%" => UiIcon.Trophy,
-        "Top cohort" => UiIcon.Cohort, "Network events" => UiIcon.Network, _ => UiIcon.Chart
+        "Top cohort" => UiIcon.Cohort, "Network events" => UiIcon.Network, "Tools" => UiIcon.Catalogue, _ => UiIcon.Chart
     };
     internal static DataTemplate NavigationHeader(string title)
     {

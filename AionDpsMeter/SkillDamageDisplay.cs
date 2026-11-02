@@ -55,7 +55,10 @@ internal sealed class SkillDamageDisplay : IValueConverter
         using (var drawing = group.Open()) {
             // Keep full relative bounds even when the damage bar is short or empty.
             drawing.DrawRectangle(Brushes.Transparent, null, new Rect(0, 0, 1, 1));
-            if (fraction > 0) drawing.DrawRectangle(new SolidColorBrush(Color.FromArgb(65, color.R, color.G, color.B)), null, new Rect(0, 0, fraction, 1));
+            if (fraction > 0) {
+                drawing.DrawRectangle(new SolidColorBrush(Color.FromArgb(24, color.R, color.G, color.B)), null, new Rect(0, 0, fraction, 1));
+                drawing.DrawRectangle(new SolidColorBrush(Color.FromArgb(145, color.R, color.G, color.B)), null, new Rect(0, .94, fraction, .06));
+            }
         }
         var brush = new DrawingBrush(group) { Stretch = Stretch.Fill }; brush.Freeze(); return brush;
     }

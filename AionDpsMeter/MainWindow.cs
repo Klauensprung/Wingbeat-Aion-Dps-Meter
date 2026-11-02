@@ -2,6 +2,7 @@ using System.Collections;
 using System.IO;
 using System.Text.Json;
 using System.Windows;
+using System.Windows.Input;
 using System.Windows.Controls;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
@@ -16,12 +17,66 @@ namespace AionDpsMeter.Local;
 public sealed class Preferences
 {
     public bool AutoStartConfigured { get; set; } = true;
+    public bool OverlayPlacementSetupCompleted { get; set; }
     public bool OpenMeterOnStartup { get; set; } = true;
     public bool OpenCooldownsOnStartup { get; set; } = true;
     public bool DecodeEu { get; set; } = true;
     public Dictionary<int, double> CooldownFallbackSeconds { get; set; } = new();
     public int[] CooldownSkills { get; set; } = [];
     public bool CooldownShowReady { get; set; } = true;
+    public string CooldownStyle { get; set; } = "Square";
+    public bool CooldownReadyGlow { get; set; } = true;
+    public bool CooldownCombatOnly { get; set; }
+    public bool OverlaysGameOnly { get; set; }
+    public bool PingLocked { get; set; }
+    public double? PingLeft { get; set; }
+    public double? PingTop { get; set; }
+    public bool LootLocked { get; set; }
+    public double? LootLeft { get; set; }
+    public double? LootTop { get; set; }
+    public double? CurrencyLeft { get; set; }
+    public double? CurrencyTop { get; set; }
+    public double CurrencyWidth { get; set; } = 460;
+    public double CurrencyHeight { get; set; } = 380;
+    public int[]? CurrencyShown { get; set; }
+    public bool TicketMember { get; set; }
+    public int[]? TicketShown { get; set; }
+    public double? TicketLeft { get; set; }
+    public double? TicketTop { get; set; }
+    public double TicketWidth { get; set; } = 540;
+    public double TicketHeight { get; set; } = 480;
+    public bool FarmingOverlayLocked { get; set; }
+    public double? FarmingOverlayLeft { get; set; }
+    public double? FarmingOverlayTop { get; set; }
+    public int FarmingTargetGoal { get; set; } = 1;
+    public bool PetTrackerLocked { get; set; }
+    public double? PetTrackerLeft { get; set; }
+    public double? PetTrackerTop { get; set; }
+    public int PetTrackerGoal { get; set; } = 1;
+    public bool PetMapLocked { get; set; }
+    public bool PetMapPredictPosition { get; set; } = true;
+    public double? PetMapLeft { get; set; }
+    public double? PetMapTop { get; set; }
+    public bool BossAlertsEnabled {get;set;}=true;
+    public bool BossAlertsLocked {get;set;}
+    public double? BossAlertsLeft {get;set;}
+    public double? BossAlertsTop {get;set;}
+    public bool ControlAlertsEnabled { get; set; }
+    public bool PartyDebuffAlerts { get; set; }
+    public bool PetLevelAlerts { get; set; }
+    public bool PetCollectionAlerts { get; set; }
+    public int PartyDebuffThreshold { get; set; } = 3;
+    public bool ControlLocked { get; set; }
+    public double? ControlLeft { get; set; }
+    public double? ControlTop { get; set; }
+    public string[] ReminderEvents { get; set; } = [];
+    public int ReminderLeadSeconds { get; set; } = 120;
+    public int ReminderDurationSeconds { get; set; } = 10;
+    public bool ReminderSoundEnabled { get; set; }
+    public bool ReminderWindowsNotifications { get; set; } = true;
+    public string ReminderSoundPath { get; set; } = "";
+    public double ReminderVolume { get; set; } = .5;
+    public bool CooldownShowEffects { get; set; }
     public bool CooldownOneSecondEarly { get; set; } = true;
     public bool CooldownLocked { get; set; }
     public double CooldownWidth { get; set; } = 300;
@@ -35,6 +90,12 @@ public sealed class Preferences
     public string Adapter { get; set; } = "";
     public bool? AutoDetectAdapter { get; set; }
     public bool OverlayHealing { get; set; }
+    public bool OverlayPartyHealth { get; set; }
+    public SecondMeterSettings? SecondMeter { get; set; }
+    public bool OverlayShowSkills { get; set; }
+    public bool OverlayBossesOnly { get; set; }
+    public bool OverlayFollowGameTarget { get; set; }
+    public bool OverlayShowTargetHealth { get; set; } = true;
     public bool OverlayAllActors { get; set; }
     public string OverlayScope { get; set; } = "Auto";
     public bool OverlayCustomBars { get; set; }
@@ -49,10 +110,11 @@ public sealed class Preferences
 
 public sealed partial class MainWindow : Window
 {
-    static readonly string[] MainViews = ["Encounter", "Cooldowns", "Party", "Skills", "Healing", "PvP", "Rotations", "Player stats", "Saved fights", "Trends"];
+    static readonly string[] MainViews = ["Encounter", "Cooldowns", "Party", "Skills", "Healing", "PvP", "Rotations", "Player stats", "Saved fights", "Trends", "Tools"];
     static readonly string[] MoreViews = ["Openers", "Boss analysis", "Boss catalogue", "Report card", "Top 5%", "Top cohort", "Network events"];
     readonly FightStore store = new(AppDataPaths.FilePath("fights"));
     readonly Dictionary<string, DataGrid> grids = new();
+    readonly Dictionary<string, string> viewHelp = new();
     readonly TextBlock status = new() { Margin = new(10), TextWrapping = TextWrapping.Wrap, FontSize = 11 };
     readonly TextBlock summary = new() { FontSize = 20, FontWeight = FontWeights.SemiBold, Margin = new(0, 0, 0, 4) };
     readonly TextBlock sessionState = new() { FontSize = 11, Margin = new(12, 0, 0, 0), VerticalAlignment = VerticalAlignment.Center };
@@ -68,13 +130,14 @@ public sealed partial class MainWindow : Window
     readonly TextBlock pvpSummary = new() { Margin = new(8, 6, 8, 10), FontSize = 12, TextWrapping = TextWrapping.Wrap };
     readonly SettingsWindow settingsWindow;
     readonly Button meterButton, cooldownButton, settingsButton, moreButton, newFightButton;
+    readonly List<(Button Button, Func<bool> Enabled)> extraOverlayButtons = new();
     readonly ComboBox adapters = new() { Width = 330, DisplayMemberPath = "Description", Margin = new(4) };
     readonly ComboBox themes = new() { Width = 110, Margin = new(4), ItemsSource = new[] { "Midnight", "Slate", "Forest", "Ember", "Violet" } };
     readonly ComboBox backAttackColor = new() { Width = 110, Margin = new(4), IsEditable = true, ItemsSource = new[] { "#E7CF7D", "#FF6464", "#55D6BE", "#7C9EF7", "#B087E9" }, ToolTip = "Back-attack border colour: choose a preset or enter a hex colour. Transparency is preserved." };
     readonly TextBox accent = new() { Width = 90, Margin = new(4) };
     readonly TextBox filter = new() { Width = 455, Margin = new(4) };
     readonly TextBox encounter = new() { Text = "Local fight", Width = 180, Margin = new(4) };
-    readonly TextBox character = new() { Width = 150, Margin = new(4), ToolTip = "Filter details by character name; blank shows everyone" };
+    readonly TextBox character = new() { Width = 150, Height = 34, VerticalContentAlignment = VerticalAlignment.Center, Margin = new(4), ToolTip = "Filter details by character name; blank shows everyone" };
     readonly TabControl tabs = new() { Margin = new(20, 4, 20, 0), TabStripPlacement = Dock.Left, Padding = new(12, 0, 0, 0), BorderThickness = new(0) };
     readonly RotationView rotationView;
     readonly TrendChart trendChart = new();
@@ -101,6 +164,16 @@ public sealed partial class MainWindow : Window
     readonly CheckBox decodeEu = new() { Content = "Experimental EU decoding", IsChecked = true, Margin = new(8), VerticalAlignment = VerticalAlignment.Center };
     CombatEngine engine;
     readonly PlayerProfileCache playerProfiles;
+    readonly DutyMissionLedger dutyMissions;
+    readonly AccountCharacterCache accountCharacters;
+    readonly ShopPurchaseTracker shopPurchases;
+    readonly CraftingChecklist crafting;
+    readonly FarmingCounterLedger gatheringTracking;
+    readonly FarmingCounterLedger killTracking;
+    readonly FarmingCounterLedger lootTracking;
+    readonly FarmingCounterLedger soulTracking;
+    readonly FarmingCounterLedger petRegistrationTracking, petLevelTracking;
+    readonly ChecklistAdjustments checklistAdjustments;
     SkillNames skills = new();
     readonly SkillIcons skillIcons = new();
     CombatEngine? snapshotOwner;
@@ -114,6 +187,9 @@ public sealed partial class MainWindow : Window
     OverlayWindow? overlay;
     CooldownOverlayWindow? cooldownOverlay;
     readonly CooldownTracker cooldownTracker = new();
+    readonly LiveEffectTracker liveEffects = new();
+    readonly PartyDebuffTracker partyDebuffs = new();
+    readonly LiveOverlaySession liveOverlaySession = new();
     Preferences preferences = new();
     Task<Fight[]>? autosave;
     long nextMaintenance, nextAutosave = Environment.TickCount64 + 30000;
@@ -133,7 +209,18 @@ public sealed partial class MainWindow : Window
         Title = "Wingbeat \u2665 Aion 2 DPS Meter"; Width = 1150; Height = 870; MinWidth = 980; MinHeight = 650;
         FontFamily = new("Segoe UI"); FontSize = 13; UseLayoutRounding = true; SnapsToDevicePixels = true;
         playerProfiles = new(demo ? null : AppDataPaths.FilePath("player-profiles.json"));
-        engine = new(profiles: playerProfiles);
+        dutyMissions = new(demo ? null : AppDataPaths.FilePath("duty-missions.json"));
+        accountCharacters = new(demo ? null : AppDataPaths.FilePath("account-characters.json"));
+        shopPurchases = new(demo ? null : AppDataPaths.FilePath("shop-purchases.json"));
+        crafting = new(demo ? null : AppDataPaths.FilePath("crafting-checklist.json"));
+        gatheringTracking = new(demo ? null : AppDataPaths.FilePath("gathering-tracking.json"));
+        killTracking = new(demo ? null : AppDataPaths.FilePath("farming-kills.json"));
+        lootTracking = new(demo ? null : AppDataPaths.FilePath("farming-loot.json"));
+        petRegistrationTracking = new(demo ? null : AppDataPaths.FilePath("farming-pet-registrations.json"));
+        petLevelTracking = new(demo ? null : AppDataPaths.FilePath("farming-pet-levels.json"));
+        soulTracking = new(demo ? null : AppDataPaths.FilePath("farming-pet-souls.json"));
+        checklistAdjustments = new(demo ? null : AppDataPaths.FilePath("checklist-adjustments.json"));
+        engine = new(profiles: playerProfiles, dutyMissions: dutyMissions, accountCharacters: accountCharacters, shopPurchases: shopPurchases, crafting: crafting, visibilityMemoryPath: demo ? null : AppDataPaths.FilePath("visibility-memory.json"), gatheringTracking: gatheringTracking, killTracking: killTracking, lootTracking: lootTracking, soulTracking: soulTracking, petRegistrationTracking: petRegistrationTracking, petLevelTracking: petLevelTracking);
         LocalLog.Write($"Application started; skill catalog entries {skills.Count}; " + (skills.LoadError ?? "catalog loaded"));
         LocalLog.Write($"Display metadata: {skillIcons.Count} icon families, {NpcNames.Default.Count} NPC names; " +
             (skillIcons.LoadError ?? "icons loaded") + "; " + (NpcNames.Default.LoadError ?? "NPC names loaded"));
@@ -148,9 +235,29 @@ public sealed partial class MainWindow : Window
         start = IconButton(UiIcon.Play, "Start capture", StartRequested); controls.Children.Add(start);
         start.SetResourceReference(Control.BackgroundProperty, "Accent"); start.Foreground = UiTheme.Brush("#10201C"); start.FontWeight = FontWeights.SemiBold;
         newFightButton = IconButton(UiIcon.NewFight, "New fight", NewFight); controls.Children.Add(newFightButton);
-        meterButton = IconButton(UiIcon.Meter, "DPS overlay", ToggleOverlay); controls.Children.Add(meterButton);
-        cooldownButton = IconButton(UiIcon.Cooldowns, "Cooldown overlay", ToggleCooldownOverlay); controls.Children.Add(cooldownButton);
-        moreButton = IconButton(UiIcon.More, "More", ShowMore); controls.Children.Add(moreButton);
+        var overlayControls = new WrapPanel { Margin = new(18, 0, 18, 10) };
+        header.Children.Add(overlayControls);
+        meterButton = IconButton(UiIcon.Meter, "DPS1 overlay", ToggleOverlay); overlayControls.Children.Add(meterButton);
+        cooldownButton = IconButton(UiIcon.Cooldowns, "Cooldown overlay", ToggleCooldownOverlay); overlayControls.Children.Add(cooldownButton);
+        void OverlayAction(UiIcon icon, string label, Action toggle, Func<bool> enabled) {
+            var button = IconButton(icon, label, () => { toggle(); UpdateToolbarState(); });
+            overlayControls.Children.Add(button); extraOverlayButtons.Add((button, enabled));
+        }
+        OverlayAction(UiIcon.Meter, "DPS2 overlay", ToggleSecondMeter, () => SecondMeterOptions.Enabled);
+        OverlayAction(UiIcon.Folder, "Loot overlay", ToggleLootOverlay, () => lootOverlay != null);
+        OverlayAction(UiIcon.Catalogue, "Currencies", ToggleCurrencyOverlay, () => currencyOverlay != null);
+        OverlayAction(UiIcon.Catalogue, "Tickets", ToggleTicketOverlay, () => ticketOverlay != null);
+        overlayControls.Children.Add(IconButton(UiIcon.Chart, "Farming", ShowFarming));
+        overlayControls.Children.Add(IconButton(UiIcon.Chart, "Targets", ShowTrackedTargets));
+        overlayControls.Children.Add(IconButton(UiIcon.Chart, "World map", ShowMarkerMap));
+        overlayControls.Children.Add(IconButton(UiIcon.Chart, "Gathering routes", ShowGatheringRoutes));
+        OverlayAction(UiIcon.Chart, "Farming overlay", ToggleFarmingOverlay, () => farmingOverlay != null);
+        OverlayAction(UiIcon.Catalogue, "Pet farming", TogglePetTracker, () => petTrackerOverlay != null);
+        OverlayAction(UiIcon.Catalogue, "Pet map", TogglePetMap, () => petMapOverlay != null);
+        OverlayAction(UiIcon.Network, "Ping overlay", TogglePingOverlay, () => pingOverlay != null);
+        OverlayAction(UiIcon.Boss,"Boss alerts",()=>ConfigureBossAlerts(!preferences.BossAlertsEnabled,false),()=>preferences.BossAlertsEnabled);
+        OverlayAction(UiIcon.Cooldowns, "Control alerts", () => ConfigureControlAlerts(!preferences.ControlAlertsEnabled, true), () => preferences.ControlAlertsEnabled);
+        moreButton = IconButton(UiIcon.Catalogue, "Tools", OpenTools); controls.Children.Add(moreButton);
         settingsButton = IconButton(UiIcon.Settings, "Settings", ToggleSettings); controls.Children.Add(settingsButton);
         var brand = new StackPanel { Orientation = Orientation.Horizontal, VerticalAlignment = VerticalAlignment.Center };
         var mark = new StackPanel { Orientation = Orientation.Horizontal, VerticalAlignment = VerticalAlignment.Center, Margin = new(0, 0, 10, 0) };
@@ -161,11 +268,13 @@ public sealed partial class MainWindow : Window
         for (int i = 0; i < 3; i++) stats.ColumnDefinitions.Add(new() { Width = new GridLength(1, GridUnitType.Star) });
         var current = new StackPanel { VerticalAlignment = VerticalAlignment.Center, Margin = new(0, 0, 15, 0) };
         current.Children.Add(new TextBlock { Text = "CURRENT ENCOUNTER", FontSize = 10, Foreground = UiTheme.Brush("#93A2B8"), Margin = new(0, 0, 0, 5) }); current.Children.Add(summary);
-        var fightActions = new StackPanel { Orientation = Orientation.Horizontal };
+        var fightActions = new WrapPanel();
         var rename = Button("Rename", () => { renamePanel.Visibility = renamePanel.Visibility == Visibility.Visible ? Visibility.Collapsed : Visibility.Visible; renamePanel.IsExpanded = renamePanel.Visibility == Visibility.Visible; if (renamePanel.IsExpanded) { encounter.Text = Current.Label; encounter.Focus(); encounter.SelectAll(); } });
         rename.Padding = new(8, 4, 8, 4); rename.Margin = new(0, 3, 6, 0); rename.Background = Brushes.Transparent; fightActions.Children.Add(rename);
         showLive = Button("Show live", () => { viewed = null; Refresh(); }); showLive.Padding = new(8, 4, 8, 4); showLive.Margin = new(0, 3, 0, 0); fightActions.Children.Add(showLive);
         current.Children.Add(fightActions); stats.Children.Add(current);
+        InitializeUpdates(fightActions, demo);
+        InitializeTraining(fightActions);
         AddMetric(stats, 1, "DAMAGE DONE", damageValue); AddMetric(stats, 2, "DAMAGE / SEC", dpsValue); AddMetric(stats, 3, "FIGHT TIME", durationValue); header.Children.Add(stats);
         var search = new DockPanel { Margin = new(20, 0, 20, 6) };
         clearFilter = Button("×", () => character.Clear()); clearFilter.ToolTip = "Show all players"; clearFilter.Width = 28; clearFilter.Padding = new(0); clearFilter.Visibility = Visibility.Hidden;
@@ -175,6 +284,13 @@ public sealed partial class MainWindow : Window
         labelControls.Children.Add(encounter); labelControls.Children.Add(Button("Apply name", () => { var label = EncounterLabel(); if (viewed != null) viewed.Label = label; else engine.SetLabel(label); renamePanel.Visibility = Visibility.Collapsed; Refresh(); }));
         renamePanel.Content = labelControls; header.Children.Add(renamePanel); header.Children.Add(search);
         settingsWindow = BuildSettings();
+        PreviewKeyDown += (_, e) => {
+            if (Keyboard.Modifiers == ModifierKeys.Control && e.Key == Key.OemComma) { ShowSettings(); e.Handled = true; }
+            else if (Keyboard.Modifiers == ModifierKeys.Control && e.Key == Key.F && character.Visibility == Visibility.Visible) {
+                character.Focus(); character.SelectAll(); e.Handled = true;
+            }
+        };
+        settingsButton.ToolTip = "Settings (Ctrl+,)";
         settingsWindow.IsVisibleChanged += (_, _) => UpdateToolbarState();
         DockPanel.SetDock(footer, Dock.Bottom); root.Children.Add(footer); root.Children.Add(tabs);
         var encounterPanel = AddTab("Encounter", "Select a recorded encounter on the left. Current capture is first; saved encounters follow newest first. Participants and attributed skill damage are shown together. Select a participant to focus their skills. Adds remain in encounter totals. Each existing saved fight remains a separate entry; no inferred instance-run merging.");
@@ -184,14 +300,16 @@ public sealed partial class MainWindow : Window
         var party = AddTab("Party", "Bars show captured party members, or named players when no roster is available. Click a bar for skills. Player names arrive when entering a zone. The full table below includes every observed actor.");
         party.Children.Remove(grids["Party"]);
         party.Children.Add(PageLayout.Fill(new SplitView(SplitView.Scroll(overview), new Expander { Header = "Full breakdown · all actors", Content = grids["Party"], Margin = new(8, 2, 8, 4) }, .6)));
-        party.Children.Insert(1, CharacterDetailsHeader(partySummary));
+        party.Children.Insert(0, CharacterDetailsHeader(partySummary));
         overview.ActorSelected += FocusActor;
         AddTab("Skills", "Damage per skill for every observed actor. Bar width and Damage % show the share of damage in the current character filter. Pet damage is attributed when its owner was discovered. Hits are damage events, not cast counts.");
         var pvp = AddTab("PvP", "Damage exchanged with you or your captured party. Opponents appear before their name arrives when their character skills identify them; these rows are marked name pending. Known NPCs and summon-only skills are excluded. Both sides use the same PvP damage window. Party membership and pet ownership must be captured to attribute their exchanges.");
         var pvpHeader = new DockPanel { LastChildFill = true };
         var lastPvp = Button("Last saved PvP fight", ShowLastPvp); DockPanel.SetDock(lastPvp, Dock.Right);
+        var inspectOpponent = Button("Inspect selected opponent", ShowSelectedOpponent); DockPanel.SetDock(inspectOpponent, Dock.Right); pvpHeader.Children.Add(inspectOpponent);
+        grids["PvP"].MouseDoubleClick += (_, _) => ShowSelectedOpponent();
         pvpHeader.Children.Add(lastPvp); pvpHeader.Children.Add(pvpSummary);
-        pvp.Children.Insert(1, pvpHeader);
+        pvp.Children.Insert(0, pvpHeader);
         pvp.Children.Remove(grids["PvP"]);
         pvp.Children.Add(PageLayout.Fill(new SplitView(SplitView.Scroll(pvpMeter), grids["PvP"])));
         pvpMeter.ActorSelected += FocusActor;
@@ -205,11 +323,17 @@ public sealed partial class MainWindow : Window
         bossView = new(code => skills.GetSkillName(code), skillIcons); bossPanel.Children.Add(PageLayout.Fill(bossView));
         AddTab("Boss catalogue", "Offline boss and hero/legend catalogue. Search by name, NPC ID or possible instance. Family variants may span difficulties and locations; unassigned hero/legend entries are not automatically treated as bosses. Source client: " + BossCatalogue.Default.ClientVersion);
         bossView.BrowseCatalogue += id => { character.Text = id; tabs.SelectedItem = tabs.Items.Cast<TabItem>().First(t => t.Header?.ToString() == "Boss catalogue"); Refresh(); };
-        AddTab("Saved fights", "Double-click a row to inspect it. Capturing continues in the background while browsing. Demo fights are marked and excluded from trends and comparisons.");
-        grids["Saved fights"].MouseDoubleClick += (_, _) => { if (grids["Saved fights"].SelectedItem is SavedRow row) { viewed = LoadArchiveDetails(archive.First(f => f.Id == row.Id)); encounter.Text = viewed.Label; tabs.SelectedIndex = 0; Refresh(); } };
+        var savedFightsPanel=AddTab("Saved fights", "Double-click a row to inspect it. Capturing continues in the background while browsing. Demo fights are marked and excluded from trends and comparisons.");
+        savedFightsPanel.Children.Insert(0,archiveLoadingStatus);
+        grids["Saved fights"].MouseDoubleClick += (_, _) => { if (grids["Saved fights"].SelectedItem is SavedRow row) {
+            viewed = LoadArchiveDetails(archive.First(f => f.Id == row.Id)); encounter.Text = viewed.Label;
+            if (!viewed.HasEvents && viewed.Training == null && SavedHistory.LootPickups(viewed) > 0) ShowLoot();
+            else tabs.SelectedIndex = 0;
+            Refresh();
+        } };
         var trendsPanel = AddTab("Trends", "Select an encounter to follow your DPS across attempts. Average gives each saved attempt equal weight; the chart shows the latest 100 attempts against the all-attempt average. Recognized bosses supply encounter names automatically. Character history stays together across servers. Double-click an encounter to open its latest fight, or a chart point to inspect that attempt. Switch to HPS for healing trends.");
         var trendControls = new WrapPanel(); trendControls.Children.Add(trendCharacter); trendControls.Children.Add(trendMetric);
-        trendsPanel.Children.Insert(1, trendControls); trendsPanel.Children.Insert(2, trendSummary);
+        trendsPanel.Children.Insert(0, trendControls); trendsPanel.Children.Insert(1, trendSummary);
         trendsPanel.Children.Remove(grids["Trends"]); trendsPanel.Children.Add(PageLayout.Fill(new SplitView(trendChart, grids["Trends"], .45, 145, 90)));
         trendCharacter.ToolTip = "Character history across all saved encounters";
         trendCharacter.SelectionChanged += (_, _) => { if (!updatingTrends) Refresh(); }; trendMetric.SelectionChanged += (_, _) => { if (!updatingTrends) Refresh(); };
@@ -219,31 +343,37 @@ public sealed partial class MainWindow : Window
         grids["Trends"].MouseDoubleClick += (_, _) => { if (grids["Trends"].SelectedItem is EncounterTrendRow row) OpenTrendFight(row.FightId); };
         trendChart.OpenFight += OpenTrendFight;
         var reportPanel = AddTab("Report card", "Local-only comparisons: same encounter label, class, server and 1,000-CP band, with similar durations (−20%/+25%). Requires 20 observations for percentiles and 100 for top 5%. No population dataset is bundled.");
-        reportPanel.Children.Insert(1, CharacterDetailsHeader(new TextBlock { Text = "Set class, CP and server to compare matching fights", Margin = new(8), TextWrapping = TextWrapping.Wrap }));
+        reportPanel.Children.Insert(0, CharacterDetailsHeader(new TextBlock { Text = "Set class, CP and server to compare matching fights", Margin = new(8), TextWrapping = TextWrapping.Wrap }));
         var differences = AddTab("Top 5%", "Compare your damage, healing, criticals, event rate, opening damage and damage received with the top 5% of matching local fight observations. Requires 100 observations. Differences are descriptive, not proof that a playstyle caused better results.");
-        differences.Children.Insert(1, CharacterDetailsHeader(differenceSummary));
+        differences.Children.Insert(0, CharacterDetailsHeader(differenceSummary));
         var cohortPanel = AddTab("Top cohort", "Top quarter needs 20 matching observations; top 5% needs 100. Match encounter, class, server, 1,000-CP band and duration (−20%/+25%). Skill shares include nonusers as zero.");
-        cohortPanel.Children.Insert(1, CharacterDetailsHeader(cohortSummary));
+        cohortPanel.Children.Insert(0, CharacterDetailsHeader(cohortSummary));
         AddDetail(cohortPanel, "Cohort openers", "First recorded skills · damage and healing");
         AddTab("Player stats", "Latest captured stats for your local character, saved with the fight. Unknown stat IDs retain their raw values. These packets do not describe every nearby player.");
         var cooldownPanel = AddTab("Cooldowns", "Live countdowns for your tracked skills, even while browsing saved fights. Choose each skill once to include its charge tiers. Set an in-game duration for cast estimates when the server supplies no cooldown. The separate overlay shows the same countdowns.");
         var cooldownActions = new WrapPanel { Margin = new(8) };
         cooldownActions.Children.Add(IconButton(UiIcon.Settings, "Choose tracked skills", ConfigureCooldowns));
         cooldownActions.Children.Add(IconButton(UiIcon.Cooldowns, "Cooldown overlay", ToggleCooldownOverlay));
-        cooldownPanel.Children.Insert(1, cooldownActions);
-        cooldownPanel.Children.Insert(2, cooldownSummary);
-        AddTab("Network events", "Latest decoded HP, buffs, casts, guard and dungeon events. These are stored with the fight. Unsupported records do not appear as decoded events.");
+        cooldownPanel.Children.Insert(0, cooldownActions);
+        cooldownPanel.Children.Insert(1, cooldownSummary);
+        AddTab("Network events", "Supported diagnostic events from capture. Repeated state updates may be combined; saved fights retain only selected analysis evidence and summaries.");
+        var toolsPage = AddTab("Tools", "Your overlays, alerts, collections, analysis and local files.");
+        toolsPage.Children.Remove(grids["Tools"]); grids.Remove("Tools");
+        toolsPage.Children.Add(PageLayout.Fill(BuildTools()));
         var orderedViews = MainViews.Concat(MoreViews).Select(name => tabs.Items.Cast<TabItem>().Single(t => t.Header?.ToString() == name)).ToArray();
         tabs.Items.Clear(); foreach (var view in orderedViews) tabs.Items.Add(view);
         tabs.SelectedIndex = 0; UpdateNavigation();
         tabs.SelectionChanged += (_, e) => { if (ReferenceEquals(e.Source, tabs)) { UpdateNavigation(); Refresh(); } };
         character.TextChanged += (_, _) => Refresh();
-        ApplyTheme(); ReloadArchive(); LoadAdapters();
+        ApplyTheme();
+        if(demo){ReloadArchive();LoadAdapters();}
         if (!demo) ContentRendered += ResumeConfiguredStartup;
         if (demo) LoadDemo(); else Refresh();
         timer.Tick += (_, _) => {
             try {
                 if (capture != null) engine.AdvanceTime(DateTimeOffset.UtcNow.ToUnixTimeMilliseconds());
+                RefreshTraining();
+                RefreshReminders();
                 FinishAutosave(wait: false);
                 long now = Environment.TickCount64;
                 if ((capture != null || engine.HasCompletedFights) && autosave == null && now >= nextMaintenance)
@@ -253,14 +383,15 @@ public sealed partial class MainWindow : Window
                     StartAutosave(saveCurrent);
                 }
                 Refresh(skipUnchanged: true);
+                DeliverReminders();
             } catch (Exception ex) { notice = "Local save/update failed: " + ex.Message; LocalLog.Write(notice); }
         };
         timer.Start();
         Closing += (_, e) => {
             if (shuttingDown) return;
-            try { capture?.Dispose(); LogCapture(); capture = null; FinishAutosave(); engine.SaveCompleted(store); var f = LiveSnapshot(); if (f.HasRecordedData) SaveFight(f); playerProfiles.Save(); }
+            try { capture?.Dispose(); engine.StopTraining(DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()); LogCapture(); capture = null; FinishAutosave(); engine.SaveCompleted(store); var f = LiveSnapshot(); if (f.HasRecordedData) SaveFight(f); playerProfiles.Save(); dutyMissions.Save(); accountCharacters.Save(); shopPurchases.Save(); crafting.Save(); gatheringTracking.Save(); killTracking.Save(); lootTracking.Save(); soulTracking.Save(); petRegistrationTracking.Save(); petLevelTracking.Save(); engine.SaveVisibilityMemory(); }
             catch (Exception ex) { e.Cancel = true; notice = "Could not save before closing: " + ex.Message; Refresh(); return; }
-            shuttingDown = true; timer.Stop(); settingsWindow.Shutdown(); cooldownOverlay?.Close(); overlay?.Close(); LocalLog.Write("Application closed.");
+            shuttingDown = true; secondMeter?.Close(); archiveLoading?.Cancel(); timer.Stop(); settingsWindow.Shutdown(); reminderToast?.Close(); reminderSound.Close(); windowsNotifications?.Dispose(); bossAlertOverlay?.Close(); controlOverlay?.Close(); ticketOverlay?.Close(); currencyOverlay?.Close(); lootOverlay?.Close(); farmingOverlay?.Close(); petTrackerOverlay?.Close(); petMapOverlay?.Close(); pingOverlay?.Close(); cooldownOverlay?.Close(); overlay?.Close(); LocalLog.Write("Application closed.");
         };
     }
     static TextBlock Label(string text) => new() { Text = text, VerticalAlignment = VerticalAlignment.Center, Margin = new(6) };
@@ -373,6 +504,44 @@ public sealed partial class MainWindow : Window
         menu.Items.Add(new Separator());
         var files = CreateFilesMenu(); var actions = files.Items.Cast<object>().ToArray(); files.Items.Clear();
         foreach (var action in actions) menu.Items.Add(action);
+        menu.Items.Add(new Separator());
+        var updates = new MenuItem { Header = "Check for updates…", IsEnabled = !checkingRelease };
+        var gameOnly = new MenuItem { Header = "Hide overlays outside Aion 2 / Wingbeat", IsCheckable = true, IsChecked = preferences.OverlaysGameOnly,
+            ToolTip = "Applies to all overlays. Wingbeat stays allowed so you can configure and preview them." };
+        gameOnly.Click += (_, _) => { preferences.OverlaysGameOnly = gameOnly.IsChecked; SavePreferences(); RefreshCooldownVisibility(); };
+        menu.Items.Add(gameOnly);
+        var ping = new MenuItem { Header = "Ping overlay", IsCheckable = true, IsChecked = pingOverlay != null };
+        ping.Click += (_, _) => TogglePingOverlay(); menu.Items.Add(ping);
+        var remindersItem = new MenuItem { Header = "Event reminders…" };
+        remindersItem.Click += (_, _) => ShowReminderSettings(); menu.Items.Add(remindersItem);
+        var fieldBosses = new MenuItem { Header = "Field boss timers…" };
+        fieldBosses.Click += (_, _) => ShowFieldBosses(); menu.Items.Add(fieldBosses);
+        var loot = new MenuItem { Header = "Loot…" };
+        loot.Click += (_, _) => ShowLoot(); menu.Items.Add(loot);
+        var lootOverlayItem = new MenuItem { Header = "Loot overlay", IsCheckable = true, IsChecked = lootOverlay != null };
+        lootOverlayItem.Click += (_, _) => ToggleLootOverlay(); menu.Items.Add(lootOverlayItem);
+        var petTrackerItem = new MenuItem { Header = "Pet farming overlay", IsCheckable = true, IsChecked = petTrackerOverlay != null };
+        petTrackerItem.Click += (_, _) => TogglePetTracker(); menu.Items.Add(petTrackerItem);
+        var petMapItem = new MenuItem { Header = "Pet map overlay", IsCheckable = true, IsChecked = petMapOverlay != null };
+        petMapItem.Click += (_, _) => TogglePetMap(); menu.Items.Add(petMapItem);
+        var control = new MenuItem { Header = "Loss-of-control overlay", IsCheckable = true, IsChecked = preferences.ControlAlertsEnabled };
+        control.Click += (_, _) => ConfigureControlAlerts(control.IsChecked, preview: true); menu.Items.Add(control);
+        var controlPlacement = new MenuItem { Header = "Position control alerts…", IsEnabled = preferences.ControlAlertsEnabled };
+        controlPlacement.Click += (_, _) => ConfigureControlAlerts(true, preview: true); menu.Items.Add(controlPlacement);
+        var partyAlerts = new MenuItem { Header = "Party debuff alerts", IsCheckable = true, IsChecked = preferences.PartyDebuffAlerts,
+            ToolTip = "Configure the member threshold and sound in Event reminders." };
+        partyAlerts.Click += (_, _) => { preferences.PartyDebuffAlerts = partyAlerts.IsChecked; SavePreferences(); }; menu.Items.Add(partyAlerts);
+        var compareTraining = new MenuItem { Header = "Compare training attempts…" };
+        var chatSummary = new MenuItem { Header = "Copy fight summary…" };
+        var effects = new MenuItem { Header = "Buffs and effects…" };
+        var pets = new MenuItem { Header = "Pets and souls…" };
+        var runs = new MenuItem { Header = "Observed dungeon runs…" };
+        runs.Click += (_, _) => ShowObservedRuns(); menu.Items.Add(runs);
+        pets.Click += (_, _) => ShowPetCatalogue(); menu.Items.Add(pets);
+        effects.Click += (_, _) => ShowEffects(); menu.Items.Add(effects);
+        chatSummary.Click += (_, _) => ShowChatSummary(); menu.Items.Add(chatSummary);
+        compareTraining.Click += (_, _) => ShowTrainingComparison(); menu.Items.Add(compareTraining);
+        updates.Click += async (_, _) => await CheckForUpdates(true); menu.Items.Add(updates);
         return menu;
     }
     void UpdateNavigation()
@@ -421,12 +590,34 @@ public sealed partial class MainWindow : Window
         }
         State(meterButton, overlay?.IsVisible == true, "DPS overlay");
         State(cooldownButton, cooldownOverlay?.IsVisible == true, "cooldown overlay");
+        foreach (var (button, enabled) in extraOverlayButtons) {
+            bool active = enabled();
+            button.SetResourceReference(Control.BorderBrushProperty, active ? "Accent" : "Edge");
+            button.SetResourceReference(Control.ForegroundProperty, active ? "Accent" : "Text");
+            button.ToolTip = (active ? "Disable " : "Enable ") + System.Windows.Automation.AutomationProperties.GetName(button);
+            System.Windows.Automation.AutomationProperties.SetHelpText(button, active ? "Enabled" : "Disabled");
+        }
+        if (meterWanted && overlay?.IsVisible == false) {
+            meterButton.SetResourceReference(Control.ForegroundProperty, "Accent");
+            meterButton.ToolTip = "Disable DPS overlay (waiting for Aion 2 / Wingbeat)";
+            System.Windows.Automation.AutomationProperties.SetHelpText(meterButton, "Enabled; waiting for game or Wingbeat");
+        }
+        if (cooldownWanted && cooldownOverlay?.IsVisible == false && preferences.OverlaysGameOnly) {
+            cooldownButton.SetResourceReference(Control.ForegroundProperty, "Accent");
+            cooldownButton.ToolTip = "Disable cooldown overlay (waiting for Aion 2 / Wingbeat or combat)";
+            System.Windows.Automation.AutomationProperties.SetHelpText(cooldownButton, "Enabled; automatically hidden");
+        }
+        if (cooldownWanted && cooldownOverlay?.IsVisible == false && preferences.CooldownCombatOnly && !preferences.OverlaysGameOnly) {
+            cooldownButton.SetResourceReference(Control.ForegroundProperty, "Accent");
+            cooldownButton.ToolTip = "Disable cooldown overlay (currently waiting for combat)";
+            System.Windows.Automation.AutomationProperties.SetHelpText(cooldownButton, "Enabled; waiting for combat");
+        }
         State(settingsButton, settingsWindow?.IsVisible == true, "settings");
     }
     PageLayout AddTab(string title, string help)
     {
         var panel = new PageLayout();
-        panel.Children.Add(new Expander { Header = "About this view", Foreground = UiTheme.Brush("#93A2B8"), FontSize = 11, Margin = new(8, 4, 8, 8), Content = new TextBlock { Text = help, TextWrapping = TextWrapping.Wrap, Margin = new(6, 10, 6, 6) } });
+        viewHelp[title] = help;
         var grid = new LiveTable { IsReadOnly = true, AutoGenerateColumns = true, CanUserAddRows = false, CanUserDeleteRows = false, EnableRowVirtualization = true, EnableColumnVirtualization = true, MinHeight = 60, RowHeight = 38, HeadersVisibility = DataGridHeadersVisibility.Column, Margin = new(8), GridLinesVisibility = DataGridGridLinesVisibility.None, BorderThickness = new(0) };
         if (title == "Player stats") grid.RowHeight = 58;
         grid.ColumnWidth = new DataGridLength(1, DataGridLengthUnitType.Star);
@@ -502,13 +693,15 @@ public sealed partial class MainWindow : Window
             }
         };
         grids[title] = grid; panel.Children.Add(PageLayout.Fill(grid));
-        double minimum = title switch { "Encounter" => 350, "Rotations" => 460, "Boss analysis" => 580, "Trends" => 380, "Party" or "PvP" or "Top cohort" => 370, _ => 260 };
+        double minimum = title switch { "Encounter" => 470, "Rotations" => 460, "Boss analysis" => 580, "Trends" => 380, "Party" or "PvP" or "Top cohort" => 370, _ => 260 };
         var tab = new TabItem { Header = title, HeaderTemplate = UiIcons.NavigationHeader(title), ToolTip = title,
-            Tag = title switch { "Encounter" => "COMBAT", "Rotations" => "ANALYSIS", "Saved fights" => "LIBRARY", "Report card" => "INSIGHTS", "Network events" => "ADVANCED", _ => null }, Content = new ViewportHost(panel, minimum) };
+            Tag = title switch { "Encounter" => "COMBAT", "Rotations" => "ANALYSIS", "Saved fights" => "LIBRARY", "Report card" => "INSIGHTS", "Network events" => "ADVANCED", "Tools" => "WORKSPACE", _ => null }, Content = new ViewportHost(panel, minimum) };
         System.Windows.Automation.AutomationProperties.SetName(tab, title); tabs.Items.Add(tab);
         return panel;
     }
     static string ColumnHeader(string property) => property switch {
+        "ConfirmedKills" => "Confirmed kills", "ObservedDeaths" => "Observed deaths",
+        "Peak5sToUs" => "Peak 5s to us", "Peak5sFromUs" => "Peak 5s from us",
         "SkillCode" => "Skill ID", "CritPercent" => "Crit %",
         "CPBand" => "CP band", "LocalSamples" => "Samples", "MedianDPS" => "Median DPS", "TopQuarterDPS" => "Top 25% DPS", "TopFivePercentDPS" => "Top 5% DPS",
         "PeerMedian" => "Peer median", "TopMean" => "Top mean", "UsagePercent" => "Usage %", "MeanDamageShare" => "Top share %", "YourDamageShare" => "Your share %",
@@ -516,13 +709,14 @@ public sealed partial class MainWindow : Window
         "FirstEvent" => "First event", "YourFirstSkill" => "Your first skill", "RecordedEvents" => "Family events", "DamageTakenPerSecond" => "Damage taken/s",
         _ => System.Text.RegularExpressions.Regex.Replace(property, "(?<=[a-z0-9])(?=[A-Z])", " ")
     };
-    void LoadAdapters()
+    void LoadAdapters(LibPcapLiveDevice[]? loadedDevices=null,Exception? loadError=null)
     {
         if (capture != null) return;
         npcapMissing = false;
         try {
             string selected = (adapters.SelectedItem as LibPcapLiveDevice)?.Name ?? preferences.Adapter;
-            var devices = LibPcapLiveDeviceList.Instance.ToArray(); adapters.ItemsSource = devices;
+            if(loadError!=null)throw loadError;
+            var devices = loadedDevices ?? LibPcapLiveDeviceList.Instance.ToArray(); adapters.ItemsSource = devices;
             adapters.SelectedItem = GameAdapterDetector.Automatic(preferences) ? null : devices.FirstOrDefault(d => string.Equals(d.Name, selected, StringComparison.OrdinalIgnoreCase));
             adapterDetection = null;
             notice = adapters.Items.Count == 0 ? "No capture adapters found. Check your network connection and Npcap installation, then refresh adapters." : GameAdapterDetector.Automatic(preferences)
@@ -543,7 +737,17 @@ public sealed partial class MainWindow : Window
     async void ResumeConfiguredStartup(object? sender, EventArgs e)
     {
         ContentRendered -= ResumeConfiguredStartup;
-        if (adapterBusy) return;
+        LocalLog.Write($"Startup: window rendered after {Environment.TickCount64-Program.StartedAt:N0} ms");
+        if (!preferences.OverlayPlacementSetupCompleted) ShowOverlayPlacementSetup();
+        if (adapterBusy) {ReloadArchive();return;}
+        adapterBusy=true;UpdateAdapterControls();
+        try {
+            var devices=await Task.Run(()=>LibPcapLiveDeviceList.Instance.ToArray());
+            if(shuttingDown)return;
+            LoadAdapters(devices);
+        }catch(Exception ex){if(!shuttingDown)LoadAdapters([],ex);}
+        finally{adapterBusy=false;if(!shuttingDown)UpdateAdapterControls();}
+        if(shuttingDown)return;
         if (preferences.AutoStartConfigured && GameAdapterDetector.Automatic(preferences) && !npcapMissing) {
             adapterBusy = true; UpdateAdapterControls();
             try { await DetectGameAdapterAsync(); }
@@ -558,11 +762,13 @@ public sealed partial class MainWindow : Window
             catch (Exception ex) { LocalLog.Write("Automatic capture startup failed: " + ex); ShowSetup("Capture could not start. Check the adapter, Npcap and capture filter, then try Start capture. " + ex.Message); }
         }
         RestoreStartupOverlays(plan);
+        ReloadArchive();
         if (npcapMissing) NpcapSetup.CreateDialog(this).ShowDialog();
         Refresh();
     }
     void RestoreStartupOverlays(StartupPlan plan)
     {
+        if(preferences.AutoStartConfigured&&SecondMeterOptions.Enabled)OpenSecondMeter();
         foreach (var (enabled, open) in new (bool, Action)[] { (plan.OpenMeter, OpenOverlay), (plan.OpenCooldowns, OpenCooldownOverlay) }) {
             if (!enabled) continue;
             try { open(); }
@@ -577,9 +783,9 @@ public sealed partial class MainWindow : Window
         if (adapters.SelectedItem is not LibPcapLiveDevice device) throw new InvalidOperationException("Select an Npcap adapter first.");
         if (string.IsNullOrWhiteSpace(filter.Text)) throw new InvalidOperationException("Enter a TCP capture filter.");
         var label = EncounterLabel();
-        FinishAutosave(); engine.SaveCompleted(store); var previous = LiveSnapshot(); if (previous.HasRecordedData) SaveFight(previous);
-        cooldownTracker.Reset();
-        engine = new(decodeEu.IsChecked == true ? new EuGameDecoder() : null, playerProfiles); engine.NewFight(label); viewed = null;
+        FinishAutosave(); engine.SaveCompleted(store); engine.SaveVisibilityMemory(); var previous = LiveSnapshot(); if (previous.HasRecordedData) SaveFight(previous);
+        cooldownTracker.Reset(); liveEffects.Reset(); partyDebuffs.Reset();
+        engine = new(decodeEu.IsChecked == true ? new EuGameDecoder() : null, playerProfiles, dutyMissions, accountCharacters, shopPurchases, crafting, AppDataPaths.FilePath("visibility-memory.json"), gatheringTracking, killTracking, lootTracking, soulTracking, petRegistrationTracking, petLevelTracking); engine.NewFight(label); viewed = null;
         var newCapture = new LocalCapture(device, engine.Process);
         string? samplePath = null;
         if (!automatic && recordSample.IsChecked == true)
@@ -602,17 +808,20 @@ public sealed partial class MainWindow : Window
         setupMessage.Visibility = Visibility.Collapsed;
         notice = engine.DecoderStatus + (samplePath == null ? "" : " Private sample recording enabled (256 MB limit).");
         LocalLog.Write("Capture started: " + engine.DecoderStatus);
+        LocalLog.Write($"Startup: capture active after {Environment.TickCount64-Program.StartedAt:N0} ms");
         Refresh();
     }
     void StopAndSave()
     {
+        engine.StopTraining(DateTimeOffset.UtcNow.ToUnixTimeMilliseconds());
         capture?.Dispose(); LogCapture(); capture = null; UiIcons.SetLabel(start, UiIcon.Play, "Start capture"); UpdateAdapterControls(); filter.IsEnabled = true; decodeEu.IsEnabled = true;
-        FinishAutosave(); engine.SaveCompleted(store); var f = LiveSnapshot(); if (f.HasRecordedData) SaveFight(f); playerProfiles.Save(); ReloadArchive(); notice = "Capture stopped. Recorded events saved locally."; Refresh();
+        FinishAutosave(); engine.SaveCompleted(store); var f = LiveSnapshot(); if (f.HasRecordedData) SaveFight(f); playerProfiles.Save(); dutyMissions.Save(); accountCharacters.Save(); shopPurchases.Save(); crafting.Save(); gatheringTracking.Save(); killTracking.Save(); lootTracking.Save(); soulTracking.Save(); petRegistrationTracking.Save(); petLevelTracking.Save(); engine.SaveVisibilityMemory(); ReloadArchive(); notice = "Capture stopped. Recorded events saved locally."; Refresh();
     }
     void NewFight()
     {
         try
         {
+            engine.StopTraining(DateTimeOffset.UtcNow.ToUnixTimeMilliseconds());
             engine.EndFight(EncounterLabel());
             viewed = null;
             // Keep the existing archive objects. Reloading every file here doubles
@@ -635,7 +844,7 @@ public sealed partial class MainWindow : Window
         nextMaintenance = Environment.TickCount64 + 1000;
         autosave = Task.Run(() => {
             var saved = FightPersistence.Save(activeEngine, snapshot, f => SaveFightCore(f, names));
-            playerProfiles.Save();
+            playerProfiles.Save(); dutyMissions.Save(); accountCharacters.Save(); shopPurchases.Save(); crafting.Save(); gatheringTracking.Save(); killTracking.Save(); lootTracking.Save(); soulTracking.Save(); petRegistrationTracking.Save(); petLevelTracking.Save(); activeEngine.SaveVisibilityMemory();
             if (saveCurrent && activeCapture != null) LogCapture(activeCapture, activeEngine);
             return saved.Select(FightArchiveSummary.Create).ToArray();
         });
@@ -645,6 +854,8 @@ public sealed partial class MainWindow : Window
     {
         FinishAutosave();
         SaveFightCore(f, skills);
+        var summary=FightArchiveSummary.Create(f);
+        if(archiveLoading!=null)archiveUpdatedDuringLoad.Add(f.Id);archive.RemoveAll(a=>a.Id==f.Id);archive.Insert(0,summary);archiveChanged=true;
     }
     void SaveFightCore(Fight f, SkillNames names)
     {
@@ -660,6 +871,8 @@ public sealed partial class MainWindow : Window
         {
             foreach (var fight in autosave.GetAwaiter().GetResult())
             {
+                NotifyPersonalBest(fight);
+                if(archiveLoading!=null)archiveUpdatedDuringLoad.Add(fight.Id);
                 archive.RemoveAll(f => f.Id == fight.Id); archive.Insert(0, fight); archiveChanged = true;
             }
         }
@@ -724,6 +937,7 @@ public sealed partial class MainWindow : Window
     void ReloadArchive()
     {
         FinishAutosave();
+        if(!demoMode){LoadArchiveInBackground();return;}
         archive.Clear(); archiveChanged = true; int skipped = 0;
         foreach (var path in store.Files()) { try { archive.Add(FightArchiveSummary.Create(store.Load(path))); } catch { skipped++; } }
         if (skipped > 0) notice = $"Skipped {skipped} invalid fight file(s); original files retained.";
@@ -744,35 +958,40 @@ public sealed partial class MainWindow : Window
     }
     void ToggleCooldownOverlay()
     {
-        if (cooldownOverlay?.IsVisible == true) cooldownOverlay.Hide(); else OpenCooldownOverlay();
+        if (cooldownWanted && cooldownOverlay != null) { cooldownWanted = false; cooldownOverlay.Hide(); UpdateToolbarState(); } else OpenCooldownOverlay();
     }
     void OpenCooldownOverlay()
     {
+        cooldownWanted = true;
         if (cooldownOverlay != null) { cooldownOverlay.Refresh(); cooldownOverlay.Show(); cooldownOverlay.Activate(); return; }
-        var window = new CooldownOverlayWindow(preferences, cooldownTracker, skills, skillIcons, () => capture != null, ConfigureCooldowns, SavePreferences);
+        var window = new CooldownOverlayWindow(preferences, cooldownTracker, skills, skillIcons, () => capture != null, ConfigureCooldowns, SavePreferences, liveEffects);
         cooldownOverlay = window;
+        window.ShowActivated = false;
         window.IsVisibleChanged += (_, _) => UpdateToolbarState();
-        window.Closed += (_, _) => { if (ReferenceEquals(cooldownOverlay, window)) cooldownOverlay = null; UpdateToolbarState(); };
+        window.Closed += (_, _) => { if (ReferenceEquals(cooldownOverlay, window)) { cooldownOverlay = null; cooldownWanted = false; } UpdateToolbarState(); };
         try { window.Show(); } catch { cooldownOverlay = null; window.Close(); throw; }
     }
     void ToggleOverlay()
     {
-        if (overlay?.IsVisible == true) overlay.Hide(); else OpenOverlay();
+        if (meterWanted && overlay != null) { meterWanted = false; overlay.Hide(); UpdateToolbarState(); } else OpenOverlay();
     }
     void OpenOverlay()
     {
+        meterWanted = true;
         if (overlay != null) {
-            var current = capture != null ? LiveSnapshot() : Current;
+            var current = engine.TrainingSnapshot(DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()) ?? (capture != null ? LiveSnapshot() : Current);
             bool same = ReferenceEquals(current, displayedSnapshot);
             overlay.Update(current, preferences, rows: same ? displayedTotals : null, pvpData: same ? displayedPvp : null);
             overlay.Show(); overlay.Activate(); return;
         }
-        var opening = new OverlayWindow(NewFight, id => FocusActor(id, preferences.OverlayHealing), () => { customBars.IsChecked = !preferences.OverlayCustomBars; pinLocal.IsChecked = preferences.OverlayPinLocal; SavePreferences(); });
+        var opening = new OverlayWindow(NewFight, id => FocusActor(id, preferences.OverlayHealing), () => { customBars.IsChecked = !preferences.OverlayCustomBars; pinLocal.IsChecked = preferences.OverlayPinLocal; SavePreferences(); }, id => skills.GetSkillName(id), skillIcons, ShowTraining);
         overlay = opening;
+        opening.PartyDebuffs = () => capture != null ? partyDebuffs.Active(Environment.TickCount64) : [];
+        opening.ShowActivated = false;
         opening.IsVisibleChanged += (_, _) => UpdateToolbarState();
-        opening.Closed += (_, _) => { if (ReferenceEquals(overlay, opening)) overlay = null; UpdateToolbarState(); };
+        opening.Closed += (_, _) => { if (ReferenceEquals(overlay, opening)) { overlay = null; meterWanted = false; } UpdateToolbarState(); };
         try {
-            var fight = capture != null ? LiveSnapshot() : Current;
+            var fight = engine.TrainingSnapshot(DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()) ?? (capture != null ? LiveSnapshot() : Current);
             bool cached = ReferenceEquals(fight, displayedSnapshot);
             opening.Update(fight, preferences, rows: cached ? displayedTotals : null, pvpData: cached ? displayedPvp : null);
             opening.Show();
@@ -809,8 +1028,8 @@ public sealed partial class MainWindow : Window
         tabs.Background = Background; tabs.Foreground = Foreground;
         status.Foreground = footer.Foreground = UiTheme.Brush("#93A2B8");
         foreach (var grid in grids.Values.Concat(detailGrids.Values)) {
-            grid.Background = UiTheme.Brush("#121B28"); grid.Foreground = Foreground;
-            grid.RowBackground = UiTheme.Brush("#182231"); grid.AlternatingRowBackground = UiTheme.Brush("#121B28");
+            grid.Background = UiTheme.Brush("#131A24"); grid.Foreground = Foreground;
+            grid.RowBackground = UiTheme.Brush("#161F2B"); grid.AlternatingRowBackground = UiTheme.Brush("#131A24");
         }
         if (grids.TryGetValue("Skills", out var skillGrid)) SkillDamageDisplay.Apply(skillGrid, preferences.Accent);
         if (grids.TryGetValue("Healing", out var healingGrid)) SkillDamageDisplay.Apply(healingGrid, preferences.Accent, nameof(HealingRow.HealingShare));
@@ -820,12 +1039,31 @@ public sealed partial class MainWindow : Window
     void Set(string tab, IEnumerable data)
     {
         var items = data.Cast<object>().ToArray(); var grid = grids[tab];
+        var table = (LiveTable)grid;
+        bool filtered = character.Text.Length > 0 && tab is not ("Cooldowns" or "Player stats" or "Network events");
+        table.DescribeEmpty(filtered ? "No matching results" : tab is "Top cohort" or "Top 5%" or "Report card" ? "Not enough comparison data" : "No " + tab.ToLowerInvariant() + " yet", filtered ? "Try another search or clear the character filter." : tab switch {
+            "Saved fights" => "Finish a fight to save it here, or import fights from Tools.",
+            "Cooldowns" => "Choose tracked skills above to start building your cooldown display.",
+            "Player stats" => "Start capture and enter a zone to load your character's stats.",
+            "Skills" or "Openers" or "Rotations" => "Capture combat or open a saved fight to inspect skill activity.",
+            "Healing" => "Recorded healing will appear here after you or your party heal.",
+            "PvP" => "Capture an exchange with another player, or open a saved PvP fight.",
+            "Trends" => "Save multiple attempts on the same character to compare progress.",
+            "Report card" or "Top cohort" or "Top 5%" => "Build a history of comparable saved fights to unlock local comparisons.",
+            "Network events" => "Supported diagnostic events appear during capture. Saved fights retain only selected summaries.",
+            _ => "Start capture or open a saved fight to explore this view."
+        });
         ((LiveTable)grid).SetRows(items);
     }
     void Refresh(bool skipUnchanged = false)
     {
         if (grids.Count == 0) return;
-        if (capture != null) cooldownTracker.Observe(LiveSnapshot(), DateTimeOffset.UtcNow.ToUnixTimeMilliseconds(), Environment.TickCount64);
+        if (capture != null) {
+            lock (engine.Gate) liveOverlaySession.Observe(engine, LiveSnapshot(), cooldownTracker, liveEffects, partyDebuffs,
+                DateTimeOffset.UtcNow.ToUnixTimeMilliseconds(), Environment.TickCount64);
+            var debuffs = partyDebuffs.Poll(Environment.TickCount64, preferences.PartyDebuffThreshold, preferences.PartyDebuffAlerts);
+            if (debuffs.Length > 0) ShowReminder(string.Join("\n", debuffs.Select(d => $"{d.Name} · {d.Members} party members")));
+        }
         var f = Current;
         bool changed = !ReferenceEquals(f, displayedSnapshot);
         if (changed) { displayedTotals = Analysis.Totals(f); displayedPvp = PvpAnalysis.Build(f); displayedSnapshot = f; }
@@ -835,6 +1073,7 @@ public sealed partial class MainWindow : Window
         var meterData = MeterPresentation.Build(f, totals, limit: 50);
         summary.Text = f.Label; summary.TextTrimming = TextTrimming.CharacterEllipsis;
         summary.ToolTip = (f.Demo ? "Demo · " : viewed != null ? "Saved fight · " : "Live fight · ") + f.Label;
+        if (f.Training is { } attempt) summary.ToolTip += $"\nTraining · {f.Seconds:0.#} seconds\nGroup: {attempt.Group}\n{attempt.Notes}";
         damageValue.Text = MeterPresentation.Number(meterData.Amount); damageValue.ToolTip = $"{meterData.Amount:N0} damage · {meterData.Scope}";
         dpsValue.Text = MeterPresentation.Number(meterData.Rate); dpsValue.ToolTip = $"{meterData.Rate:N1} DPS · {meterData.Scope}";
         durationValue.Text = MeterPresentation.Duration(f);
@@ -843,9 +1082,13 @@ public sealed partial class MainWindow : Window
         character.Tag = bossSearch ? "Search bosses, IDs, instances..." : tab == "Encounter" ? "Search encounters or participants..." : tab == "Saved fights" ? "Search fights, bosses, players..." : "Filter characters...";
         character.ToolTip = bossSearch ? "Search boss names, NPC template IDs or possible instances" : "Filter details by character name; blank shows everyone";
         clearFilter.ToolTip = "Clear search";
-        bool hasCharacterFilter = tab is not ("Cooldowns" or "Player stats");
+        bool hasCharacterFilter = tab is not ("Cooldowns" or "Player stats" or "Tools");
         character.Visibility = hasCharacterFilter ? Visibility.Visible : Visibility.Hidden;
-        viewTitle.Text = tab; clearFilter.Visibility = hasCharacterFilter && character.Text.Length > 0 ? Visibility.Visible : Visibility.Hidden;
+        if (viewTitle.Text != tab) {
+            viewTitle.Text = tab;
+            viewTitle.ToolTip = new TextBlock { Text = viewHelp.GetValueOrDefault(tab), TextWrapping = TextWrapping.Wrap, MaxWidth = 420 };
+        }
+        clearFilter.Visibility = hasCharacterFilter && character.Text.Length > 0 ? Visibility.Visible : Visibility.Hidden;
         showLive.Visibility = viewed != null ? Visibility.Visible : Visibility.Hidden;
         bool comparison = tab is "Trends" or "Report card" or "Top cohort" or "Top 5%";
         bool updateDetails = !skipUnchanged || archiveChanged || !comparison || Environment.TickCount64 >= nextComparisonRefresh;
@@ -859,6 +1102,8 @@ public sealed partial class MainWindow : Window
                 Set(tab, totals.Where(r => Matches(r.Character)).ToArray());
                 overview.Update(meterData.Rows.Where(r => Matches(r.Name)).ToArray(), compact: true, hasEvents: f.HasEvents, emptyText: character.Text.Length > 0 ? "No matching players" : null);
                 partySummary.Text = f.PartyKnown || f.Actors.Values.Any(a => a.Party) ? $"{f.Actors.Values.Count(a => a.Party || a.Id == f.LocalPlayer)} party players" : "Known players · party roster not set";
+                if (!string.IsNullOrEmpty(f.PartyLeaderName)) partySummary.Text += " | Leader: " + f.PartyLeaderName;
+                if (PartyBossTarget.Label(f) is { Length: > 0 } aggroLabel) partySummary.Text += " | " + aggroLabel;
                 partySummary.ToolTip = "Idle and healing-only party members stay visible. Roster: " + f.PartySource; break;
             case "Skills": Set(tab, SkillDamageDisplay.Shares(Analysis.Skills(f, skills.GetSkillName).Where(r => Matches(r.Character)))); break;
             case "PvP":
@@ -867,6 +1112,9 @@ public sealed partial class MainWindow : Window
                 pvpMeter.Update(pvp.HasOpponents ? PvpAnalysis.Meter(f, pvp).Rows : [], compact: true, hasEvents: f.HasEvents,
                     emptyText: f.LocalPlayer == 0 && !f.Actors.Values.Any(a => a.Party) ? "Your character identity is pending\nCapture before entering a zone." : "No PvP damage recorded in this fight");
                 pvpSummary.Text = pvp.HasOpponents ? $"YOU  {pvp.YourDamage:N0} damage · {pvp.YourDamage / pvp.Seconds:N1} DPS     ENEMY  {pvp.EnemyDamage:N0} damage     {MeterPresentation.Duration(pvp.Seconds)} · {pvp.Opponents.Length} opponent(s) · enemies in red" : "Rows rank by damage. Enable pinning in settings to keep your row first. Names update when captured.";
+                if (pvp.HasOpponents && pvp.Combatants.FirstOrDefault(c => c.Id == f.LocalPlayer) is { } localPvp)
+                    pvpSummary.Text += $"\nYour confirmed kills: {localPvp.ConfirmedKills} · peak 5s damage: {localPvp.Peak5sDamage:N0}";
+                pvpSummary.ToolTip = "Confirmed kills require captured killer attribution and an observed death. Unknown or conflicting killers are excluded. Observed deaths include this fight's captured deaths. Peak 5s is damage in the strongest rolling five-second window, not DPS.";
                 damageValue.Text = MeterPresentation.Number(pvp.YourDamage); damageValue.ToolTip = "Your damage to PvP opponents";
                 dpsValue.Text = MeterPresentation.Number(pvp.YourDamage / pvp.Seconds); dpsValue.ToolTip = "Your DPS over the shared PvP window";
                 durationValue.Text = MeterPresentation.Duration(pvp.HasOpponents ? pvp.Seconds : 0); break;
@@ -876,12 +1124,14 @@ public sealed partial class MainWindow : Window
             case "Openers": Set(tab, DetailedAnalysis.Openers(f, skills.GetSkillName).Where(r => Matches(r.Character))); break;
             case "Boss analysis": bossView.Update(f, character.Text, force: !skipUnchanged); break;
             case "Boss catalogue": Set(tab, BossCatalogue.Default.Rows().Where(b => Matches(b.Boss) || Matches(b.PossibleInstances) || Matches(b.NpcIds))); break;
-            case "Saved fights": Set(tab, archive.Where(EncounterOverview.HasLocalDamage).Where(a => Matches(a.Label) || Matches(BossAnalysis.Summary(a)) ||
+            case "Saved fights": Set(tab, archive.Where(SavedHistory.Includes).Where(a => Matches(a.Label) || Matches(BossAnalysis.Summary(a)) || Matches(SavedHistory.Activity(a)) ||
+                (a.Training != null && (Matches(a.Training.Group) || Matches(a.Training.Notes))) ||
                 (a.ArchiveSummary?.PlayerNames ?? a.Actors.Values.Where(p => p.Player).Select(p => p.Name)).Any(Matches))
-                .Select(a => new SavedRow(a.Id, a.Created.ToLocalTime(), a.Label, a.Demo, a.ArchiveSummary?.Events ?? a.Damage.Count + a.Healing.Count, Math.Round(a.Seconds, 1)) { Bosses = BossAnalysis.Summary(a) }).ToArray()); break;
+                .Select(a => new SavedRow(a.Id, a.Created.ToLocalTime(), a.Label, a.Demo, a.ArchiveSummary?.Events ?? a.Damage.Count + a.Healing.Count, a.HasEvents || a.Training != null ? Math.Round(a.Seconds, 1) : null) {
+                    Bosses = BossAnalysis.Summary(a), Activity = SavedHistory.Activity(a), LootPickups = SavedHistory.LootPickups(a) }).ToArray()); break;
             case "Trends": RefreshTrends(); break;
             case "Report card": Set(tab, Benchmarks.Report(f, archive).Where(r => Matches(r.Character)).ToArray()); break;
-            case "Player stats": Set(tab, CharacterReadings.Rows(f.LocalStats)); break;
+            case "Player stats": Set(tab, ResourceSnapshots.Rows(f.LocalResources).Concat(CharacterReadings.Rows(f.LocalStats)).ToArray()); break;
             case "Cooldowns":
                 var tracked = CooldownPresentation.Rows(preferences, skills, cooldownTracker, capture != null, Environment.TickCount64);
                 Set(tab, tracked);
@@ -915,8 +1165,13 @@ public sealed partial class MainWindow : Window
             var timing = capture.Timing;
             status.Text += $"\nQueued {timing.QueuedPackets} (peak {timing.PeakQueuedPackets}) · queue avg {timing.QueueWait.AverageMs:F2} ms · capture-to-processed avg {timing.CaptureToProcessed.AverageMs:F2} ms · display refresh 200 ms";
         }
-        if (overlay?.IsVisible != true) return;
-        var overlayFight = capture != null ? LiveSnapshot() : f;
+        RefreshCooldownVisibility();
+        if (overlay?.IsVisible != true && secondMeter?.IsVisible != true) return;
+        var secondSnapshot=engine.TrainingSnapshot(DateTimeOffset.UtcNow.ToUnixTimeMilliseconds())??(capture!=null?LiveSnapshot():f);
+        RefreshSecondMeter(secondSnapshot);
+        if(overlay?.IsVisible!=true)return;
+        overlay.Notification = Environment.TickCount64 < bestNoticeUntil ? bestNotice : "";
+        var overlayFight = secondSnapshot;
         string overlayEnergy = overlayFight.Energy == null ? "Loot energy: not captured" : $"Loot energy: daily {overlayFight.Energy.Daily} · bonus {overlayFight.Energy.Bonus}";
         overlay.Update(overlayFight, preferences, overlayEnergy, ReferenceEquals(overlayFight, f) ? totals : null,
             ReferenceEquals(overlayFight, f) ? displayedPvp : null);
@@ -929,15 +1184,23 @@ public sealed partial class MainWindow : Window
         var ids = actors.OrderByDescending(r => r.Id == f.LocalPlayer).ThenBy(r => r.Character, StringComparer.OrdinalIgnoreCase).ThenBy(r => r.Id).Take(10).Select(r => r.Id).ToArray();
         rotationView.Update(f, ids, (viewed == null ? "live" : "saved:" + f.Id) + "|" + character.Text);
     }
-    sealed record SavedRow(string Id, DateTime Date, string Encounter, bool Demo, int Events, double Seconds) { public string Bosses { get; init; } = ""; }
+    sealed record SavedRow(string Id, DateTime Date, string Encounter, bool Demo, int Events, double? Seconds) {
+        public string Activity { get; init; } = "Combat";
+        public int LootPickups { get; init; }
+        public string Bosses { get; init; } = "";
+    }
     internal void RunVisualSmokeTest()
     {
         Directory.CreateDirectory("test-artifacts");
         CheckStartupUi();
+        CheckReleaseUi();
         CheckAdapterUi();
         preferences.CooldownSkills = [17100000, 17100120];
         if (viewed?.Demo == true) {
+            viewed.PartyBossTarget = new(viewed.LocalPlayer, 1000);
+            viewed.PartyLeaderName = viewed.Name(viewed.LocalPlayer);
             viewed.LocalStats = new(1000, new() { [19] = 1234, [425] = 1250, [65000] = -20 });
+            viewed.LocalResources = new(1000, Mp: 5000, MaximumMp: 10000);
             viewed.Network.Add(new("skill-cooldown", 1000, "47 38", System.Text.Json.JsonSerializer.SerializeToElement(new { SkillCode = 17100000, RemainingMs = 3500 })));
         }
         var setupDialog = NpcapSetup.CreateDialog(this);
@@ -946,6 +1209,10 @@ public sealed partial class MainWindow : Window
         foreach (TabItem tab in tabs.Items)
         {
             tabs.SelectedItem = tab; UpdateLayout();
+            if (tab.Header.ToString() == "Party" && Current.PartyBossTarget is { EntityId: > 0 } &&
+                !partySummary.Text.Contains(PartyBossTarget.Label(Current))) throw new Exception("Party boss aggro indicator is missing.");
+            if (tab.Header.ToString() == "Party" && Current.PartyLeaderName is { } leader &&
+                !partySummary.Text.Contains("Leader: " + leader)) throw new Exception("Party leader indicator is missing.");
             if (tab.Header.ToString() == "Skills") LiveTableTests.Check((LiveTable)grids["Skills"], UpdateLayout);
             if (tab.Header.ToString() == "Rotations")
             {
@@ -962,7 +1229,7 @@ public sealed partial class MainWindow : Window
                 var content = skillColumn.GetCellContent(grid.Items[0]);
                 if (content == null || !VisualImages(content).Any(i => i.Source != null)) throw new Exception("Skill cell did not render its icon or fallback.");
             }
-            if (tab.Header.ToString() == "Player stats" && grids["Player stats"].Items.Count != 3) throw new Exception("Player stats view did not populate.");
+            if (tab.Header.ToString() == "Player stats" && grids["Player stats"].Items.Count != 5) throw new Exception("Player stats and resource view did not populate.");
             if (tab.Header.ToString() == "Cooldowns" && (grids["Cooldowns"].Items.Count != 1 || grids["Cooldowns"].Items.OfType<TrackedCooldownRow>().Single().Status != "Start capture"))
                 throw new Exception("Cooldown view did not group configured skills or incorrectly used saved-fight timers.");
             if (tab.Header.ToString() is "Party" or "Rotations" or "Skills" or "Healing" or "PvP" or "Player stats" or "Cooldowns") Render(this, System.IO.Path.Combine("test-artifacts", tab.Header + ".png"));
@@ -1028,6 +1295,7 @@ public sealed partial class MainWindow : Window
                 cooldownTestOverlay.DisplayedTime(17060000) != "~42" || cooldownTestTracker.Remaining(17100000, cooldownTick, skills) != 30)
                 throw new Exception("Display adjustment accumulated, changed raw readings or lost packet-age correction.");
             Render(cooldownTestOverlay, "test-artifacts/Cooldown-overlay.png");
+            cooldownTestOverlay.CheckStyles(cooldownTick, 17010000, Render);
             CheckMenu(cooldownTestOverlay.ContextMenu, "Cooldown-menu");
             cooldownTestOverlay.Hide();
             long hiddenNow = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
@@ -1038,12 +1306,45 @@ public sealed partial class MainWindow : Window
                 throw new Exception("Reopened cooldown overlay did not pick up events received while hidden.");
             cooldownTestSettings.CooldownShowReady = false; cooldownTestSettings.CooldownLocked = true; cooldownTestOverlay.Refresh();
             if (cooldownTestOverlay.VisibleSkills != 4 || cooldownTestOverlay.ResizeMode != ResizeMode.NoResize) throw new Exception("Cooldown overlay settings did not apply.");
+            var chargeEngine = new CombatEngine(); chargeEngine.Apply(new("local-player", Actor: new(1, "Charge preview", true, false, 0, "Cleric", 1)));
+            long chargeNow = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+            chargeEngine.Apply(new("network", Network: new("skill-charges", chargeNow, "test", JsonSerializer.SerializeToElement(new { ActorId = 1, SkillCode = 17100120, Charges = 2, RechargeMs = 30000 }))));
+            cooldownTestTracker.Observe(chargeEngine.Snapshot(), chargeNow, Environment.TickCount64);
+            cooldownTestSettings.CooldownStyle = "Square"; cooldownTestOverlay.Refresh(); cooldownTestOverlay.UpdateLayout();
+            if (cooldownTestOverlay.DisplayedCharges(17100000) != "2" || cooldownTestOverlay.Dimmed(17100000) || !int.TryParse(cooldownTestOverlay.DisplayedTime(17100000), out _))
+                throw new Exception("Available charges must remain bright and visible alongside their recharge countdown.");
+            Render(cooldownTestOverlay, "test-artifacts/Cooldown-charges.png");
+            cooldownTestSettings.CooldownStyle = "Bars"; cooldownTestOverlay.Refresh(); cooldownTestOverlay.UpdateLayout();
+            Render(cooldownTestOverlay, "test-artifacts/Cooldown-charges-bars.png");
+            var estimatedSource=new CooldownTracker();
+            estimatedSource.Capture(new("skill-charges",chargeNow-65000,"test",JsonSerializer.SerializeToElement(new {ActorId=1,SkillCode=17100120,Charges=0,RechargeMs=30000})),1);
+            var estimatedFight=chargeEngine.Snapshot();estimatedFight.LiveCooldowns=estimatedSource;
+            estimatedFight.Actors[1]=estimatedFight.Actors[1] with {CapturedSkills=new(chargeNow,chargeNow,true,true,[new(17100000,8)],[new(17100000,[1])])};
+            cooldownTestTracker.Reset();cooldownTestTracker.Observe(estimatedFight,chargeNow,Environment.TickCount64);
+            cooldownTestOverlay.Refresh();cooldownTestOverlay.UpdateLayout();
+            if(cooldownTestOverlay.DisplayedCharges(17100000)!="~2"||cooldownTestOverlay.Dimmed(17100000))
+                throw new Exception("Reopened overlay must show estimated recovered charges using captured capacity.");
+            Render(cooldownTestOverlay,"test-artifacts/Cooldown-estimated-charges-bars.png");
         } finally { cooldownTestOverlay.Close(); }
         var cooldownEditor = new CooldownSettingsWindow(cooldownTestSettings, skills, cooldownTestTracker.ObservedSkills, () => { }, () => { });
-        try { cooldownEditor.Show(); cooldownEditor.UpdateLayout(); Render(cooldownEditor, "test-artifacts/Cooldown-settings.png"); } finally { cooldownEditor.Close(); }
-        var testOverlay = new OverlayWindow(); var testPreferences = new Preferences { OverlayScope = "Party", OverlayPinLocal = true };
+        try {
+            cooldownEditor.Show(); cooldownEditor.UpdateLayout(); Render(cooldownEditor, "test-artifacts/Cooldown-settings.png");
+            cooldownEditor.Width = cooldownEditor.MinWidth; cooldownEditor.Height = cooldownEditor.MinHeight; cooldownEditor.UpdateLayout();
+            foreach (var list in LayoutVisuals<ListBox>(cooldownEditor))
+                if (list.ActualHeight < 60) throw new Exception("Compact cooldown editor hides the skill lists.");
+            foreach (var button in LayoutVisuals<Button>(cooldownEditor).Where(b => b.Content?.ToString()?.StartsWith("Save") == true)) {
+                var point = button.TranslatePoint(new(), cooldownEditor);
+                if (point.Y < 0 || point.Y + button.ActualHeight > cooldownEditor.ActualHeight) throw new Exception("Cooldown save actions are clipped.");
+            }
+            Render(cooldownEditor, "test-artifacts/Cooldown-settings-compact.png");
+        } finally { cooldownEditor.Close(); }
+        var testOverlay = new OverlayWindow(skillName: id => skills.GetSkillName(id), skillIcons: skillIcons); var testPreferences = new Preferences { OverlayScope = "Party", OverlayPinLocal = true };
         testOverlay.Update(Current, testPreferences); testOverlay.Show(); testOverlay.UpdateLayout();
+        var priorOverlay=overlay;bool priorWanted=meterWanted;var priorViewed=viewed;var priorPreferences=preferences;
+        try{overlay=testOverlay;meterWanted=true;preferences=testPreferences;testOverlay.CheckLiveDropdown(incoming=>{viewed=incoming;Refresh();});}
+        finally{overlay=priorOverlay;meterWanted=priorWanted;viewed=priorViewed;preferences=priorPreferences;Refresh();testOverlay.Update(Current,testPreferences);}
         testOverlay.CheckModes(); testOverlay.UpdateLayout(); Render(testOverlay, "test-artifacts/Overlay.png");
+        testOverlay.CheckSkillMode(Render);
         CheckMenu(testOverlay.CreateOptions(), "Overlay-menu");
         testOverlay.Width = 310; testOverlay.Height = 300; testOverlay.UpdateLayout(); testOverlay.CheckPinnedScrolling(); Render(testOverlay, "test-artifacts/Overlay-small.png");
         testPreferences.OverlayHealing = true; testPreferences.OverlayLocked = true; testOverlay.Update(Current, testPreferences); testOverlay.UpdateLayout();
@@ -1098,11 +1399,14 @@ public sealed partial class MainWindow : Window
         Render(this, "test-artifacts/PvP-duel.png"); viewed = previousView; tabs.SelectedIndex = 0; Refresh();
         var beforeBossView = viewed; var beforeBossFilter = character.Text;
         var bossDemo = BossEncounterTests.Fixture();
+        bossDemo.StaggerBreaks = [new(100, 2300371, 110000, 113000), new(100, 2300371, 150000, null)];
         viewed = bossDemo; character.Text = "";
         tabs.SelectedItem = tabs.Items.Cast<TabItem>().Single(t => t.Header?.ToString() == "Boss analysis"); Refresh(); UpdateLayout();
         bossView.CheckPresentation(bossDemo); UpdateLayout();
         Render(this, "test-artifacts/Boss-analysis.png");
         Render(bossView, "test-artifacts/Boss-analysis-full.png");
+        bossView.CheckStaggerPresentation(); UpdateLayout();
+        Render(bossView, "test-artifacts/Boss-stagger-timeline.png");
         character.Text = "2310371";
         tabs.SelectedItem = tabs.Items.Cast<TabItem>().Single(t => t.Header?.ToString() == "Boss catalogue"); Refresh(); UpdateLayout();
         if (grids["Boss catalogue"].Items.Count != 1) throw new Exception("Boss catalogue variant-ID search failed.");
@@ -1110,6 +1414,8 @@ public sealed partial class MainWindow : Window
         viewed = beforeBossView; character.Text = beforeBossFilter; tabs.SelectedIndex = 0; Refresh();
         CheckFeatureViews();
         CheckResponsiveViews();
+        CheckNewFeatureWindows();
+        CheckEmptyViews();
         Width = MinWidth; Height = MinHeight; UpdateLayout(); Render(this, "test-artifacts/Main-small.png");
         File.WriteAllText("smoke-test-results.txt", $"PASS: all {tabs.Items.Count} WPF tabs, immediate rotation inspection, hover hold, pinned damage/healing stepping, scrubbing/resume and retained drawing, populated CP report/top-five/cohort/trends/specs/openers, character editor, delayed comparison refresh, unnamed PvP opponents, automatic PvP overlay, skill/healing icon cells, ten ranked bars, five themes, custom bars, dark dropdowns/file menus/overlay menu, damage/healing overlay, move lock and minimum sizes rendered on .NET 10.\n" + notice);
     }
@@ -1209,17 +1515,28 @@ public sealed partial class MainWindow : Window
     }
     void CheckSettingsUi()
     {
-        foreach (var button in new[] { start, newFightButton, meterButton, cooldownButton, moreButton, settingsButton })
+        moreButton.RaiseEvent(new RoutedEventArgs(ButtonBase.ClickEvent));
+        if ((tabs.SelectedItem as TabItem)?.Header?.ToString() != "Tools")
+            throw new Exception("Tools toolbar button did not open the visible workspace page.");
+        UpdateLayout(); Render(this, "test-artifacts/Tools.png");
+        var overlaySettings = LayoutVisuals<Button>(this).Single(b => System.Windows.Automation.AutomationProperties.GetName(b) == "Overlay settings");
+        overlaySettings.RaiseEvent(new RoutedEventArgs(ButtonBase.ClickEvent));
+        if (!settingsWindow.IsVisible || settingsWindow.SelectedPage != "Overlays") throw new Exception("Tools did not open overlay settings directly.");
+        settingsWindow.Hide();
+        double toolsWidth = Width; Width = MinWidth; UpdateLayout();
+        Render(this, "test-artifacts/Tools-compact.png"); Width = toolsWidth;
+        tabs.SelectedIndex = 0;
+        foreach (var button in new[] { start, newFightButton, meterButton, cooldownButton, moreButton, settingsButton }.Concat(extraOverlayButtons.Select(entry => entry.Button)))
             if (button.Content is not StackPanel label || label.Children.OfType<Viewbox>().SingleOrDefault()?.Tag is not UiIcon ||
                 string.IsNullOrEmpty(System.Windows.Automation.AutomationProperties.GetName(button)))
                 throw new Exception("A toolbar action lost its icon or accessible label.");
         settingsButton.RaiseEvent(new RoutedEventArgs(ButtonBase.ClickEvent));
         if (!settingsWindow.IsVisible) throw new Exception("Settings button did not open settings.");
-        foreach (var page in new[] { "Startup", "Capture", "Overlays", "Appearance", "Local data", "Advanced" }) {
+        foreach (var page in new[] { "Startup", "Capture", "Overlays", "Alerts", "Appearance", "Local data", "Advanced" }) {
             settingsWindow.SelectPage(page); settingsWindow.UpdateLayout();
             if (settingsWindow.SelectedPage != page) throw new Exception("Settings navigation did not select a page.");
             // Capture and diagnostics can contain adapter information: never use them as sample images.
-            if (page is "Startup" or "Overlays" or "Appearance") Render(settingsWindow, "test-artifacts/Settings-" + page + ".png");
+            if (page is "Startup" or "Overlays" or "Alerts" or "Appearance") Render(settingsWindow, "test-artifacts/Settings-" + page + ".png");
         }
         settingsButton.RaiseEvent(new RoutedEventArgs(ButtonBase.ClickEvent));
         if (settingsWindow.IsVisible) throw new Exception("Settings button did not hide settings.");
@@ -1229,9 +1546,15 @@ public sealed partial class MainWindow : Window
         double width = settingsWindow.Width, height = settingsWindow.Height;
         settingsWindow.Width = settingsWindow.MinWidth; settingsWindow.Height = settingsWindow.MinHeight; settingsWindow.UpdateLayout();
         Render(settingsWindow, "test-artifacts/Settings-compact.png");
+        settingsWindow.SelectPage("Overlays"); settingsWindow.UpdateLayout();
+        var settingsScroll = LayoutVisuals<ScrollViewer>(settingsWindow).Single(s => Grid.GetColumn(s) == 1);
+        settingsScroll.ScrollToEnd(); settingsWindow.UpdateLayout();
+        if (settingsScroll.ScrollableHeight > 0 && settingsScroll.VerticalOffset < settingsScroll.ScrollableHeight - 1)
+            throw new Exception("Overlay settings cannot scroll to their final controls at minimum size.");
+        Render(settingsWindow, "test-artifacts/Settings-Overlays-bottom.png");
         settingsWindow.Width = width; settingsWindow.Height = height; settingsWindow.Hide();
         double mainWidth = Width; Width = MinWidth; UpdateLayout();
-        foreach (var button in new[] { start, newFightButton, meterButton, cooldownButton, moreButton, settingsButton }) {
+        foreach (var button in new[] { start, newFightButton, meterButton, cooldownButton, moreButton, settingsButton }.Concat(extraOverlayButtons.Select(entry => entry.Button))) {
             var point = button.TranslatePoint(new(0, 0), this);
             if (point.X < 0 || point.X + button.ActualWidth > ActualWidth) throw new Exception("A toolbar action is clipped at minimum window width.");
         }

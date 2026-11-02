@@ -8,7 +8,7 @@ using AionDpsMeter.Models;
 
 namespace AionDpsMeter.Local;
 
-internal sealed record RotationHit(int ActorId, int TargetId, int SkillCode, int Amount, bool Healing, bool Critical, double Seconds, int Sequence);
+internal sealed record RotationHit(int ActorId, int TargetId, int SkillCode, long Amount, bool Healing, bool Critical, double Seconds, int Sequence);
 internal sealed class RotationLane(Actor actor, RotationHit[] hits)
 {
     public Actor Actor { get; } = actor;
@@ -194,7 +194,7 @@ internal sealed class RotationPlot : FrameworkElement
     }
 }
 
-internal sealed record RotationRow(int ActorId, string Character, double Seconds, string Event, string Skill, int SkillCode, string Target, int Amount, bool Critical)
+internal sealed record RotationRow(int ActorId, string Character, double Seconds, string Event, string Skill, int SkillCode, string Target, long Amount, bool Critical)
 {
     internal RotationHit Hit { get; init; } = null!;
 }

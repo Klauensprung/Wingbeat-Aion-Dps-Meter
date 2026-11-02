@@ -10,7 +10,7 @@ internal static class ClassEvidence
         code / 10000 is not (1528 or 1600 or 1610 or 1611 or 1612 or 1613 or 1615 or 1625 or 1699 or 1715);
 
     internal static Dictionary<int, string> Infer(Fight fight) => fight.Damage.Concat(fight.Healing)
-        .Where(e => CharacterSkill(e.SkillCode) && fight.Actors.GetValueOrDefault(e.ActorId)?.NpcId is not > 0)
+        .Where(e => e.SourceActorId == 0 && CharacterSkill(e.SkillCode) && fight.Actors.GetValueOrDefault(e.ActorId)?.NpcId is not > 0)
         .GroupBy(e => e.ActorId).ToDictionary(g => g.Key, g => Jobs[g.GroupBy(e => e.SkillCode / 1000000)
             .OrderByDescending(c => c.Count()).ThenBy(c => c.Key).First().Key - 11]);
 
