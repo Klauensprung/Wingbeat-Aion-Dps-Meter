@@ -51,18 +51,19 @@ internal sealed class LocalPositionTracker
     int map;
     long zoneTime = -1;
     internal CapturedPosition? Latest { get; private set; }
+    internal CapturedPosition? RelativeLatest { get; private set; }
     internal bool MovementStopped {get;private set;}
     internal long RelocationRevision {get;private set;}
     internal void Clear(bool zone)
     {
-        Latest = null; MovementStopped=false;
+        Latest = null; RelativeLatest = null; MovementStopped=false;
         if (zone) { map = 0; zoneTime = -1; }
     }
     internal void Apply(NetworkEvent message, int localPlayer = 0)
     {
         bool effect = message.Kind is "abnormal-apply" or "abnormal-refresh";
         if ((!effect && message.Kind is not ("local-zone" or "local-position" or "actor-position" or "displacement")) || message.Timestamp < 0 || message.Timestamp < zoneTime ||
-            message.Timestamp < Latest?.Timestamp || message.Fields.ValueKind != JsonValueKind.Object) return;
+            message.Timestamp < RelativeLatest?.Timestamp || message.Fields.ValueKind != JsonValueKind.Object) return;
         var fields = message.Fields;
         if (message.Kind is "actor-position" or "displacement" && (localPlayer <= 0 || !fields.TryGetProperty("ActorId", out var actor) ||
             actor.ValueKind != JsonValueKind.Number || !actor.TryGetInt32(out int actorId) || actorId != localPlayer)) return;
@@ -72,7 +73,7 @@ internal sealed class LocalPositionTracker
             !recipient.TryGetInt32(out int recipientId) || recipientId != localPlayer)) return;
         if (message.Kind == "local-zone") {
             if (!fields.TryGetProperty("MapId", out var id) || id.ValueKind != JsonValueKind.Number || !id.TryGetInt32(out int value) || value <= 0) return;
-            map = value; zoneTime = message.Timestamp; Latest = null;
+            map = value; zoneTime = message.Timestamp; Latest = null; RelativeLatest = null;
         }
         bool Coordinate(string name, out double value) {
             value = 0;
@@ -80,11 +81,12 @@ internal sealed class LocalPositionTracker
                 double.IsFinite(value) && Math.Abs(value) <= 10000000;
         }
         string prefix = effect ? "Caster" : "";
-        if (map > 0 && Coordinate(prefix + "X", out double x) && Coordinate(prefix + "Y", out double y) && Coordinate(prefix + "Z", out double z) &&
+        if (Coordinate(prefix + "X", out double x) && Coordinate(prefix + "Y", out double y) && Coordinate(prefix + "Z", out double z) &&
             (!effect || x != 0 || y != 0))
         {
             if(message.Kind is "local-zone" or "local-position" or "displacement")RelocationRevision++;
-            Latest = new(map, x, y, z, message.Timestamp);
+            RelativeLatest = new(map, x, y, z, message.Timestamp);
+            if (map > 0) Latest = RelativeLatest;
             MovementStopped=message.Kind is "local-zone" or "local-position" or "displacement" || fields.TryGetProperty("Stopped",out var stopped)&&stopped.ValueKind==JsonValueKind.True;
         }
     }

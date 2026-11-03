@@ -34,6 +34,7 @@ public sealed partial class MainWindow
         secondMeter=window;
         window.SharedVisibilityChanged=value=>preferences.OverlaysGameOnly=value;
         window.PartyDebuffs=()=>capture!=null?partyDebuffs.Active(Environment.TickCount64):[];
+        window.PartyDistances=PartyDistances;
         window.Closed+=(_,_)=>{
             if(ReferenceEquals(secondMeter,window)){secondMeter=null;secondMeterPreferences=null;}
             if(!shuttingDown){SecondMeterOptions.Enabled=false;SavePreferences();UpdateToolbarState();}

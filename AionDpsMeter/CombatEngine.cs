@@ -35,6 +35,8 @@ public sealed partial class CombatEngine
     (DutyMissionReading Reading, long Timestamp)? pendingDutyMissions;
     internal MapEventTracker MapEvents { get; } = new();
     internal FieldBossTracker FieldBosses { get; } = new();
+    internal LocalPositionTracker PartyPosition { get; } = new();
+    internal FieldBossTimerCache FieldBossCache { get; set; } = new();
     readonly NetworkSnapshotRetention networkRetention = new();
     readonly CooldownTracker liveCooldowns = new();
     readonly StaggerBreakTracker staggerBreaks = new();
@@ -198,6 +200,7 @@ public sealed partial class CombatEngine
                         Fight.Pets = null;
                         Fight.Actors.Clear(); Fight.Specs.Clear(); Fight.Builds.Clear(); Fight.PartyProfiles = []; Fight.LocalPing = null; Fight.LocalStats = null; Fight.LocalResources = null; Fight.PartyKnown = false; Fight.PartySource = "Not captured"; Fight.PartyLeaderName = null; Fight.LocalPlayer = local.Id;
                     }
+                    PartyPosition.Clear(zone: true);
                     Fight.LocalPlayer = local.Id; cachedLocalIdentity = false; profiles.RememberLocal(local);
                     UpdateActor(local);
                     if (pendingDutyMissions is { } pendingDuty) { DutyMissions.Apply(local.Server, pendingDuty.Reading, pendingDuty.Timestamp); pendingDutyMissions = null; }
@@ -283,6 +286,21 @@ public sealed partial class CombatEngine
                 case "build" when item.Build != null: FightMetadata.SetBuild(Fight, item.Build); revision++; break;
                 case "network" when item.Network != null:
                     if (item.Network.Fields.ValueKind != System.Text.Json.JsonValueKind.Object) break;
+                    if (item.Network.Kind == "hp" && item.Network.Timestamp >= skillBoundaryTime &&
+                        item.Network.Fields.TryGetProperty("GroupKind", out var groupKind) &&
+                        groupKind.ValueKind == System.Text.Json.JsonValueKind.String && groupKind.GetString() is "party" or "alliance") {
+                        int memberId = NetworkEntity(item.Network, "EntityId");
+                        int limit = groupKind.GetString() == "alliance" ? 64 : 10;
+                        if (memberId > 0 && (Fight.Actors.GetValueOrDefault(memberId)?.Party == true || Fight.Actors.Values.Count(a => a.Party) < limit)) {
+                            EnsureActor(memberId);
+                            var member = Fight.Actors[memberId];
+                            if (member.NpcId == 0 && member.OwnerId is null or 0) {
+                                Fight.Actors[memberId] = member with { Player = true, Party = true,
+                                    ProfileSource = member.Player ? member.ProfileSource : "Captured group health; identity pending" };
+                                if (!Fight.PartyKnown) Fight.PartySource = "Partial roster from captured group health";
+                            }
+                        }
+                    }
                     if (item.Network.Kind is "local-zone" or "account-login" && item.Network.Timestamp >= skillBoundaryTime)
                         liveCooldowns.Reset();
                     else if (!skillsAwaitingIdentity && !cachedLocalIdentity && Fight.LocalPlayer > 0 && item.Network.Timestamp >= skillBoundaryTime)
@@ -428,7 +446,12 @@ public sealed partial class CombatEngine
                         Fight.LocalTarget = LocalTarget.Apply(Fight.LocalTarget, item.Network, skillsAwaitingIdentity || cachedLocalIdentity ? 0 : Fight.LocalPlayer);
                         Fight.PartyBossTarget = PartyBossTarget.Apply(Fight.PartyBossTarget, item.Network);
                     }
-                    if (item.Network.Timestamp >= skillBoundaryTime) FieldBosses.Apply(item.Network);
+                    if (item.Network.Timestamp >= skillBoundaryTime) {
+                        FieldBosses.Apply(item.Network);
+                        if (item.Network.Kind == "field-boss-list" && LiveIdentityReady &&
+                            Fight.Actors.GetValueOrDefault(Fight.LocalPlayer) is { Server: > 0 } bossObserver)
+                            FieldBossCache.Capture(bossObserver.Server, FieldBosses.Snapshot());
+                    }
                     SessionSignals.Apply(item.Network, Fight.LocalPlayer);
                     Siege.Apply(item.Network);
                     if (item.Network.Kind == "local-zone") Scoreboard.Clear(item.Network.Timestamp);
@@ -464,6 +487,10 @@ public sealed partial class CombatEngine
                     if (item.Network.Timestamp >= skillBoundaryTime)
                         Spatial.Apply(item.Network, skillsAwaitingIdentity || cachedLocalIdentity ? 0 : Fight.LocalPlayer);
                     if (spatialBoundary != Spatial.Boundary) PositionPrediction.Clear(Spatial.MapId);
+                    if (item.Network.Timestamp >= skillBoundaryTime) {
+                        if (item.Network.Kind == "account-login") PartyPosition.Clear(zone: true);
+                        else PartyPosition.Apply(item.Network, Fight.LocalPlayer);
+                    }
                     if (item.Network.Timestamp >= skillBoundaryTime)
                         Position.Apply(item.Network, skillsAwaitingIdentity || cachedLocalIdentity ? 0 : Fight.LocalPlayer);
                     if (!skillsAwaitingIdentity && !cachedLocalIdentity && item.Network.Timestamp >= skillBoundaryTime) {
@@ -540,7 +567,7 @@ public sealed partial class CombatEngine
         if (actor.Id <= 0 || actor.NpcId < 0 || actor.OwnerId < 0 || actor.OwnerId == actor.Id || (actor.NpcId > 0 && actor.Player) || string.IsNullOrWhiteSpace(actor.Name)) throw new ArgumentException("Invalid actor identity.");
         if (Fight.Actors.TryGetValue(actor.Id, out var previous))
         {
-            bool replaced = previous.Server > 0 && actor.Server > 0 && previous.Server != actor.Server || previous.Player && actor.Player && previous.Name != actor.Name ||
+            bool replaced = previous.Server > 0 && actor.Server > 0 && previous.Server != actor.Server || previous.Player && actor.Player && previous.Name != actor.Name && previous.ProfileSource != "Captured group health; identity pending" ||
                 previous.PersistentId > 0 && actor.PersistentId > 0 && previous.PersistentId != actor.PersistentId ||
                 previous.NpcId > 0 && actor.NpcId > 0 && previous.NpcId != actor.NpcId ||
                 previous.Player && actor.NpcId > 0 || previous.NpcId > 0 && actor.Player ||
@@ -582,7 +609,8 @@ public sealed partial class CombatEngine
                     Titles = actor.Titles ?? previous.Titles,
                     Collections = actor.Collections ?? previous.Collections,
                     Gear = actor.Gear ?? previous.Gear,
-                    ProfileSource = actor.Cp == 0 && actor.Job == "Unknown" ? previous.ProfileSource : actor.ProfileSource };
+                    ProfileSource = previous.ProfileSource == "Captured group health; identity pending" && actor.Player ? actor.ProfileSource :
+                        actor.Cp == 0 && actor.Job == "Unknown" ? previous.ProfileSource : actor.ProfileSource };
             }
         }
         actorCarryover.Observe(actor.Id);

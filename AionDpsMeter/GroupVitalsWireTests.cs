@@ -22,6 +22,18 @@ internal static class GroupVitalsWireTests
                 Decode(op.High, op.Low, [..vitals, 0]).Events.Count == 0,
                 "Party and alliance vitals reject incomplete or extended records atomically");
         }
+        var partyEngine = new CombatEngine();
+        partyEngine.Apply(new("local-player", Actor: new(9, "Local", true, false, 0, "Cleric", 2301)));
+        partyEngine.Apply(new("actor", Actor: new(8, "Nearby outsider", true, false, 0, "Cleric", 2301)));
+        foreach (var item in Decode(0x1b, 0x92, vitals).Events) partyEngine.Apply(item);
+        check(!partyEngine.Fight.PartyKnown && partyEngine.Fight.Actors[1].Party && !partyEngine.Fight.Actors[8].Party &&
+            PartyHealthView.Build(partyEngine.Fight, CapturedHealth.Build(partyEngine.Fight), []).Length == 2,
+            "Party-only vitals recover confirmed members mid-session without admitting nearby players or claiming a full roster");
+        partyEngine.Apply(new("actor", Actor: new(1, "Arriving member", true, false, 0, "Cleric", 2301) { PersistentId = 6000000001 }));
+        check(partyEngine.Fight.Actors[1] is { Party: true, Name: "Arriving member" },
+            "A party-health placeholder retains membership when its player identity arrives");
+        partyEngine.Apply(new("party", Party: new([], "Captured party departure")));
+        check(!partyEngine.Fight.Actors[1].Party, "Explicit departure clears membership recovered from party HP packets");
         byte[] guard = [1, 63, 2, ..BitConverter.GetBytes(2000000), ..BitConverter.GetBytes(1500000), ..BitConverter.GetBytes(4),
             ..BitConverter.GetBytes(5000000000L), ..BitConverter.GetBytes(6000000000L), 3, ..BitConverter.GetBytes(7000000000L)];
         var fields = Decode(5, 0xe0, guard).Events.Single().Network!.Fields;

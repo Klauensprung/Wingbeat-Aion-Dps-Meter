@@ -184,6 +184,7 @@ public static class SelfTest
             PetWireProgressionTests.Run(Check, temp);
             FieldBossWireTests.Run(Check);
             FieldBossTrackerTests.Run(Check);
+            FieldBossTimerCacheTests.Run(Check);
             NetworkRetentionTests.Run(Check);
             LocalTargetTests.Run(Check);
             PingPresentationTests.Run(Check);

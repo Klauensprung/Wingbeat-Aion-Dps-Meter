@@ -25,10 +25,12 @@ internal static class FieldBossReferences
     }
 }
 internal sealed record FieldBossTimerRow(int MapId, int Slot, string Map, string Boss, string Status, string ReportedTime, string Remaining, string Observed);
+internal sealed record FieldBossObservation(long Seen, FieldBossList List);
 internal sealed class FieldBossTracker
 {
     readonly Dictionary<int, (long Seen, FieldBossList List)> maps = new();
     internal int MapCount => maps.Count;
+    internal FieldBossObservation[] Snapshot() => maps.Values.Select(m => new FieldBossObservation(m.Seen, m.List)).ToArray();
     internal void Clear() => maps.Clear();
     internal void Apply(NetworkEvent item)
     {

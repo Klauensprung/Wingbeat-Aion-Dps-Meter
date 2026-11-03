@@ -74,6 +74,8 @@ public sealed class Preferences
     public int ReminderDurationSeconds { get; set; } = 10;
     public bool ReminderSoundEnabled { get; set; }
     public bool ReminderWindowsNotifications { get; set; } = true;
+    public bool FieldBossNotifications { get; set; }
+    public string[] DisabledFieldBossTimers { get; set; } = [];
     public string ReminderSoundPath { get; set; } = "";
     public double ReminderVolume { get; set; } = .5;
     public bool CooldownShowEffects { get; set; }
@@ -110,7 +112,7 @@ public sealed class Preferences
 
 public sealed partial class MainWindow : Window
 {
-    static readonly string[] MainViews = ["Encounter", "Cooldowns", "Party", "Skills", "Healing", "PvP", "Rotations", "Player stats", "Saved fights", "Trends", "Tools"];
+    static readonly string[] MainViews = ["Encounter", "Cooldowns", "Party", "Skills", "Healing", "PvP", "Rotations", "Saved fights", "Trends", "Tools"];
     static readonly string[] MoreViews = ["Openers", "Boss analysis", "Boss catalogue", "Report card", "Top 5%", "Top cohort", "Network events"];
     readonly FightStore store = new(AppDataPaths.FilePath("fights"));
     readonly Dictionary<string, DataGrid> grids = new();
@@ -221,6 +223,7 @@ public sealed partial class MainWindow : Window
         soulTracking = new(demo ? null : AppDataPaths.FilePath("farming-pet-souls.json"));
         checklistAdjustments = new(demo ? null : AppDataPaths.FilePath("checklist-adjustments.json"));
         engine = new(profiles: playerProfiles, dutyMissions: dutyMissions, accountCharacters: accountCharacters, shopPurchases: shopPurchases, crafting: crafting, visibilityMemoryPath: demo ? null : AppDataPaths.FilePath("visibility-memory.json"), gatheringTracking: gatheringTracking, killTracking: killTracking, lootTracking: lootTracking, soulTracking: soulTracking, petRegistrationTracking: petRegistrationTracking, petLevelTracking: petLevelTracking);
+        engine.FieldBossCache = new(demo ? null : AppDataPaths.FilePath("field-boss-timers.json"));
         LocalLog.Write($"Application started; skill catalog entries {skills.Count}; " + (skills.LoadError ?? "catalog loaded"));
         LocalLog.Write($"Display metadata: {skillIcons.Count} icon families, {NpcNames.Default.Count} NPC names; " +
             (skillIcons.LoadError ?? "icons loaded") + "; " + (NpcNames.Default.LoadError ?? "NPC names loaded"));
@@ -237,6 +240,7 @@ public sealed partial class MainWindow : Window
         newFightButton = IconButton(UiIcon.NewFight, "New fight", NewFight); controls.Children.Add(newFightButton);
         var overlayControls = new WrapPanel { Margin = new(18, 0, 18, 10) };
         header.Children.Add(overlayControls);
+        overlayControls.Children.Add(IconButton(UiIcon.Cooldowns, "Timer setup", ShowReminderSettings));
         meterButton = IconButton(UiIcon.Meter, "DPS1 overlay", ToggleOverlay); overlayControls.Children.Add(meterButton);
         cooldownButton = IconButton(UiIcon.Cooldowns, "Cooldown overlay", ToggleCooldownOverlay); overlayControls.Children.Add(cooldownButton);
         void OverlayAction(UiIcon icon, string label, Action toggle, Func<bool> enabled) {
@@ -245,15 +249,10 @@ public sealed partial class MainWindow : Window
         }
         OverlayAction(UiIcon.Meter, "DPS2 overlay", ToggleSecondMeter, () => SecondMeterOptions.Enabled);
         OverlayAction(UiIcon.Folder, "Loot overlay", ToggleLootOverlay, () => lootOverlay != null);
-        OverlayAction(UiIcon.Catalogue, "Currencies", ToggleCurrencyOverlay, () => currencyOverlay != null);
-        OverlayAction(UiIcon.Catalogue, "Tickets", ToggleTicketOverlay, () => ticketOverlay != null);
         overlayControls.Children.Add(IconButton(UiIcon.Chart, "Farming", ShowFarming));
-        overlayControls.Children.Add(IconButton(UiIcon.Chart, "Targets", ShowTrackedTargets));
-        overlayControls.Children.Add(IconButton(UiIcon.Chart, "World map", ShowMarkerMap));
         overlayControls.Children.Add(IconButton(UiIcon.Chart, "Gathering routes", ShowGatheringRoutes));
         OverlayAction(UiIcon.Chart, "Farming overlay", ToggleFarmingOverlay, () => farmingOverlay != null);
         OverlayAction(UiIcon.Catalogue, "Pet farming", TogglePetTracker, () => petTrackerOverlay != null);
-        OverlayAction(UiIcon.Catalogue, "Pet map", TogglePetMap, () => petMapOverlay != null);
         OverlayAction(UiIcon.Network, "Ping overlay", TogglePingOverlay, () => pingOverlay != null);
         OverlayAction(UiIcon.Boss,"Boss alerts",()=>ConfigureBossAlerts(!preferences.BossAlertsEnabled,false),()=>preferences.BossAlertsEnabled);
         OverlayAction(UiIcon.Cooldowns, "Control alerts", () => ConfigureControlAlerts(!preferences.ControlAlertsEnabled, true), () => preferences.ControlAlertsEnabled);
@@ -360,7 +359,7 @@ public sealed partial class MainWindow : Window
         var toolsPage = AddTab("Tools", "Your overlays, alerts, collections, analysis and local files.");
         toolsPage.Children.Remove(grids["Tools"]); grids.Remove("Tools");
         toolsPage.Children.Add(PageLayout.Fill(BuildTools()));
-        var orderedViews = MainViews.Concat(MoreViews).Select(name => tabs.Items.Cast<TabItem>().Single(t => t.Header?.ToString() == name)).ToArray();
+        var orderedViews = MainViews.Concat(MoreViews).Append("Player stats").Select(name => tabs.Items.Cast<TabItem>().Single(t => t.Header?.ToString() == name)).ToArray();
         tabs.Items.Clear(); foreach (var view in orderedViews) tabs.Items.Add(view);
         tabs.SelectedIndex = 0; UpdateNavigation();
         tabs.SelectionChanged += (_, e) => { if (ReferenceEquals(e.Source, tabs)) { UpdateNavigation(); Refresh(); } };
@@ -389,7 +388,7 @@ public sealed partial class MainWindow : Window
         timer.Start();
         Closing += (_, e) => {
             if (shuttingDown) return;
-            try { capture?.Dispose(); engine.StopTraining(DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()); LogCapture(); capture = null; FinishAutosave(); engine.SaveCompleted(store); var f = LiveSnapshot(); if (f.HasRecordedData) SaveFight(f); playerProfiles.Save(); dutyMissions.Save(); accountCharacters.Save(); shopPurchases.Save(); crafting.Save(); gatheringTracking.Save(); killTracking.Save(); lootTracking.Save(); soulTracking.Save(); petRegistrationTracking.Save(); petLevelTracking.Save(); engine.SaveVisibilityMemory(); }
+            try { capture?.Dispose(); engine.StopTraining(DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()); LogCapture(); capture = null; FinishAutosave(); engine.SaveCompleted(store); var f = LiveSnapshot(); if (f.HasRecordedData) SaveFight(f); playerProfiles.Save(); dutyMissions.Save(); accountCharacters.Save(); shopPurchases.Save(); crafting.Save(); gatheringTracking.Save(); killTracking.Save(); lootTracking.Save(); soulTracking.Save(); petRegistrationTracking.Save(); petLevelTracking.Save(); engine.SaveVisibilityMemory(); engine.FieldBossCache.Save(); }
             catch (Exception ex) { e.Cancel = true; notice = "Could not save before closing: " + ex.Message; Refresh(); return; }
             shuttingDown = true; secondMeter?.Close(); archiveLoading?.Cancel(); timer.Stop(); settingsWindow.Shutdown(); reminderToast?.Close(); reminderSound.Close(); windowsNotifications?.Dispose(); bossAlertOverlay?.Close(); controlOverlay?.Close(); ticketOverlay?.Close(); currencyOverlay?.Close(); lootOverlay?.Close(); farmingOverlay?.Close(); petTrackerOverlay?.Close(); petMapOverlay?.Close(); pingOverlay?.Close(); cooldownOverlay?.Close(); overlay?.Close(); LocalLog.Write("Application closed.");
         };
@@ -512,7 +511,7 @@ public sealed partial class MainWindow : Window
         menu.Items.Add(gameOnly);
         var ping = new MenuItem { Header = "Ping overlay", IsCheckable = true, IsChecked = pingOverlay != null };
         ping.Click += (_, _) => TogglePingOverlay(); menu.Items.Add(ping);
-        var remindersItem = new MenuItem { Header = "Event reminders…" };
+        var remindersItem = new MenuItem { Header = "Timer setup…" };
         remindersItem.Click += (_, _) => ShowReminderSettings(); menu.Items.Add(remindersItem);
         var fieldBosses = new MenuItem { Header = "Field boss timers…" };
         fieldBosses.Click += (_, _) => ShowFieldBosses(); menu.Items.Add(fieldBosses);
@@ -529,7 +528,7 @@ public sealed partial class MainWindow : Window
         var controlPlacement = new MenuItem { Header = "Position control alerts…", IsEnabled = preferences.ControlAlertsEnabled };
         controlPlacement.Click += (_, _) => ConfigureControlAlerts(true, preview: true); menu.Items.Add(controlPlacement);
         var partyAlerts = new MenuItem { Header = "Party debuff alerts", IsCheckable = true, IsChecked = preferences.PartyDebuffAlerts,
-            ToolTip = "Configure the member threshold and sound in Event reminders." };
+            ToolTip = "Configure the member threshold and sound in Timer setup." };
         partyAlerts.Click += (_, _) => { preferences.PartyDebuffAlerts = partyAlerts.IsChecked; SavePreferences(); }; menu.Items.Add(partyAlerts);
         var compareTraining = new MenuItem { Header = "Compare training attempts…" };
         var chatSummary = new MenuItem { Header = "Copy fight summary…" };
@@ -987,6 +986,7 @@ public sealed partial class MainWindow : Window
         var opening = new OverlayWindow(NewFight, id => FocusActor(id, preferences.OverlayHealing), () => { customBars.IsChecked = !preferences.OverlayCustomBars; pinLocal.IsChecked = preferences.OverlayPinLocal; SavePreferences(); }, id => skills.GetSkillName(id), skillIcons, ShowTraining);
         overlay = opening;
         opening.PartyDebuffs = () => capture != null ? partyDebuffs.Active(Environment.TickCount64) : [];
+        opening.PartyDistances = PartyDistances;
         opening.ShowActivated = false;
         opening.IsVisibleChanged += (_, _) => UpdateToolbarState();
         opening.Closed += (_, _) => { if (ReferenceEquals(overlay, opening)) { overlay = null; meterWanted = false; } UpdateToolbarState(); };

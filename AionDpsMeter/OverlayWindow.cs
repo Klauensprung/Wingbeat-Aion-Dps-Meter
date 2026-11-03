@@ -12,6 +12,7 @@ public sealed class OverlayWindow : Window
 {
     readonly PartyHealthView partyHealth = new();
     internal Func<PartyMemberDebuff[]>? PartyDebuffs { get; set; }
+    internal Func<Fight, Dictionary<int, string>>? PartyDistances { get; set; }
     readonly MeterView meter = new() { Margin = new(7, 4, 7, 2), RowBackground = UiTheme.Brush("#801A2230") };
     readonly MeterView ownMeter = new() { Margin = new(7, 4, 7, 0), Visibility = Visibility.Collapsed, RowBackground = UiTheme.Brush("#801A2230") };
     readonly ScrollViewer actorScroll;
@@ -312,11 +313,14 @@ public sealed class OverlayWindow : Window
         }
         if (showHealth) {
             var healthRows = PartyHealthView.Build(fight, health, PartyDebuffs?.Invoke() ?? []);
+            var distances = PartyDistances?.Invoke(fight);
+            if (distances != null) healthRows = healthRows.Select(row => row with { Proximity = row.Entity == fight.LocalPlayer ? "" : distances.GetValueOrDefault(row.Entity, "Distance unknown") }).ToArray();
             partyHealth.Update(healthRows, preferences.OverlayCompact);
             actorScroll.Content = partyHealth; actorScroll.Visibility = Visibility.Visible;
             ownMeter.Visibility = Visibility.Collapsed; targetHealthText.Visibility = targetGuard.Visibility = Visibility.Collapsed;
             mode.Content = "PARTY HEALTH  ▾"; CurrentScope = "Party health";
-            encounter.Text = PartyHealthView.HasRoster(fight)?"Party health · last captured HP":"Players · party not captured · last captured HP";
+            encounter.Text = fight.PartyKnown ? "Party health · last captured HP" : PartyHealthView.HasRoster(fight)
+                ? "Party health · partial roster · last captured HP" : "Party health · waiting for party roster";
             total.Text = $"{healthRows.Length} MEMBERS   ·   {healthRows.Count(r=>r.Critical)} AT OR BELOW 25%";
             energy.Text = "Green 75% · yellow 50% · red 25% · captured debuffs";
         }

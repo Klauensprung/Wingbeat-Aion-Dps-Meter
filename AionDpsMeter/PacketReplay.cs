@@ -149,6 +149,10 @@ public static class PacketReplay
                 decoder.Records, decoder.Bundles, decoder.UnknownRecords, decoder.RejectedRecords, decoder.FramingErrors, decoder.PendingBytes,
                 FragmentationInvariant = sameEvents && sameMetrics, decoder.Opcodes, decoder.EventKinds, decoder.Rejections,
                 FullEventParityVerified = false,
+                PartyAudit = finalCombat == null ? null : new {
+                    finalCombat.PartyKnown, finalCombat.PartySource, finalCombat.LocalPlayer,
+                    Members = finalCombat.Actors.Values.Where(a => a.Party && a.OriginalEntityId == 0).Select(a => a.Id).Order().ToArray()
+                },
                 RetentionAudit = finalCombat == null ? null : new {
                     FinalFightId = finalCombat.Id,
                     LiveKinds = finalCombat.Network.GroupBy(e => e.Kind).ToDictionary(g => g.Key, g => g.Count()),

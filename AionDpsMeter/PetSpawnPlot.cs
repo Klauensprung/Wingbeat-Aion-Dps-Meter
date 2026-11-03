@@ -87,10 +87,16 @@ internal sealed class PetSpawnPlot : FrameworkElement
         Point? routeLast = player == null ? null : viewport.Project(player.X, player.Y, RenderSize);
         for (int i = 0; i < route.Length; i++) {
             var next = viewport.Project(route[i].X, route[i].Y, RenderSize);
-            if (routeLast is Point from) dc.DrawLine(routePen, from, next);
-            dc.DrawEllipse(background, routePen, next, 9, 9);
+            if (routeLast is Point from) {
+                var direction = next - from;
+                if (direction.Length > 20) {
+                    direction.Normalize();
+                    dc.DrawLine(routePen, from + direction * 10, next - direction * 10);
+                }
+            }
+            dc.DrawEllipse(null, routePen, next, 9, 9);
             var label = routeLabels[i];
-            dc.DrawText(label, new(next.X - label.Width / 2, next.Y - label.Height / 2));
+            dc.DrawText(label, new(next.X - label.Width / 2, next.Y - 11 - label.Height));
             routeLast = next;
         }
         if (player is { } location) {

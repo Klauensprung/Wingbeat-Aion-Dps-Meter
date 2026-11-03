@@ -100,7 +100,14 @@ public sealed partial class MainWindow
         alerts.Children.Add(OverlayOption("Show loss-of-control alerts", () => preferences.ControlAlertsEnabled, value => ConfigureControlAlerts(value, preview: value)));
         alerts.Children.Add(SettingsAction(UiIcon.Capture, "Position control alerts", () => ConfigureControlAlerts(true, preview: true)));
         alerts.Children.Add(OverlayOption("Alert on party debuffs", () => preferences.PartyDebuffAlerts, value => preferences.PartyDebuffAlerts = value));
-        alerts.Children.Add(SettingsAction(UiIcon.Cooldowns, "Event schedules, thresholds and sound", ShowReminderSettings));
+        var partyThreshold = new ComboBox { ItemsSource = new[] { 2, 3, 4, 5, 6, 8, 10 }, SelectedItem = preferences.PartyDebuffThreshold };
+        partyThreshold.SelectionChanged += (_, _) => { if (partyThreshold.SelectedItem is int count) { preferences.PartyDebuffThreshold = count; SavePreferences(); } };
+        alerts.Children.Add(SettingsField("Party members needed for a debuff alert", partyThreshold));
+        alerts.Children.Add(OverlayOption("Notify when a pet levels up", () => preferences.PetLevelAlerts, value => preferences.PetLevelAlerts = value));
+        alerts.Children.Add(OverlayOption("Notify when a pet joins your collection", () => preferences.PetCollectionAlerts, value => preferences.PetCollectionAlerts = value));
+        alerts.Children.Add(SettingsAction(UiIcon.Cooldowns, "Timer setup", ShowReminderSettings));
+        alerts.Children.Add(OverlayOption("Notify before field-boss respawns", () => preferences.FieldBossNotifications, value => preferences.FieldBossNotifications = value));
+        alerts.Children.Add(SettingsAction(UiIcon.Boss, "Cached field-boss timers", ShowFieldBosses));
         window.AddPage("Overlays", UiIcon.Meter, "Your meter, skill breakdown and on-screen tools in one place.",
             SettingsCards(SettingsSection("DPS meter", meterOptions), SettingsSection("Metric and scope", meterDisplay), SettingsSection("Visibility", visibility), SettingsSection("Cooldowns", cooldownOptions),
                 SettingsSection("Exploration overlays", extraOverlays)));

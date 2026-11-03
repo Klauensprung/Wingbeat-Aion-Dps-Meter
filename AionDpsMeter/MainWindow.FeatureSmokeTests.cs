@@ -747,6 +747,7 @@ public sealed partial class MainWindow
                     partyFight.Network.Add(new("hp",now,"synthetic",JsonSerializer.SerializeToElement(new {EntityId=i+1,CurrentHp=partyHp[i],MaximumHp=1000})));
                 }
                 partyHealthOverlay.PartyDebuffs=()=>[new(3,100,"Stun",2.4),new(3,101,"Poison",12),new(2,102,"Slow",null)];
+                partyHealthOverlay.PartyDistances=_=>new() { [2]="850 units away", [3]="2,400 units away", [4]="Distance unknown", [5]="4,100 units away" };
                 partyHealthOverlay.Update(partyFight,new Preferences{OverlayPartyHealth=true,OverlayHeight=420});partyHealthOverlay.Show();partyHealthOverlay.UpdateLayout();
                 if(partyHealthOverlay.RowCount!=5||partyHealthOverlay.CurrentScope!="Party health"||!LayoutVisuals<TextBlock>(partyHealthOverlay).Any(t=>t.Text.Contains("Stun 3s")))throw new InvalidOperationException("Party health mode must render idle members and per-member debuffs.");
                 Render(partyHealthOverlay,"test-artifacts/Feature-Party-health.png");

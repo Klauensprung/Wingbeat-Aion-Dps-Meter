@@ -6,6 +6,7 @@ namespace AionDpsMeter.Local;
 
 internal sealed record PartyHealthRow(int Entity, string Name, double? Percent, string Health, string Debuffs)
 {
+    internal string Proximity { get; init; } = "";
     internal bool Critical => Percent is <= 25;
 }
 
@@ -30,11 +31,8 @@ internal sealed class PartyHealthView : StackPanel
     internal static bool HasRoster(Fight fight) => fight.PartyKnown || fight.Actors.Values.Any(a=>a.Player&&a.OriginalEntityId==0&&a.Party&&a.Id!=fight.LocalPlayer);
     internal static PartyHealthRow[] Build(Fight fight, IReadOnlyDictionary<int,HealthReading> health, IEnumerable<PartyMemberDebuff> effects) {
         var debuffs=effects.GroupBy(e=>e.Target).ToDictionary(g=>g.Key,g=>string.Join("  ·  ",g.Select(e=>e.Name+(e.Seconds is double seconds?$" {Math.Ceiling(seconds):0}s":""))));
-        bool roster=HasRoster(fight);
-        // As in the DPS meter, use observed combat participants while the party
-        // roster is unavailable. Do not populate this with every nearby spawn.
-        var participants=roster?null:fight.Damage.Concat(fight.Healing).Select(e=>e.ActorId).ToHashSet();
-        return fight.Actors.Values.Where(a=>a.Player&&a.OriginalEntityId==0&&(a.Id==fight.LocalPlayer||a.Party||!roster&&participants!.Contains(a.Id)))
+        // Combat proximity is not evidence of party membership.
+        return fight.Actors.Values.Where(a=>a.Player&&a.OriginalEntityId==0&&(a.Id==fight.LocalPlayer||a.Party))
             .OrderByDescending(a=>a.Id==fight.LocalPlayer).ThenBy(a=>a.Id).Take(64).Select(a=>{
                 var hp=health.GetValueOrDefault(a.Id);
                 double? percent=hp?.Value is long value && value>=0 && hp.Maximum is > 0 && value<=hp.Maximum ? value*100d/hp.Maximum.Value : hp?.Value==0?0:null;
@@ -74,8 +72,9 @@ internal sealed class PartyHealthView : StackPanel
             row.Card.BorderThickness=new(1);row.Card.BorderBrush=item.Critical?UiTheme.Brush("#FF6975"):Brushes.Transparent;
             row.Health.Foreground=item.Critical?UiTheme.Brush("#FFADB6"):item.Percent is <=50?UiTheme.Brush("#F0C84B"):Brushes.White;
             row.Name.Text=item.Name;row.Health.Text=item.Health;row.Name.FontSize=row.Health.FontSize=compact?12:14;
+            if (item.Proximity.Length > 0) row.Name.Text += "\n" + item.Proximity;
             row.Debuffs.Text=item.Debuffs;row.Debuffs.Visibility=item.Debuffs.Length>0?Visibility.Visible:Visibility.Collapsed;
-            row.Card.ToolTip="Last captured health. Debuffs appear only when observed; no text does not guarantee no debuffs.";
+            row.Card.ToolTip="Last captured health. Distance uses 3D captured map coordinates, in game-world units, shows the age after 5 seconds and expires after 30 seconds. It does not confirm line of sight or skill range. Debuffs appear only when observed.";
         }
         if(data.Length==0)Children.Add(empty);
     }

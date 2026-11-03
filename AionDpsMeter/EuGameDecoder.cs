@@ -23,6 +23,8 @@ public sealed class EuGameDecoder(int serverPort = 13328, IReadOnlySet<int>? hea
     bool partyResetPending;
     bool npcShopOpened;
     string? localCharacterName;
+    long partyLocalIdentity;
+    int partyLocalServer;
     string? clockConnection;
     long? serverOffset;
     int expandedBudget, nestedBudget;
@@ -49,7 +51,7 @@ public sealed class EuGameDecoder(int serverPort = 13328, IReadOnlySet<int>? hea
         }
         var events = new List<DecodedCombatEvent>();
         if (clockConnection != key) {
-            localCharacterName = null;
+            localCharacterName = null; partyLocalIdentity = 0; partyLocalServer = 0;
             partyResetPending |= partyComplete || partyMembers.Count > 0;
             clockConnection = key; serverOffset = null; partyMembers.Clear(); partyLeader = 0; partyComplete = false; forceRoster = false;
         }
@@ -142,7 +144,7 @@ public sealed class EuGameDecoder(int serverPort = 13328, IReadOnlySet<int>? hea
                     {
                         var login = LoginWire.Read(ref reader);
                         if (login.Result == 0) {
-                            localCharacterName = null;
+                            localCharacterName = null; partyLocalIdentity = 0; partyLocalServer = 0;
                             Emit(staged, "account-login", time, hex, login);
                             abnormalSources.Clear(); partyMembers.Clear(); partyLeader = 0; partyComplete = false; forceRoster = false;
                         }
@@ -191,8 +193,9 @@ public sealed class EuGameDecoder(int serverPort = 13328, IReadOnlySet<int>? hea
                     case 0x2136:
                     {
                         Emit(staged, "local-zone", time, hex, LocalPositionWire.Prepare(ref reader)); abnormalSources.Clear();
-                        if (partyMembers.Count > 0 || partyComplete) staged.Add(new("party", Party: new([], "Party mapping awaiting zone roster", Complete: false)));
-                        partyMembers.Clear(); partyLeader = 0; partyComplete = false; forceRoster = false;
+                        // A zone invalidates entity IDs, not the confirmed membership identities.
+                        foreach (var member in partyMembers.Values.ToArray()) partyMembers[member.Id] = member with { EntityId = 0 };
+                        if (partyMembers.Count > 0 || partyComplete) PartyEvents(staged, time, hex, []);
                         break;
                     }
                     case 0x2336:
@@ -357,6 +360,7 @@ public sealed class EuGameDecoder(int serverPort = 13328, IReadOnlySet<int>? hea
                     {
                         var spawn = PlayerSpawnWire.Read(ref reader, time); int id = spawn.Actor.Id;
                         staged.Add(new("actor", Actor: spawn.Actor));
+                        if (BindPartyActor(spawn.Actor)) PartyEvents(staged, time, hex, []);
                         Emit(staged, "visible-equipment", time, hex, new EquipmentReading(id, true, spawn.Equipment));
                         Emit(staged, "hp", time, hex, new { EntityId = id, CurrentHp = spawn.State.Hp, spawn.State.MaximumHp });
                         Emit(staged, "actor-position", time, hex, new { ActorId = id, spawn.State.X, spawn.State.Y, spawn.State.Z, VisibilityReason = spawn.Reason, EntityKind = "player" });
@@ -368,12 +372,22 @@ public sealed class EuGameDecoder(int serverPort = 13328, IReadOnlySet<int>? hea
                     {
                         var character = LocalCharacterWire.Read(ref reader, time); int id = character.Actor.Id;
                         localCharacterName = character.Actor.Name;
+                        bool samePartyOwner = partyLocalIdentity > 0 && partyLocalIdentity == character.Actor.PersistentId && partyLocalServer == character.Actor.Server;
+                        if (!samePartyOwner && (partyLocalIdentity > 0 || !partyMembers.ContainsKey(character.Actor.PersistentId))) {
+                            partyMembers.Clear(); partyLeader = 0; partyComplete = false; forceRoster = false;
+                        }
+                        partyLocalIdentity = character.Actor.PersistentId; partyLocalServer = character.Actor.Server;
+                        BindPartyActor(character.Actor);
                         staged.Add(new("local-player", Actor: character.Actor));
+                        if (partyMembers.Count > 0 || partyComplete) {
+                            foreach (var member in partyMembers.Values.Where(m => m.EntityId > 0)) staged.Add(PartyActor(member, time));
+                            PartyEvents(staged, time, hex, []);
+                        }
                         Emit(staged, "appearance-current", time, hex, character.Appearance);
                         Emit(staged, "wing-change", time, hex, new { EntityId = id, Skin = false, WingId = character.State.WingId });
                         Emit(staged, "wing-change", time, hex, new { EntityId = id, Skin = true, WingId = character.State.WingSkinId });
                         Emit(staged, "visible-equipment", time, hex, new EquipmentReading(id, true, character.Equipment));
-                        abnormalSources.Clear(); partyMembers.Clear(); partyLeader = 0; partyComplete = false; forceRoster = false;
+                        abnormalSources.Clear();
                         Emit(staged, "local-zone", time, hex, new { character.MapId, character.State.X, character.State.Y, character.State.Z, character.State.Direction });
                         staged.Add(new("player-stats", Stats: new(time, character.Stats, true, character.State.MaximumHp)));
                         Emit(staged, "hp", time, hex, new { EntityId = id, CurrentHp = character.State.Hp, character.State.MaximumHp });
@@ -427,7 +441,7 @@ public sealed class EuGameDecoder(int serverPort = 13328, IReadOnlySet<int>? hea
                     {
                         long id = ForceWire.Removed(ref reader); partyMembers.Remove(id);
                         if (!forceRoster) partyComplete = false;
-                        forceRoster = true; PartyEvents(staged, time, hex, [], replace: true); break;
+                        forceRoster = true; PartyEvents(staged, time, hex, []); break;
                     }
                     case 0x1a96: case 0x2e96:
                         ForceWire.Left(ref reader, opcode == 0x1a96); partyMembers.Clear(); partyLeader = 0; partyComplete = true; forceRoster = false;
@@ -528,7 +542,8 @@ public sealed class EuGameDecoder(int serverPort = 13328, IReadOnlySet<int>? hea
                     case 0x1b92: case 0x2b96:
                     {
                         var vitals = GroupVitalsWire.Read(ref reader);
-                        Emit(staged, "hp", time, hex, new { vitals.EntityId, vitals.CurrentHp, vitals.MaximumHp, vitals.Alive });
+                        Emit(staged, "hp", time, hex, new { vitals.EntityId, vitals.CurrentHp, vitals.MaximumHp, vitals.Alive,
+                            GroupKind = opcode == 0x1b92 ? "party" : "alliance" });
                         Emit(staged, "resources", time, hex, new { vitals.EntityId,
                             Values = new Dictionary<byte, long> { [1] = vitals.Mp, [8] = vitals.MaximumMp } });
                         break;
@@ -670,7 +685,19 @@ public sealed class EuGameDecoder(int serverPort = 13328, IReadOnlySet<int>? hea
         }));
     }
 
-    void PartyEvents(List<DecodedCombatEvent> events, long time, string hex, CapturedPartyMember[] updated, bool replace = false)
+    bool BindPartyActor(Actor actor)
+    {
+        bool changed = false;
+        foreach (var member in partyMembers.Values.Where(m => m.EntityId == actor.Id && m.Id != actor.PersistentId).ToArray()) {
+            partyMembers[member.Id] = member with { EntityId = 0 }; changed = true;
+        }
+        if (actor.PersistentId > 0 && partyMembers.TryGetValue(actor.PersistentId, out var known) &&
+            known.Server == actor.Server && known.Name == actor.Name && known.EntityId != actor.Id) {
+            partyMembers[known.Id] = known with { EntityId = actor.Id }; changed = true;
+        }
+        return changed;
+    }
+    void PartyEvents(List<DecodedCombatEvent> events, long time, string hex, CapturedPartyMember[] updated)
     {
         foreach (var member in updated.Where(m => m.EntityId > 0)) {
             events.Add(PartyActor(member, time));
@@ -680,7 +707,7 @@ public sealed class EuGameDecoder(int serverPort = 13328, IReadOnlySet<int>? hea
         }
         events.Add(new("party", Party: new(partyMembers.Values.Where(m => m.EntityId > 0).Select(m => m.EntityId).ToArray(),
             partyComplete ? forceRoster ? "Captured alliance roster" : "Captured party roster" : "Partial captured roster",
-            Complete: partyComplete, Replace: partyComplete || replace, Alliance: forceRoster) { LeaderName = partyMembers.GetValueOrDefault(partyLeader)?.Name,
+            Complete: partyComplete, Replace: true, Alliance: forceRoster) { LeaderName = partyMembers.GetValueOrDefault(partyLeader)?.Name,
                 Timestamp = time, Summaries = partyMembers.Values.Select(m => new PartyMemberSummary(m.Name, m.Server, CapturedClass.Name(m.ClassId), m.Level, m.GearScore, m.CombatPower)).ToArray() }));
     }
     static DecodedCombatEvent PartyActor(CapturedPartyMember member, long time) => new("actor",

@@ -10,6 +10,14 @@ internal static class LocalPositionTests
     {
         NetworkEvent Message(string kind, long time, object fields) => new(kind, time, "synthetic", JsonSerializer.SerializeToElement(fields));
         var tracker = new LocalPositionTracker();
+        var midSession = new LocalPositionTracker();
+        midSession.Apply(Message("abnormal-refresh", 2000, new { CasterId = 1, TargetId = 1, CasterX = 100, CasterY = 200, CasterZ = 300 }), 1);
+        check(midSession.Latest == null && midSession.RelativeLatest == new CapturedPosition(0, 100, 200, 300, 2000),
+            "Mid-session self-effect coordinates support relative party distances without inventing a map identity");
+        check(PartyProximity.Describe(midSession.RelativeLatest, 0, new SpatialEntity(2, 0, 0, 0, 2000, 100, 200, 313, 2000), 2000) == $"{13:N0} units away",
+            "Party distances work before a map-loading packet arrives");
+        midSession.Apply(Message("local-zone", 3000, new { MapId = 1010, AwaitingIdentity = true }), 1);
+        check(midSession.RelativeLatest == null, "A scene change discards relative coordinates rather than mixing worlds");
         var movement = new LocalPositionTracker();
         movement.Apply(Message("local-zone",1000,new {MapId=1010,X=0,Y=0,Z=0}));
         movement.Apply(Message("actor-position",2000,new {ActorId=1,X=100,Y=0,Z=0,Stopped=false}),1);
