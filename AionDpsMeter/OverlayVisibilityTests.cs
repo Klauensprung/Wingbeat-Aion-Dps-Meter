@@ -7,6 +7,57 @@ internal static class OverlayVisibilityTests
 {
     internal static void Run(Action<bool, string> check)
     {
+        var menus=new GameMenuVisibility();
+        var physicalAlt=new AltHeldState();
+        var hookAlt=new AltHeldState();
+        hookAlt.ApplyHook(0xA4,0);
+        check(!hookAlt.ApplyHook(0xA4,0x90)&&hookAlt.Down,"Synthetic Alt release cannot cancel physical Left Alt override");
+        hookAlt.ApplyHook(0xA5,1);hookAlt.ApplyHook(0xA4,0x80);
+        check(hookAlt.Down&&hookAlt.ApplyHook(0xA5,0x81)&&!hookAlt.Down,"Physical releases clear each Alt key independently");
+        check(!hookAlt.ApplyHook(0xA4,0x10)&&!hookAlt.Down,"Synthetic Alt press cannot latch the override");
+        check(physicalAlt.Apply(0x12,false,false)&&physicalAlt.Down&&!physicalAlt.Apply(0x12,false,false),
+            "Raw Left Alt press is retained and autorepeat does not toggle the override");
+        physicalAlt.Apply(0x12,true,false);physicalAlt.Apply(0x12,false,true);
+        check(physicalAlt.Down&&physicalAlt.Apply(0x12,true,true)&&!physicalAlt.Down,"Both Alt keys are tracked independently until both are released");
+        physicalAlt.Apply(0x41,false,false);
+        check(!physicalAlt.Down,"Raw Alt observer ignores unrelated keyboard input");
+        physicalAlt.Apply(0xA4,false,false);menus.Observe(0,true,true,false,false,false);menus.Observe(100,true,true,true,false,false);menus.Observe(500,true,true,true,false,false);
+        check(!menus.Observe(600,true,true,true,physicalAlt.Down,false),"Physical Alt overrides a detected menu when asynchronous Alt polling reports released");
+        menus.Reset();
+        check(!menus.Observe(0,true,true,true,false,false)&&!menus.Observe(10000,true,true,true,false,false)&&!menus.Armed,
+            "Always-visible classic-style cursors do not arm automatic menu hiding");
+        menus.Observe(11000,true,true,false,false,false);
+        menus.Observe(12000,true,true,true,false,false);
+        check(!menus.Observe(13999,true,true,true,false,false)&&menus.Observe(14000,true,true,true,false,false),
+            "Menu cursor gives the user two seconds to reach an overlay");
+        check(!menus.Observe(14100,true,true,true,false,false,overOverlay:true)&&!menus.Observe(90000,true,true,true,false,false,overOverlay:true),
+            "Hover keeps overlays visible indefinitely even when Alt cannot be read");
+        menus.Observe(91000,true,true,true,false,false);
+        check(!menus.Observe(92999,true,true,true,false,false)&&menus.Observe(93000,true,true,true,false,false),
+            "Leaving an overlay gives a fresh two seconds to reach another overlay or submenu");
+        check(!menus.Observe(93100,true,true,true,true,false)&&!menus.Observe(100000,true,true,true,true,false),
+            "Detectable Alt still overrides menu hiding indefinitely");
+        menus.Observe(101000,true,true,true,false,false);
+        check(!menus.Observe(102999,true,true,true,false,false)&&menus.Observe(103000,true,true,true,false,false),
+            "Releasing Alt restarts the two-second grace period");
+        check(menus.Observe(104000,true,true,false,false,false)&&!menus.Observe(104400,true,true,false,false,false),
+            "Brief cursor flicker is tolerated and closing the menu restores overlays");
+        menus.Observe(105000,true,true,true,false,false);menus.Observe(107000,true,true,true,false,false);
+        menus.Observe(107100,true,true,false,false,true);
+        check(menus.Observe(107600,true,true,false,false,false)&&!menus.Observe(108000,true,true,false,false,false),
+            "Mouse-click cursor swaps have a bounded linger");
+        check(!menus.Observe(109000,false,true,true,false,false)&&!menus.Observe(110000,true,false,true,false,false),
+            "Losing game focus or cursor-read failure releases automatic hiding");
+        check(!menus.Observe(111000,true,true,true,false,false,true)&&!menus.Armed,
+            "Classic control packets disarm cursor-based hiding");
+        var snooze = new OverlaySnooze();
+        snooze.HideForMinute(1000);
+        check(!snooze.Allows(1000)&&!snooze.Allows(60999)&&snooze.Allows(61000),"Overlay snooze lasts exactly sixty seconds on the monotonic clock");
+        snooze.HideForMinute(62000);
+        check(!snooze.Allows(121999)&&snooze.Allows(122000),"Repeated overlay snooze starts a fresh minute");
+        var hotkey = JsonSerializer.Deserialize<Preferences>(JsonSerializer.Serialize(new Preferences { OverlayHideKey=0x78,OverlayHideModifiers=3 }))!;
+        check(hotkey.OverlayHideKey==0x78&&hotkey.OverlayHideModifiers==3&&OverlayHotkey.Label(0x79,6)=="Ctrl + Shift + F10"&&OverlayHotkey.Label(0,6)=="Disabled",
+            "Configurable global overlay hotkey persists with a readable default and disabled state");
         check(GameForeground.IsAllowedProcess(12, 34, "AION2") && GameForeground.IsAllowedProcess(12, 34, "aion2-win64-shipping") &&
             GameForeground.IsAllowedProcess(34, 34, null),
             "Foreground visibility accepts both known game executables and Wingbeat's own windows");

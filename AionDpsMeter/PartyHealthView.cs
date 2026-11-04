@@ -6,6 +6,9 @@ namespace AionDpsMeter.Local;
 
 internal sealed record PartyHealthRow(int Entity, string Name, double? Percent, string Health, string Debuffs)
 {
+    internal double RecoveryPercent { get; init; }
+    internal PartyRange Range { get; init; }
+    internal bool Unavailable => Range is PartyRange.Far or PartyRange.OutOfView;
     internal string Proximity { get; init; } = "";
     internal bool Critical => Percent is <= 25;
 }
@@ -29,7 +32,7 @@ internal sealed class PartyHealthView : StackPanel
         return Color.FromRgb(Mix(from.R,to.R),Mix(from.G,to.G),Mix(from.B,to.B));
     }
     internal static bool HasRoster(Fight fight) => fight.PartyKnown || fight.Actors.Values.Any(a=>a.Player&&a.OriginalEntityId==0&&a.Party&&a.Id!=fight.LocalPlayer);
-    internal static PartyHealthRow[] Build(Fight fight, IReadOnlyDictionary<int,HealthReading> health, IEnumerable<PartyMemberDebuff> effects) {
+    internal static PartyHealthRow[] Build(Fight fight, IReadOnlyDictionary<int,HealthReading> health, IEnumerable<PartyMemberDebuff> effects, IReadOnlyDictionary<int,double>? recovery=null) {
         var debuffs=effects.GroupBy(e=>e.Target).ToDictionary(g=>g.Key,g=>string.Join("  ·  ",g.Select(e=>e.Name+(e.Seconds is double seconds?$" {Math.Ceiling(seconds):0}s":""))));
         // Combat proximity is not evidence of party membership.
         return fight.Actors.Values.Where(a=>a.Player&&a.OriginalEntityId==0&&(a.Id==fight.LocalPlayer||a.Party))
@@ -37,10 +40,11 @@ internal sealed class PartyHealthView : StackPanel
                 var hp=health.GetValueOrDefault(a.Id);
                 double? percent=hp?.Value is long value && value>=0 && hp.Maximum is > 0 && value<=hp.Maximum ? value*100d/hp.Maximum.Value : hp?.Value==0?0:null;
                 string label=percent is double p?(p==0?"Dead":$"{p:0.#}%"):"HP unknown";
-                return new PartyHealthRow(a.Id,a.Name+(a.Id==fight.LocalPlayer?" (you)":""),percent,label,debuffs.GetValueOrDefault(a.Id,""));
+                return new PartyHealthRow(a.Id,a.Name+(a.Id==fight.LocalPlayer?" (you)":""),percent,label,debuffs.GetValueOrDefault(a.Id,"")) { RecoveryPercent=percent is >0 and <100 && hp?.Maximum is >0 ? Math.Min(100-percent.Value,Math.Max(0,recovery?.GetValueOrDefault(a.Id)??0)*100/hp.Maximum.Value):0 };
             }).ToArray();
     }
     internal void Update(PartyHealthRow[] data,bool compact) {
+        data=data.OrderBy(row=>row.Unavailable).ToArray();
         var ids=data.Select(r=>r.Entity).ToHashSet();
         foreach(int id in rows.Keys.Where(id=>!ids.Contains(id)).ToArray()){Children.Remove(rows[id].Card);rows.Remove(id);}
         Children.Remove(empty);
@@ -48,9 +52,10 @@ internal sealed class PartyHealthView : StackPanel
             var item=data[i];
             if(!rows.TryGetValue(item.Entity,out var row)){
                 var gauge=new Grid{MinHeight=34,Background=UiTheme.Brush("#80232D3B")};
-                gauge.ColumnDefinitions.Add(new());gauge.ColumnDefinitions.Add(new());
+                gauge.ColumnDefinitions.Add(new());gauge.ColumnDefinitions.Add(new());gauge.ColumnDefinitions.Add(new());
                 var fill=new Border();gauge.Children.Add(fill);
-                var labels=new Grid{Margin=new(10,6,10,6)};Grid.SetColumnSpan(labels,2);
+                var recoveryFill=new Border { Background=UiTheme.Brush("#7095F5A6") };Grid.SetColumn(recoveryFill,1);gauge.Children.Add(recoveryFill);
+                var labels=new Grid{Margin=new(10,6,10,6)};Grid.SetColumnSpan(labels,3);
                 labels.ColumnDefinitions.Add(new());labels.ColumnDefinitions.Add(new(){Width=GridLength.Auto});
                 var name=new TextBlock{Foreground=Brushes.White,FontWeight=FontWeights.SemiBold,TextTrimming=TextTrimming.CharacterEllipsis,Margin=new(0,0,10,0)};
                 var hp=new TextBlock{Foreground=Brushes.White,FontWeight=FontWeights.Bold};Grid.SetColumn(hp,1);
@@ -63,18 +68,22 @@ internal sealed class PartyHealthView : StackPanel
             if(Children.IndexOf(row.Card)!=i){Children.Remove(row.Card);Children.Insert(i,row.Card);}
             double fraction=(item.Percent??0)/100;
             row.Gauge.ColumnDefinitions[0].Width=new(fraction,GridUnitType.Star);
-            row.Gauge.ColumnDefinitions[1].Width=new(1-fraction,GridUnitType.Star);
-            var color=HealthColor(item.Percent);
+            double recoveryFraction=item.Unavailable?0:Math.Clamp(item.RecoveryPercent/100,0,1-fraction);
+            row.Gauge.ColumnDefinitions[1].Width=new(recoveryFraction,GridUnitType.Star);
+            row.Gauge.ColumnDefinitions[2].Width=new(Math.Max(0,1-fraction-recoveryFraction),GridUnitType.Star);
+            var color=item.Unavailable?Color.FromRgb(112,121,133):HealthColor(item.Percent);
             var fillColor=Color.FromArgb(184,color.R,color.G,color.B);
             if(row.Fill.Background is not SolidColorBrush existing||existing.Color!=fillColor){
                 var brush=new SolidColorBrush(fillColor);brush.Freeze();row.Fill.Background=brush;
             }
-            row.Card.BorderThickness=new(1);row.Card.BorderBrush=item.Critical?UiTheme.Brush("#FF6975"):Brushes.Transparent;
-            row.Health.Foreground=item.Critical?UiTheme.Brush("#FFADB6"):item.Percent is <=50?UiTheme.Brush("#F0C84B"):Brushes.White;
-            row.Name.Text=item.Name;row.Health.Text=item.Health;row.Name.FontSize=row.Health.FontSize=compact?12:14;
+            row.Card.Opacity=item.Unavailable?.65:1;
+            row.Card.BorderThickness=new(1);row.Card.BorderBrush=item.Critical&&!item.Unavailable?UiTheme.Brush("#FF6975"):Brushes.Transparent;
+            row.Health.Foreground=item.Unavailable?UiTheme.Brush("#BCC3CC"):item.Critical?UiTheme.Brush("#FFADB6"):item.Percent is <=50?UiTheme.Brush("#F0C84B"):Brushes.White;
+            row.Name.Text=item.Name;row.Health.Text=item.Health+(!item.Unavailable&&item.RecoveryPercent>0?$"  +{item.RecoveryPercent:0.#}%":"");row.Name.FontSize=row.Health.FontSize=compact?12:14;
+            if(item.Unavailable)row.Name.Text+="\n! "+(item.Range==PartyRange.OutOfView?"Out of view":"Too far (position)");
             if (item.Proximity.Length > 0) row.Name.Text += "\n" + item.Proximity;
             row.Debuffs.Text=item.Debuffs;row.Debuffs.Visibility=item.Debuffs.Length>0?Visibility.Visible:Visibility.Collapsed;
-            row.Card.ToolTip="Last captured health. Distance uses 3D captured map coordinates, in game-world units, shows the age after 5 seconds and expires after 30 seconds. It does not confirm line of sight or skill range. Debuffs appear only when observed.";
+            row.Card.ToolTip="Last captured health. Gray means the member left captured visibility or fresh positions exceed 4,000 world units; this is not a verified game UI flag or a guarantee of healing range/line of sight. Light green shows remaining regeneration reported by the server (up to missing HP), not guaranteed future healing. Hidden after five seconds without an update or when the buff ends. Distance uses 3D captured map coordinates, in game-world units, shows the age after 5 seconds and expires after 30 seconds. It does not confirm line of sight or skill range. Debuffs appear only when observed.";
         }
         if(data.Length==0)Children.Add(empty);
     }

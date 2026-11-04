@@ -33,6 +33,8 @@ public sealed partial class MainWindow
             id=>skills.GetSkillName(id),skillIcons,ShowTraining){Title="Wingbeat DPS2 overlay",MeterLabel="DPS2",ShowActivated=false};
         secondMeter=window;
         window.SharedVisibilityChanged=value=>preferences.OverlaysGameOnly=value;
+        window.PartyRanges=PartyRanges;
+        window.PartyRecovery=()=>{lock(engine.Gate)return capture!=null?engine.Recovery.Snapshot(DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()):new();};
         window.PartyDebuffs=()=>capture!=null?partyDebuffs.Active(Environment.TickCount64):[];
         window.PartyDistances=PartyDistances;
         window.Closed+=(_,_)=>{

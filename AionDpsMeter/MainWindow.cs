@@ -32,6 +32,9 @@ public sealed class Preferences
     public bool CooldownReadyGlow { get; set; } = true;
     public bool CooldownCombatOnly { get; set; }
     public bool OverlaysGameOnly { get; set; }
+    public bool HideOverlaysInGameMenus { get; set; } = true;
+    public int OverlayHideKey { get; set; } = 0x79;
+    public int OverlayHideModifiers { get; set; } = 6;
     public bool PingLocked { get; set; }
     public double? PingLeft { get; set; }
     public double? PingTop { get; set; }
@@ -253,6 +256,7 @@ public sealed partial class MainWindow : Window
             overlayControls.Children.Add(button); extraOverlayButtons.Add((button, enabled));
         }
         OverlayAction(UiIcon.Meter, "DPS2 overlay", ToggleSecondMeter, () => SecondMeterOptions.Enabled);
+        OverlayAction(UiIcon.Meter, "Hide / show overlays", ToggleOverlayVisibility, () => overlaysHidden);
         OverlayAction(UiIcon.Folder, "Loot overlay", ToggleLootOverlay, () => lootOverlay != null);
         overlayControls.Children.Add(IconButton(UiIcon.Chart, "Farming", ShowFarming));
         overlayControls.Children.Add(IconButton(UiIcon.Chart, "Gathering routes", ShowGatheringRoutes));
@@ -391,6 +395,9 @@ public sealed partial class MainWindow : Window
             } catch (Exception ex) { notice = "Local save/update failed: " + ex.Message; LocalLog.Write(notice); }
         };
         timer.Start();
+        SourceInitialized += (_,_) => InitializeOverlayHotkey();
+        Loaded += (_,_) => InitializeOverlayHotkey();
+        Closed += (_,_) => {overlayAltInput?.Dispose();overlayHotkey?.Dispose();};
         Closing += (_, e) => {
             if (shuttingDown) return;
             try { capture?.Dispose(); engine.StopTraining(DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()); LogCapture(); capture = null; FinishAutosave(); engine.SaveCompleted(store); var f = LiveSnapshot(); if (f.HasRecordedData) SaveFight(f); playerProfiles.Save(); dutyMissions.Save(); accountCharacters.Save(); shopPurchases.Save(); crafting.Save(); gatheringTracking.Save(); killTracking.Save(); lootTracking.Save(); soulTracking.Save(); petRegistrationTracking.Save(); petLevelTracking.Save(); engine.SaveVisibilityMemory(); engine.FieldBossCache.Save(); }
@@ -1008,6 +1015,8 @@ public sealed partial class MainWindow : Window
         }
         var opening = new OverlayWindow(NewFight, id => FocusActor(id, preferences.OverlayHealing), () => { customBars.IsChecked = !preferences.OverlayCustomBars; pinLocal.IsChecked = preferences.OverlayPinLocal; SavePreferences(); }, id => skills.GetSkillName(id), skillIcons, ShowTraining);
         overlay = opening;
+        opening.PartyRanges=PartyRanges;
+        opening.PartyRecovery=()=>{lock(engine.Gate)return capture!=null?engine.Recovery.Snapshot(DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()):new();};
         opening.PartyDebuffs = () => capture != null ? partyDebuffs.Active(Environment.TickCount64) : [];
         opening.PartyDistances = PartyDistances;
         opening.ShowActivated = false;

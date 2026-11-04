@@ -3,7 +3,8 @@ using System.IO;
 namespace AionDpsMeter.Local;
 
 internal sealed record PeriodicReading(int TargetId, int ActorId, int Uid, int EffectId,
-    long Remaining, long Amount, int[] BarrierIds, int Skill, int BlockedActor, int BlockedSkill, int ReflectionSkill);
+    long Remaining, long Amount, int[] BarrierIds, int Skill, int BlockedActor, int BlockedSkill, int ReflectionSkill)
+{ internal bool HasRemaining { get; init; } }
 
 internal static class PeriodicWire
 {
@@ -26,6 +27,6 @@ internal static class PeriodicWire
         int blockedSkill = (flags & 32) != 0 ? unchecked((int)r.U32()) : 0;
         int reflection = (flags & 64) != 0 ? unchecked((int)r.U32()) : 0;
         if (r.Remaining != 0) throw new InvalidDataException("Unknown periodic effect trailer.");
-        return new(target, actor, uid, effect, remaining, amount, barriers, skill, blockedActor, blockedSkill, reflection);
+        return new(target, actor, uid, effect, remaining, amount, barriers, skill, blockedActor, blockedSkill, reflection) { HasRemaining=(flags&1)!=0 };
     }
 }

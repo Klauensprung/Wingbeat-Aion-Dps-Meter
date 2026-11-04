@@ -89,6 +89,25 @@ public sealed partial class MainWindow
         visibility.Children.Add(OverlayOption("Only show overlays over Aion 2 or Wingbeat", () => preferences.OverlaysGameOnly,
             value => { preferences.OverlaysGameOnly = value; RefreshCooldownVisibility(); }));
         visibility.Children.Add(SettingsHint("All overlays share this setting. Positions are kept when an overlay is hidden."));
+        visibility.Children.Add(OverlayOption("Hide overlays when Aion 2's menu cursor appears",()=>preferences.HideOverlaysInGameMenus,
+            value=>{preferences.HideOverlaysInGameMenus=value;RefreshCooldownVisibility();}));
+        visibility.Children.Add(SettingsHint("For Aion 2 action controls: after observing the cursor hidden during gameplay, a visible menu cursor hides overlays after two seconds. Move onto an overlay or its menu to keep overlays visible; leaving gives another two seconds. Holding Alt also keeps them visible when Windows allows key detection. Classic/Aion 1 controls with an always-visible cursor are not supported by this detection."));
+        var hideShortcut = new TextBox { IsReadOnly=true, Text=OverlayHotkey.Label(preferences.OverlayHideKey,preferences.OverlayHideModifiers), ToolTip="Click here and press a key combination. Use Ctrl, Alt, Shift, or Windows with another key." };
+        hideShortcut.PreviewKeyDown += (_,e) => {
+            var key=e.Key==System.Windows.Input.Key.System?e.SystemKey:e.Key;
+            e.Handled=true;
+            if(key is System.Windows.Input.Key.LeftCtrl or System.Windows.Input.Key.RightCtrl or System.Windows.Input.Key.LeftAlt or System.Windows.Input.Key.RightAlt or System.Windows.Input.Key.LeftShift or System.Windows.Input.Key.RightShift or System.Windows.Input.Key.LWin or System.Windows.Input.Key.RWin)return;
+            if(key==System.Windows.Input.Key.Escape){hideShortcut.MoveFocus(new System.Windows.Input.TraversalRequest(System.Windows.Input.FocusNavigationDirection.Next));return;}
+            int modifiers=(int)System.Windows.Input.Keyboard.Modifiers;
+            if(modifiers==0){overlayHotkeyStatus!.Text="Include Ctrl, Alt, Shift, or Windows.";return;}
+            preferences.OverlayHideKey=System.Windows.Input.KeyInterop.VirtualKeyFromKey(key);preferences.OverlayHideModifiers=modifiers;
+            hideShortcut.Text=OverlayHotkey.Label(preferences.OverlayHideKey,modifiers);ApplyOverlayHotkey();SavePreferences();
+        };
+        visibility.Children.Add(SettingsField("Global hide/show hotkey",hideShortcut));
+        overlayHotkeyStatus=SettingsHint("Hide/show all overlays: "+hideShortcut.Text);visibility.Children.Add(overlayHotkeyStatus);
+        visibility.Children.Add(SettingsAction(UiIcon.Meter,"Hide / show all overlays",ToggleOverlayVisibility));
+        visibility.Children.Add(SettingsAction(UiIcon.Close,"Disable hotkey",()=>{preferences.OverlayHideKey=0;hideShortcut.Text="Disabled";ApplyOverlayHotkey();SavePreferences();}));
+        visibility.Children.Add(SettingsHint("Each overlay also has a Hide 60s button. It returns after one minute when its normal visibility conditions allow it."));
         var extraOverlays = new WrapPanel();
         foreach (var action in new (string Label, UiIcon Icon, Action Toggle)[] {
             ("Ping", UiIcon.Network, TogglePingOverlay), ("Loot", UiIcon.Folder, ToggleLootOverlay),
@@ -110,7 +129,7 @@ public sealed partial class MainWindow
         alerts.Children.Add(SettingsAction(UiIcon.Boss, "Cached field-boss timers", ShowFieldBosses));
         window.AddPage("Overlays", UiIcon.Meter, "Your meter, skill breakdown and on-screen tools in one place.",
             SettingsCards(SettingsSection("DPS meter", meterOptions), SettingsSection("Metric and scope", meterDisplay), SettingsSection("Visibility", visibility), SettingsSection("Cooldowns", cooldownOptions),
-                SettingsSection("Exploration overlays", extraOverlays)));
+                SettingsSection("Overlay scale", OverlayScale.Settings()), SettingsSection("Exploration overlays", extraOverlays)));
         window.AddPage("Alerts", UiIcon.Cooldowns, "Choose what deserves your attention during play.", SettingsCards(SettingsSection("Combat and event alerts", alerts)));
 
         var colours = new StackPanel();

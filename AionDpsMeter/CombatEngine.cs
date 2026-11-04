@@ -9,6 +9,7 @@ public sealed partial class CombatEngine
     internal AppearancePresetTracker AppearancePresets { get; } = new();
     internal BlackMarketTracker BlackMarket { get; } = new();
     internal PartyFinderTracker PartyFinder { get; } = new();
+    internal RecoveryPreview Recovery { get; } = new();
     internal LiveCastTracker LiveCast { get; } = new();
     internal BossAlertTracker BossAlerts {get;}=new();
     internal long LiveIdentityBoundary => skillBoundaryTime;
@@ -146,6 +147,10 @@ public sealed partial class CombatEngine
     {
         lock (Gate)
         {
+            if(item.Network is {} recoveryEvent && recoveryEvent.Timestamp>=skillBoundaryTime) {
+                Recovery.Apply(recoveryEvent);
+                if(recoveryEvent.Kind=="recovery-preview"){revision++;return;}
+            }
             switch (item.Kind)
             {
                 case "actor" when item.Actor != null: UpdateActor(item.Actor); break;
@@ -177,7 +182,7 @@ public sealed partial class CombatEngine
                     }
                     ClearSummonOwners(); ownershipSceneTime = -1;
                     Fight.LocalTarget = null;
-                    LiveSceneRevision++;BossAlerts.Clear();
+                    LiveSceneRevision++;BossAlerts.Clear();Recovery.Clear();
                     Fight.PartyBossTarget = null;
                     Fight.LocalResources = null;
                     FieldBosses.Clear();
@@ -380,7 +385,7 @@ public sealed partial class CombatEngine
                         skillBoundaryTime = item.Network.Timestamp; skillsAwaitingIdentity = true; loginAwaitingMap = true;
                         pendingObservedRun = new(); pendingDungeonRun = new(true);
                         pendingGatheredObjects = new(); pendingOmittedGathers = 0;
-                        LiveSceneRevision++;BossAlerts.Clear();
+                        LiveSceneRevision++;BossAlerts.Clear();Recovery.Clear();
                         pendingStats = null; pendingSkills = null; pendingDaevanion = null; pendingPets = null; pendingWings = null; pendingTitles = null; pendingCollections = null; pendingGear = null; pendingDutyMissions = null;
                         inventoryLoot.Login(item.Network.Timestamp);
                         farmingLoot.Reset(item.Network.Timestamp);
@@ -411,7 +416,7 @@ public sealed partial class CombatEngine
                         }
                         skillBoundaryTime = item.Network.Timestamp;
                         skillsAwaitingIdentity = true;
-                        LiveSceneRevision++;BossAlerts.Clear();
+                        LiveSceneRevision++;BossAlerts.Clear();Recovery.Clear();
                         Fight.LocalTarget = null;
                         if (!initialUnassigned && !loginAwaitingMap) { pendingDutyMissions = null; pendingStats = null; pendingSkills = null; pendingDaevanion = null; pendingPets = null; pendingWings = null; pendingTitles = null; pendingCollections = null; pendingGear = null; }
                         if (!initialUnassigned && !loginAwaitingMap) AppearancePresets.Clear(item.Network.Timestamp);

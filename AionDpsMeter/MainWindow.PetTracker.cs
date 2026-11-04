@@ -45,15 +45,17 @@ public sealed partial class MainWindow
         if (petTrackerOverlay != null) {
             petTrackerOverlay.UpdateCollected(collected);
             petTrackerOverlay.Update(rows, position, now, capture != null, preferences.PetTrackerGoal);
-            if (allowed && !petTrackerOverlay.IsVisible) petTrackerOverlay.Show();
-            else if (!allowed && petTrackerOverlay.IsVisible) petTrackerOverlay.Hide();
+            bool trackerAllowed=allowed&&OverlayHideControls.Allows(petTrackerOverlay);
+            if (trackerAllowed && !petTrackerOverlay.IsVisible) petTrackerOverlay.Show();
+            else if (!trackerAllowed && petTrackerOverlay.IsVisible) petTrackerOverlay.Hide();
         }
         if (petMapOverlay != null) {
             var presentation = MapPositionPresentation.Select(position, prediction, preferences.PetMapPredictPosition, now, capture != null);
             var mapRows = petMapNearbyTracker.Update(presentation.Position, collection, preferences.PetTrackerGoal);
             petMapOverlay.Update(mapRows, presentation.Position, now, capture != null, preferences.PetTrackerGoal, presentation);
-            if (allowed && !petMapOverlay.IsVisible) petMapOverlay.Show();
-            else if (!allowed && petMapOverlay.IsVisible) petMapOverlay.Hide();
+            bool mapAllowed=allowed&&OverlayHideControls.Allows(petMapOverlay);
+            if (mapAllowed && !petMapOverlay.IsVisible) petMapOverlay.Show();
+            else if (!mapAllowed && petMapOverlay.IsVisible) petMapOverlay.Hide();
         }
     }
 }

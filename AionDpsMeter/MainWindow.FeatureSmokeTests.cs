@@ -14,6 +14,39 @@ public sealed partial class MainWindow
         var opened = new List<Window>();
         try {
             preferences = new() { ReminderWindowsNotifications = false };
+            var oldPing=pingOverlay; bool oldHidden=overlaysHidden;
+            var hidePreview=new PingOverlayWindow(preferences,()=>{});
+            try {
+                pingOverlay=hidePreview; overlaysHidden=false; RefreshCooldownVisibility();
+                if(!hidePreview.IsVisible)throw new InvalidOperationException("Visible overlay did not open before hide test.");
+                hidePreview.SizeToContent=SizeToContent.Height;hidePreview.Width=300;
+                double originalScale=OverlayScale.Get(nameof(PingOverlayWindow)),originalWidth=hidePreview.Width;
+                try {
+                    OverlayScale.Set(nameof(PingOverlayWindow),150);hidePreview.UpdateLayout();
+                    if(hidePreview.Content is not FrameworkElement scaled || scaled.LayoutTransform is not System.Windows.Media.ScaleTransform {ScaleX:1.5,ScaleY:1.5} || !hidePreview.Width.Equals(originalWidth))
+                        throw new InvalidOperationException("Overlay scale must transform contents without changing the configured width.");
+                    var scaleButton=LayoutVisuals<Button>(hidePreview).Single(b=>b.Content?.ToString()=="Scale 150%");
+                    scaleButton.RaiseEvent(new RoutedEventArgs(System.Windows.Controls.Button.ClickEvent));
+                    var scaleEditor=(FrameworkElement)((MenuItem)scaleButton.ContextMenu.Items[0]).Header;
+                    LayoutVisuals<Slider>(scaleEditor).Single().Value=125;
+                    if(OverlayScale.Get(nameof(PingOverlayWindow))!=125)throw new InvalidOperationException("Overlay scale slider did not apply live.");
+                    scaleButton.ContextMenu.IsOpen=false;
+                    Render(hidePreview,"test-artifacts/Overlay-scale-125.png");
+                    var firstScaleMeter=new OverlayWindow();var secondScaleMeter=new OverlayWindow{MeterLabel="DPS2"};
+                    try {if(OverlayScale.Key(secondScaleMeter)==OverlayScale.Key(firstScaleMeter))
+                        throw new InvalidOperationException("DPS1 and DPS2 must have independent scale keys.");}
+                    finally {firstScaleMeter.Close();secondScaleMeter.Close();}
+                    results.Add("PASS Overlay scaling applies live, leaves window width unchanged and separates DPS1/DPS2");
+                } finally {OverlayScale.Set(nameof(PingOverlayWindow),originalScale);}
+                ToggleOverlayVisibility();
+                if(hidePreview.IsVisible)throw new InvalidOperationException("Global hide did not hide the ping overlay.");
+                ToggleOverlayVisibility();
+                if(!hidePreview.IsVisible)throw new InvalidOperationException("Global show did not restore the requested overlay.");
+                var hideButton=LayoutVisuals<Button>(hidePreview).Single(b=>b.Content?.ToString()=="Hide 60s");
+                hideButton.RaiseEvent(new RoutedEventArgs(System.Windows.Controls.Button.ClickEvent));RefreshCooldownVisibility();
+                if(hidePreview.IsVisible||OverlayHideControls.Allows(hidePreview))throw new InvalidOperationException("Live refresh defeated overlay snooze.");
+                results.Add("PASS Global hide/show and per-overlay 60-second snooze survive visibility refreshes");
+            } finally { hidePreview.Close();pingOverlay=oldPing;overlaysHidden=oldHidden; }
             long now = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
             var sample = FeatureTests.Sample(); sample.Label = "Synthetic feature preview";
             sample.Actors[sample.LocalPlayer] = sample.Actors[sample.LocalPlayer] with { CharacterId = 30, Server = 1 };
@@ -768,6 +801,8 @@ public sealed partial class MainWindow
                     partyFight.Actors[i+1]=new(i+1,partyNames[i],true,true,0,"Unknown",1);
                     partyFight.Network.Add(new("hp",now,"synthetic",JsonSerializer.SerializeToElement(new {EntityId=i+1,CurrentHp=partyHp[i],MaximumHp=1000})));
                 }
+                partyHealthOverlay.PartyRanges=_=>new(){[2]=PartyRange.Far,[4]=PartyRange.OutOfView};
+                partyHealthOverlay.PartyRecovery=()=>new(){[2]=150,[3]=300};
                 partyHealthOverlay.PartyDebuffs=()=>[new(3,100,"Stun",2.4),new(3,101,"Poison",12),new(2,102,"Slow",null)];
                 partyHealthOverlay.PartyDistances=_=>new() { [2]="850 units away", [3]="2,400 units away", [4]="Distance unknown", [5]="4,100 units away" };
                 partyHealthOverlay.Update(partyFight,new Preferences{OverlayPartyHealth=true,OverlayHeight=420});partyHealthOverlay.Show();partyHealthOverlay.UpdateLayout();

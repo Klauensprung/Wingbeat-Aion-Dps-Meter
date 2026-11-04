@@ -10,32 +10,72 @@ internal static class CooldownVisibility
 public sealed partial class MainWindow
 {
     bool cooldownWanted, meterWanted;
+    bool overlaysHidden;
+    readonly GameMenuVisibility gameMenuVisibility = new();
+    long menuScene = -1;
+    string? lastMenuTrace;
+    bool HideForGameMenu()
+    {
+        if(demoMode||!preferences.HideOverlaysInGameMenus){gameMenuVisibility.Reset();return false;}
+        bool classic;
+        lock(engine.Gate){
+            if(menuScene!=engine.LiveSceneRevision){menuScene=engine.LiveSceneRevision;gameMenuVisibility.Reset();}
+            classic=engine.SessionSignals.ControlMode=="classic";
+        }
+        bool game=GameForeground.IsGameFocused();
+        var cursor=game?GameCursorState.Read():default;
+        bool hidden=gameMenuVisibility.Observe(Environment.TickCount64,game,cursor.Valid,cursor.Visible,cursor.Alt||overlayAltInput?.Down==true,cursor.MouseDown,classic,game&&cursor.Visible&&OverlayHideControls.PointerOverOverlay());
+        string trace=$"game={game} cursor={cursor.Visible} valid={cursor.Valid} asyncAlt={cursor.Alt} listenerAlt={overlayAltInput?.Down} menuHidden={hidden} manualHidden={overlaysHidden}";
+        if(trace!=lastMenuTrace){lastMenuTrace=trace;OverlayInputTrace.Write(trace);}
+        return hidden;
+    }
+    OverlayHotkey? overlayHotkey;
+    OverlayAltInput? overlayAltInput;
+    System.Windows.Controls.TextBlock? overlayHotkeyStatus;
+    void ToggleOverlayVisibility(){overlaysHidden=!overlaysHidden;RefreshCooldownVisibility();}
+    void InitializeOverlayHotkey()
+    {
+        if(demoMode)return;
+        overlayHotkey ??= new(this,ToggleOverlayVisibility);
+        overlayAltInput ??= new(this,RefreshCooldownVisibility);
+        ApplyOverlayHotkey();
+    }
+    void ApplyOverlayHotkey()
+    {
+        string? error=overlayHotkey?.Register(preferences.OverlayHideKey,preferences.OverlayHideModifiers);
+        if(overlayHotkeyStatus!=null)overlayHotkeyStatus.Text=error ?? "Hide/show all overlays: "+OverlayHotkey.Label(preferences.OverlayHideKey,preferences.OverlayHideModifiers);
+        if(error!=null)LocalLog.Write(error);
+    }
     void RefreshCooldownVisibility()
     {
+        bool menuHidden=HideForGameMenu();
+        bool suppressOverlays=overlaysHidden||menuHidden;
         bool foregroundAllowed=demoMode||(!(preferences.OverlaysGameOnly||refreshGatheringMapVisibility!=null||preferences.BossAlertsEnabled))||GameForeground.AllowsOverlays();
-        refreshGatheringMapVisibility?.Invoke(foregroundAllowed);
-        RefreshBossAlerts(foregroundAllowed);
-        bool allowed = CooldownVisibility.ForegroundAllows(preferences.OverlaysGameOnly,foregroundAllowed);
-        RefreshPingOverlay(allowed);
-        RefreshLootOverlay(allowed);
-        RefreshFarmingOverlay(allowed);
-        RefreshCurrencyOverlay(allowed);
-        RefreshTicketOverlay(allowed);
+        refreshGatheringMapVisibility?.Invoke(foregroundAllowed&&!suppressOverlays);
+        RefreshBossAlerts(foregroundAllowed&&!suppressOverlays&&OverlayHideControls.Allows(bossAlertOverlay));
+        bool allowed = !suppressOverlays && CooldownVisibility.ForegroundAllows(preferences.OverlaysGameOnly,foregroundAllowed);
+        RefreshPingOverlay(allowed&&OverlayHideControls.Allows(pingOverlay));
+        RefreshLootOverlay(allowed&&OverlayHideControls.Allows(lootOverlay));
+        RefreshFarmingOverlay(allowed&&OverlayHideControls.Allows(farmingOverlay));
+        RefreshCurrencyOverlay(allowed&&OverlayHideControls.Allows(currencyOverlay));
+        RefreshTicketOverlay(allowed&&OverlayHideControls.Allows(ticketOverlay));
         RefreshPetTracker(allowed);
-        RefreshControlOverlay(allowed);
+        RefreshControlOverlay(allowed&&OverlayHideControls.Allows(controlOverlay));
         UpdateToolbarState();
         if (overlay != null) {
-            if (meterWanted && allowed && !overlay.IsVisible) overlay.Show();
-            else if ((!meterWanted || !allowed) && overlay.IsVisible) overlay.Hide();
+            bool meterAllowed=allowed&&OverlayHideControls.Allows(overlay);
+            if (meterWanted && meterAllowed && !overlay.IsVisible) overlay.Show();
+            else if ((!meterWanted || !meterAllowed) && overlay.IsVisible) overlay.Hide();
         }
         if(secondMeter!=null){
             SyncSecondMeterAppearance();
-            if(SecondMeterOptions.Enabled&&allowed&&!secondMeter.IsVisible)secondMeter.Show();
-            else if((!SecondMeterOptions.Enabled||!allowed)&&secondMeter.IsVisible)secondMeter.Hide();
+            bool secondAllowed=allowed&&OverlayHideControls.Allows(secondMeter);
+            if(SecondMeterOptions.Enabled&&secondAllowed&&!secondMeter.IsVisible)secondMeter.Show();
+            else if((!SecondMeterOptions.Enabled||!secondAllowed)&&secondMeter.IsVisible)secondMeter.Hide();
         }
         if (cooldownOverlay == null) return;
         bool show = CooldownVisibility.ShouldShow(cooldownWanted, preferences.CooldownCombatOnly, capture != null,
-            engine.HasRecentPartyCombat(DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()), engine.TrainingActive) && allowed;
+            engine.HasRecentPartyCombat(DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()), engine.TrainingActive) && allowed && OverlayHideControls.Allows(cooldownOverlay);
         if (show && !cooldownOverlay.IsVisible) cooldownOverlay.Show();
         else if (!show && cooldownOverlay.IsVisible) cooldownOverlay.Hide();
     }

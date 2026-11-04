@@ -665,6 +665,8 @@ public sealed class EuGameDecoder(int serverPort = 13328, IReadOnlySet<int>? hea
                 TargetId = tick.TargetId, SkillCode = tick.BlockedSkill, Outcome = DefenseOutcome.TargetAvoided }));
             return;
         }
+        if(tick.HasRemaining && tick.ReflectionSkill==0 && CombatEffectTypes.PeriodicHealing(tick.EffectId) && !CombatEffectTypes.PeriodicExcluded(tick.EffectId))
+            Emit(events,"recovery-preview",time,opcode,new { tick.TargetId, Slot=tick.Uid, tick.EffectId, tick.Remaining });
         if (tick.Amount <= 0 || CombatEffectTypes.PeriodicExcluded(tick.EffectId)) return;
         bool heal = tick.ReflectionSkill == 0 && CombatEffectTypes.PeriodicHealing(tick.EffectId);
         var source = abnormalSources.Find(tick.ReflectionSkill != 0 ? tick.ActorId : tick.TargetId, tick.Uid, time);

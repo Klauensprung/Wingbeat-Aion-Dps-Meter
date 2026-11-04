@@ -11,6 +11,8 @@ namespace AionDpsMeter.Local;
 public sealed class OverlayWindow : Window
 {
     readonly PartyHealthView partyHealth = new();
+    internal Func<Dictionary<int,double>>? PartyRecovery { get; set; }
+    internal Func<Fight,Dictionary<int,PartyRange>>? PartyRanges { get; set; }
     internal Func<PartyMemberDebuff[]>? PartyDebuffs { get; set; }
     internal Func<Fight, Dictionary<int, string>>? PartyDistances { get; set; }
     readonly MeterView meter = new() { Margin = new(7, 4, 7, 2), RowBackground = UiTheme.Brush("#801A2230") };
@@ -312,8 +314,10 @@ public sealed class OverlayWindow : Window
             duration.Text = MeterPresentation.Duration(fight.Seconds);
         }
         if (showHealth) {
-            var healthRows = PartyHealthView.Build(fight, health, PartyDebuffs?.Invoke() ?? []);
+            var healthRows = PartyHealthView.Build(fight, health, PartyDebuffs?.Invoke() ?? [], PartyRecovery?.Invoke());
             var distances = PartyDistances?.Invoke(fight);
+            var ranges=PartyRanges?.Invoke(fight);
+            if(ranges!=null)healthRows=healthRows.Select(row=>row with {Range=row.Entity==fight.LocalPlayer?PartyRange.Nearby:ranges.GetValueOrDefault(row.Entity,PartyRange.Unknown)}).ToArray();
             if (distances != null) healthRows = healthRows.Select(row => row with { Proximity = row.Entity == fight.LocalPlayer ? "" : distances.GetValueOrDefault(row.Entity, "Distance unknown") }).ToArray();
             partyHealth.Update(healthRows, preferences.OverlayCompact);
             actorScroll.Content = partyHealth; actorScroll.Visibility = Visibility.Visible;

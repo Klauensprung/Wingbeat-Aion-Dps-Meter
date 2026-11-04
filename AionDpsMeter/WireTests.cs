@@ -302,12 +302,12 @@ internal static class WireTests
         check(new EuGameDecoder().Decode(Payload(Direct(17100130, 300, 301, 2, variant: 0))).Events.Count == 0 &&
             new EuGameDecoder().Decode(Payload(Direct(17100130, 300, 301, 2, variant: 8))).Events.Count == 0, "Healing cast notices without an amount block cannot add healing");
         var tick = Tick(11, 17090000, 1709000011, 900, 100);
-        var periodic = new EuGameDecoder().Decode(Payload(tick)).Events.Single();
+        var periodic = new EuGameDecoder().Decode(Payload(tick)).Events.Single(e=>e.Damage!=null);
         check(periodic is { Kind: "heal", Damage: { ActorId: 300, TargetId: 301, SkillCode: 17090000, Damage: 100 } } && periodic.Damage.AdditionalData!["Periodic"].GetBoolean(), "Regeneration uses the 100 HP tick, not its 900 remaining pool");
         var announcement = Tick(9, 17090000, 1709000011, 0, 1000);
-        check(new EuGameDecoder().Decode(Payload(announcement)).Events.Count == 0, "Regeneration pool announcement is not counted again as healing");
+        check(new EuGameDecoder().Decode(Payload(announcement)).Events.All(e=>e.Damage==null), "Regeneration pool announcement is not counted again as healing");
         check(new EuGameDecoder().Decode(Payload(Tick(10, 17070000, 1707000011, 0, 300))).Events.Single().Kind == "damage" &&
-            new EuGameDecoder().Decode(Payload(Tick(11, 2011101, 201110112, 400, 100))).Events.Single().Kind == "heal" &&
+            new EuGameDecoder().Decode(Payload(Tick(11, 2011101, 201110112, 400, 100))).Events.Single(e=>e.Damage!=null).Kind == "heal" &&
             new EuGameDecoder().Decode(Payload(Tick(11, 12750001, 1275000111, 1000, 200))).Events.Single().Network?.Kind == "barrier",
             "Periodic effect classification separates damage, potion healing and remaining shield pools");
         check(new EuGameDecoder().Decode(Payload(Tick(11, 17090000, 120001211, 1000, 200))).Events.Single().Kind == "damage",
@@ -315,13 +315,13 @@ internal static class WireTests
         byte[] tickBody = tick[1..];
         var malformed = new EuGameDecoder();
         check(malformed.Decode(Payload([..Var(tickBody.Length + 5), ..tickBody, 0])).Events.Count == 0 && malformed.RejectedRecords == 1, "Recovery records with unknown trailing fields are rejected atomically");
-        check(new EuGameDecoder().Decode(Payload(Tick(11, 17090000, 1709000011, 10, 0))).Events.Count == 0, "Zero recovery does not create a healing event");
+        check(new EuGameDecoder().Decode(Payload(Tick(11, 17090000, 1709000011, 10, 0))).Events.All(e=>e.Damage==null), "Zero recovery does not create a healing event");
         bool fragments = true;
         foreach (var frame in new[] { direct, tick })
         for (int split = 1; split < frame.Length; split++)
         {
             var decoder = new EuGameDecoder();
-            fragments &= decoder.Decode(Payload(frame[..split])).Events.Count == 0 && decoder.Decode(Payload(frame[split..])).Events.Single().Kind == "heal";
+            fragments &= decoder.Decode(Payload(frame[..split])).Events.Count == 0 && decoder.Decode(Payload(frame[split..])).Events.Single(e=>e.Damage!=null).Kind == "heal";
         }
         check(fragments, "Direct and periodic heals survive every TCP record split exactly once");
         byte[] joined = [..announcement, ..direct, ..tick];

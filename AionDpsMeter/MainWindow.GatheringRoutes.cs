@@ -122,7 +122,7 @@ public sealed partial class MainWindow
             refreshGatheringMapVisibility=mapOverlay.SetForegroundAllowed;
             mapOverlay.Closed+=(_,_)=>{refreshGatheringMapVisibility=null;mapOverlay=null;lockOverlay.IsEnabled=false;overlayButton.Content="Map overlay";};
             lockOverlay.IsEnabled=true;overlayButton.Content="Hide overlay";Update();
-            refreshGatheringMapVisibility(demoMode||GameForeground.AllowsOverlays());
+            refreshGatheringMapVisibility(!overlaysHidden&&(demoMode||GameForeground.AllowsOverlays()));
         };
         lockOverlay.Click+=(_,_)=>{if(mapOverlay!=null){mapOverlay.SetLocked(!mapOverlay.Locked);lockOverlay.Content=mapOverlay.Locked?"Unlock overlay":"Lock overlay";}};
         window.Closing+=(_,e)=>{if(mapOverlay!=null&&!shuttingDown){e.Cancel=true;window.Hide();}};

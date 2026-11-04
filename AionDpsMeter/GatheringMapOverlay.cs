@@ -30,6 +30,7 @@ internal sealed class GatheringMapOverlay : Window
     bool rendering,closed;
     internal void SetForegroundAllowed(bool allowed){
         if(closed)return;
+        allowed &= OverlayHideControls.Allows(this);
         if(allowed&&!IsVisible)Show();
         else if(!allowed&&IsVisible)Hide();
     }
@@ -69,6 +70,7 @@ internal sealed class GatheringMapOverlay : Window
             var validator=new PetSpawnViewport();validator.Restore(p.Value.View);
             if(p.Key>=0&&new[]{p.Value.Left,p.Value.Top,p.Value.Width,p.Value.Height}.All(double.IsFinite)&&p.Value.Width is >=220 and <=4000&&p.Value.Height is >=180 and <=4000)saved[p.Key]=p.Value;
         }}}catch(Exception ex)when(ex is IOException or JsonException or ArgumentException or UnauthorizedAccessException){saved.Clear();LocalLog.Write("Map alignment unavailable: "+ex.Message);}
+        OverlayHideControls.Attach(this);
         saveTimer.Tick+=(_,_)=>{saveTimer.Stop();Save();};
         LocationChanged+=(_,_)=>QueueSave();SizeChanged+=(_,_)=>QueueSave();
         PreviewMouseWheel+=(_,_)=>QueueSave();

@@ -7,6 +7,7 @@ internal static class OverlayPlacement
 {
     internal static void Track(Window window, Action save)
     {
+        OverlayHideControls.Attach(window);
         var timer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(400) };
         void Save() { timer.Stop(); if (window.IsLoaded && double.IsFinite(window.Left) && double.IsFinite(window.Top)) save(); }
         void Schedule() { if (!window.IsLoaded) return; timer.Stop(); timer.Start(); }

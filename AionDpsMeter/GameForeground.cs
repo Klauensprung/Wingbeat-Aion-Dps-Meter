@@ -14,11 +14,13 @@ internal static class GameForeground
         processId > 0 && (processId == ownProcessId ||
         string.Equals(processName, "AION2", StringComparison.OrdinalIgnoreCase) ||
         string.Equals(processName, "AION2-Win64-Shipping", StringComparison.OrdinalIgnoreCase));
-    internal static bool AllowsOverlays()
+    internal static bool AllowsOverlays() => CheckForeground(true);
+    internal static bool IsGameFocused() => CheckForeground(false);
+    static bool CheckForeground(bool includeOwn)
     {
         var window = GetForegroundWindow();
         if (window == 0 || GetWindowThreadProcessId(window, out uint id) == 0 || id == 0 || id > int.MaxValue) return false;
-        if (id == Environment.ProcessId) return true;
+        if (id == Environment.ProcessId) return includeOwn;
         try {
             using var process = Process.GetProcessById((int)id);
             return IsAllowedProcess((int)id, Environment.ProcessId, process.ProcessName);
