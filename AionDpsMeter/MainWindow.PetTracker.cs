@@ -6,6 +6,7 @@ public sealed partial class MainWindow
     PetMapOverlayWindow? petMapOverlay;
     PetNearbyTracker? petNearbyTracker;
     readonly PetNearbyTracker petMapNearbyTracker = new();
+    long petGatheringRevision = -1;
     void TogglePetMap()
     {
         if (petMapOverlay != null) { petMapOverlay.Close(); return; }
@@ -30,6 +31,11 @@ public sealed partial class MainWindow
     }
     void RefreshPetTracker(bool allowed)
     {
+        PetGatheringRow[] collected; long collectionRevision;
+        lock (engine.Gate) { collected = engine.PetGathering.Rows(engine.CurrentPets()); collectionRevision = engine.PetGathering.Revision; }
+        bool collectedNow = collectionRevision != petGatheringRevision && collected.Length > 0;
+        petGatheringRevision = collectionRevision;
+        if (capture != null && collectedNow && preferences.PetGatheringAutoShow && petTrackerOverlay == null) TogglePetTracker();
         if ((petTrackerOverlay == null && petMapOverlay == null) || petNearbyTracker == null) return;
         CapturedPosition? position; PetCollectionSnapshot? collection; EstimatedPosition? prediction;
         lock (engine.Gate) { position = engine.Position.Latest; collection = engine.CurrentPets(); prediction = engine.PositionPrediction.Current; }
@@ -37,6 +43,7 @@ public sealed partial class MainWindow
         if (position?.Timestamp > now) position = null;
         var rows = petNearbyTracker.Update(position, collection, preferences.PetTrackerGoal);
         if (petTrackerOverlay != null) {
+            petTrackerOverlay.UpdateCollected(collected);
             petTrackerOverlay.Update(rows, position, now, capture != null, preferences.PetTrackerGoal);
             if (allowed && !petTrackerOverlay.IsVisible) petTrackerOverlay.Show();
             else if (!allowed && petTrackerOverlay.IsVisible) petTrackerOverlay.Hide();

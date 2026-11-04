@@ -649,6 +649,7 @@ public sealed partial class MainWindow
             var petTrackerTest = new PetTrackerOverlayWindow(preferences, () => { }, _ => { }, () => { }); opened.Add(petTrackerTest);
             try {
                 var nearby = new PetNearbyTracker().Update(sample.LocalPosition, sample.Pets, 2);
+                petTrackerTest.UpdateCollected([new(1002,"Unstable Spider","12 souls held · 13 more for level 2",3), new(1005,"Young Kailin","2 souls held · 3 more for collection",1)]);
                 petTrackerTest.Update(nearby, sample.LocalPosition, now, true, 2); petTrackerTest.Show(); petTrackerTest.UpdateLayout();
                 Render(petTrackerTest, "test-artifacts/Feature-Pet-tracker-overlay.png");
             } finally { petTrackerTest.Close(); }
@@ -736,6 +737,27 @@ public sealed partial class MainWindow
                 placementSetup?.Close();overlay?.Close();bossAlertOverlay?.Close();
                 preferences=setupPreferences;overlay=setupMeter;bossAlertOverlay=setupAlerts;meterWanted=setupWanted;SavePreferences();
             }
+            var alignmentPath = System.IO.Path.Combine(AppContext.BaseDirectory, "test-artifacts", "gather-alignment-persistence.json");
+            var calibrated = new GatheringMapOverlay(alignmentPath); opened.Add(calibrated);
+            var calibratedView = new MapViewportState(500, 600, 20000, 20000, 2.5);
+            try {
+                calibrated.UpdateMap(1010, [new(1, 500, 600, 0)]); calibrated.Show();
+                calibrated.Left = SystemParameters.VirtualScreenLeft + 40; calibrated.Top = SystemParameters.VirtualScreenTop + 40;
+                calibrated.Width = 420; calibrated.Height = 320;
+                LayoutVisuals<PetSpawnPlot>(calibrated).Single().RestoreViewport(calibratedView);
+                calibrated.SetLocked(true);
+            } finally { calibrated.Close(); }
+            var restoredAlignment = new GatheringMapOverlay(alignmentPath); opened.Add(restoredAlignment);
+            try {
+                restoredAlignment.UpdateMap(1010, [new(1, 1000, 2000, 0)]); restoredAlignment.Show();
+                if (restoredAlignment.Width != 420 || restoredAlignment.Height != 320 || restoredAlignment.Left != calibrated.Left || restoredAlignment.Top != calibrated.Top ||
+                    restoredAlignment.AlignmentView != calibratedView || !restoredAlignment.Locked || !restoredAlignment.ClickThrough)
+                    throw new InvalidOperationException("Gather overlay did not restore its saved size, position, scale and click-through lock.");
+                restoredAlignment.UpdateMap(1110, [new(1, 3000, 4000, 0)]);
+                if (restoredAlignment.AlignmentView != calibratedView || !restoredAlignment.Locked)
+                    throw new InvalidOperationException("A new gather map discarded the last overlay calibration.");
+                results.Add("PASS: gather overlay retains calibration and lock across reopen and new maps.");
+            } finally { restoredAlignment.Close(); }
             var control = new ControlOverlayWindow(preferences, () => { }); opened.Add(control);
             var partyHealthOverlay=new OverlayWindow();opened.Add(partyHealthOverlay);
             try{

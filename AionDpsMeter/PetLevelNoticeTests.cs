@@ -47,5 +47,26 @@ internal static class PetLevelNoticeTests
         rosterOnly.Apply(new("network", Network: new("pet-roster", 1000, "synthetic", JsonSerializer.SerializeToElement(new CapturedPetRoster(1005, [new(1005, 1)], [], 0)))));
         rosterOnly.Apply(new("network", Network: new("pet-added", 1001, "synthetic", JsonSerializer.SerializeToElement(new CapturedPetLevel(1005, 1)))));
         check(rosterOnly.DrainPetNotices(1002).Length == 0, "Pets already present in a captured roster are not reannounced as newly collected");
+        var gathering = new PetGatheringProgress();
+        var pet = PetCatalogue.Default.Pets.First(p => p.Level2Souls > 0);
+        PetCollectionSnapshot Progress(int? level, int? souls, long gains) => new(1000,0,true,[new(pet.Id,level,souls,gains)]);
+        var before = Progress(0,0,0); var after = Progress(0,2,2);
+        gathering.Observe(null,before,"pet-roster");
+        check(gathering.Rows(before).Length == 0,"Loading existing pet totals never opens a pickup overlay");
+        gathering.Observe(before,after,"pet-progress");
+        check(gathering.Rows(after) is [{ Gained: 2 }] && gathering.Rows(after)[0].Progress.Contains("2 souls held") &&
+            gathering.Rows(after)[0].Progress.Contains($"{Math.Max(0,pet.SummonSouls-2)} more"),"Pet pickups show held souls and the remaining collection requirement");
+        var leveled = Progress(1,3,2);
+        check(gathering.Rows(leveled)[0].Progress.Contains($"{Math.Max(0,pet.Level2Souls!.Value-3)} more for level 2"),"Collected pets automatically show the next level's remaining souls");
+        gathering.Observe(after,leveled,"pet-progress-decrease");
+        check(gathering.Rows(leveled)[0].Gained == 2,"Spending souls does not count as collecting more souls");
+        check(gathering.Rows(Progress(null,null,2))[0].Progress.Contains("Soul total unknown"),"Missing roster totals stay unknown rather than treating pickup counts as inventory");
+        gathering.Clear(); check(gathering.Rows(after).Length == 0,"Character boundaries clear recent pet collection rows");
+        var pickupEngine = new CombatEngine();
+        pickupEngine.Apply(new("local-player",Actor:new(1,"Collector",true,true,0,"Cleric",1)));
+        pickupEngine.Apply(new("network",Network:new("pet-roster",1000,"test",JsonSerializer.SerializeToElement(new CapturedPetRoster(0,[],[],0)))));
+        pickupEngine.Apply(new("network",Network:new("pet-progress",1100,"test",JsonSerializer.SerializeToElement(new { Gains = new[]{new CapturedPetProgress(pet.Id,2)} }))));
+        pickupEngine.NewFight("Next fight");
+        check(pickupEngine.PetGathering.Rows(pickupEngine.CurrentPets()) is [{ Gained:2 }],"Live pet pickup overlay receives decoded gains and survives DPS resets");
     }
 }

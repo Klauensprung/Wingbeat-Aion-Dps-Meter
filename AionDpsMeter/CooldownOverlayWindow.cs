@@ -21,6 +21,7 @@ internal sealed class CooldownOverlayWindow : Window
     readonly DispatcherTimer timer = new() { Interval = TimeSpan.FromMilliseconds(100) };
     readonly WrapPanel list = new();
     readonly LiveEffectView effectView = new();
+    readonly TrackedBuffView buffView = new();
     readonly LiveEffectTracker? effects;
     readonly Dictionary<int, Tile> rows = new();
     readonly TextBlock empty = new() { Text = "Right-click to choose skills", Foreground = Brushes.White, TextWrapping = TextWrapping.Wrap, Margin = new(8) };
@@ -46,7 +47,7 @@ internal sealed class CooldownOverlayWindow : Window
         }
         UiTheme.Apply(this, settings); Background = Brushes.Transparent;
         var shell = new Grid { Background = Brushes.Transparent }; Content = shell;
-        var content = new StackPanel(); content.Children.Add(list); content.Children.Add(effectView);
+        var content = new StackPanel(); content.Children.Add(list); content.Children.Add(buffView); content.Children.Add(effectView);
         shell.Children.Add(new ScrollViewer { Content = content, VerticalScrollBarVisibility = ScrollBarVisibility.Auto, HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled });
         shell.Children.Add(empty);
         var grip = new System.Windows.Controls.Primitives.ResizeGrip { Width = 12, Height = 12, HorizontalAlignment = HorizontalAlignment.Right, VerticalAlignment = VerticalAlignment.Bottom, Opacity = .5 };
@@ -139,9 +140,12 @@ internal sealed class CooldownOverlayWindow : Window
         list.Cursor = settings.CooldownLocked ? Cursors.Arrow : Cursors.SizeAll;
         var selected = CooldownSkillChoice.Group(settings.CooldownSkills ?? [], names).Take(24).Select(c => c.Id).ToArray();
         string style = CooldownPresentation.Style(settings.CooldownStyle);
-        MinWidth = style == "Bars" || settings.CooldownShowEffects ? 260 : 64;
+        bool buffs = settings.CooldownBuffs?.Length > 0;
+        buffView.Visibility = buffs ? Visibility.Visible : Visibility.Collapsed;
+        if (buffs) buffView.Update(BuffTracking.Rows(settings.CooldownBuffs!, effects?.Active(now) ?? [], capturing()));
+        MinWidth = style == "Bars" || settings.CooldownShowEffects || buffs ? 260 : 64;
         if (Width < MinWidth) Width = MinWidth;
-        empty.Visibility = selected.Length == 0 && !settings.CooldownShowEffects ? Visibility.Visible : Visibility.Collapsed;
+        empty.Visibility = selected.Length == 0 && !settings.CooldownShowEffects && !buffs ? Visibility.Visible : Visibility.Collapsed;
         effectView.Visibility = settings.CooldownShowEffects ? Visibility.Visible : Visibility.Collapsed;
         if (settings.CooldownShowEffects) effectView.Update(capturing() ? effects?.Active(now) ?? [] : [], names, icons);
         if (!rows.Keys.SequenceEqual(selected) || style != lastStyle) {

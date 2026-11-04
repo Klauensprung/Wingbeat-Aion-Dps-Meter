@@ -91,7 +91,7 @@ internal static class StaggerBreakTests
         check(OverlayCombatFilter.Apply(dynamicSaved, true, 0).Damage.Count == 0 && BossPersonalBest.Records(dynamicSaved).Length == 0,
             "Explicit captured non-boss classification excludes DPS filters and personal records");
         engine.Apply(new("network", Network: new("actor-position", 1300, "test", JsonSerializer.SerializeToElement(new { ActorId = 2, VisibilityReason = 1 }))));
-        check(engine.Snapshot().Actors[2].CapturedBoss == false, "Respawn clears guard-driven boss promotion");
+        check(engine.Snapshot().Actors[2].CapturedBoss == true, "Same-scene respawn preserves guard-driven boss identity");
         engine.Apply(new("network", Network: Guard(1400, true, 2))); Hit(1500);
         check(engine.Snapshot().StaggerBreaks is [{ StartedAt: 1100 }, { StartedAt: 1400 }],
             "Production ActorId spawn events reset active break correlation and allow a new break");

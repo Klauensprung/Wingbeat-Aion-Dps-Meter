@@ -13,6 +13,7 @@ internal sealed class EffectCatalogue
     internal int Count => byId.Count;
     internal string? LoadError { get; }
     internal EffectDefinition? Find(int id) => byId.GetValueOrDefault(id);
+    internal IEnumerable<EffectDefinition> Buffs => byId.Values.Where(e => e.Kind == "Buff");
     internal EffectCatalogue()
     {
         try {

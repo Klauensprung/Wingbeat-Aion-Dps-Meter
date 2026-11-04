@@ -148,6 +148,30 @@ internal static class CooldownTrackerTests
             JsonSerializer.Deserialize<Preferences>("{}")!.CooldownSkills.Length == 0, "Cooldown choices, position and options persist; old settings remain compatible");
         check(new Preferences().CooldownOneSecondEarly && JsonSerializer.Deserialize<Preferences>("{}")!.CooldownOneSecondEarly && !loaded.CooldownOneSecondEarly,
             "One-second display advance defaults on for new and existing settings, and opting out survives restart");
+        var characterSettings = new Preferences { CooldownSkills = [17100000], CooldownFallbackSeconds = new() { [17100000] = 30 } };
+        var cleric = new Actor(1, "First", true, true, 0, "Cleric", 1001) { PersistentId = 1234567890123 };
+        var chanter = new Actor(2, "Second", true, true, 0, "Chanter", 1001) { PersistentId = 1234567890124 };
+        check(!CooldownCharacterPresets.Activate(characterSettings, cleric with { PersistentId = 0 }) && characterSettings.CooldownCharacterKey == null,
+            "Cooldown presets wait for confirmed persistent identity rather than transient entity IDs");
+        check(CooldownCharacterPresets.Activate(characterSettings, cleric) && characterSettings.CooldownSkills.SequenceEqual(new[] { 17100000 }),
+            "First character inherits legacy cooldown selection");
+        check(CooldownCharacterPresets.Activate(characterSettings, chanter) && characterSettings.CooldownSkills.Length == 0 && characterSettings.CooldownFallbackSeconds.Count == 0,
+            "Another character starts with independent skills and duration estimates");
+        characterSettings.CooldownSkills = [18030000]; characterSettings.CooldownFallbackSeconds[18030000] = 45;
+        CooldownCharacterPresets.Save(characterSettings);
+        characterSettings = JsonSerializer.Deserialize<Preferences>(JsonSerializer.Serialize(characterSettings))!;
+        check(CooldownCharacterPresets.Activate(characterSettings, cleric with { Id = 900 }) && characterSettings.CooldownSkills.SequenceEqual(new[] { 17100000 }) && characterSettings.CooldownFallbackSeconds[17100000] == 30,
+            "Character cooldown preset survives restart and changed live entity ID");
+        characterSettings.CooldownSkills = []; characterSettings.CooldownFallbackSeconds.Clear();
+        CooldownCharacterPresets.Activate(characterSettings, chanter);
+        check(characterSettings.CooldownSkills.SequenceEqual(new[] { 18030000 }) && characterSettings.CooldownFallbackSeconds[18030000] == 45,
+            "Switching characters restores saved selections without shared collection mutations");
+        CooldownCharacterPresets.Activate(characterSettings, cleric);
+        check(characterSettings.CooldownSkills.Length == 0 && characterSettings.CooldownFallbackSeconds.Count == 0,
+            "An intentionally empty character preset remains empty");
+        check(CooldownCharacterPresets.Key(cleric) != CooldownCharacterPresets.Key(cleric with { Server = 1002 }) &&
+            !CooldownCharacterPresets.Activate(characterSettings, cleric with { Id = 999 }),
+            "Character presets distinguish servers and do not reload on ordinary live updates");
     }
 
     static void CheckChargeSkills(Action<bool, string> check, string temp)

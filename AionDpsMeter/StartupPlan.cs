@@ -16,6 +16,6 @@ internal sealed record StartupPlan(bool StartCapture, bool OpenMeter, bool OpenC
             : null;
         bool positioned = settings.OverlayLeft is double x && double.IsFinite(x) && settings.OverlayTop is double y && double.IsFinite(y);
         return new(message == null, settings.OpenMeterOnStartup && positioned,
-            settings.OpenCooldownsOnStartup && (settings.CooldownSkills?.Any(id => id > 0) ?? false), message) { CaptureAdapter = message == null ? selected : null };
+            settings.OpenCooldownsOnStartup && ((settings.CooldownSkills?.Any(id => id > 0) ?? false) || (settings.CooldownBuffs?.Any(id => id > 0) ?? false)), message) { CaptureAdapter = message == null ? selected : null };
     }
 }

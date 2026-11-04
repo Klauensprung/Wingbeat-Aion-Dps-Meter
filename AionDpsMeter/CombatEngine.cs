@@ -44,6 +44,7 @@ public sealed partial class CombatEngine
     long bossStateTime = -1;
     long bossScene = 1;
     readonly PetLevelNotices petNotices = new();
+    internal PetGatheringProgress PetGathering { get; } = new();
     readonly InventoryLootSession inventoryLoot = new();
     internal LootLedger Loot { get; } = new();
     internal CurrencyBalance[] CurrentCurrencies() => inventoryLoot.Currencies();
@@ -181,6 +182,7 @@ public sealed partial class CombatEngine
                     Fight.LocalResources = null;
                     FieldBosses.Clear();
                     petNotices.Clear();
+                    PetGathering.Clear();
                     var deferredInventory=inventoryLoot.Bind(local);
                     Fight.Energy = inventoryLoot.Energy;
                     BlackMarket.Follow(local);
@@ -321,7 +323,7 @@ public sealed partial class CombatEngine
                             Fight.Actors.TryGetValue(NetworkEntity(signal, "ActorId"), out var guarded) && !guarded.Player && guarded.NpcId > 0 && guarded.BossScene == bossScene) {
                             bool boss = signal.Kind == "guard"
                                 ? CapturedBoss.IsBoss(guarded) || !DungeonMaps.NamesBosses(bossMap)
-                                : DungeonMaps.IsBoss(guarded.NpcId, bossMap);
+                                : CapturedBoss.IsBoss(guarded) || DungeonMaps.IsBoss(guarded.NpcId, bossMap);
                             Fight.Actors[guarded.Id] = guarded with { CapturedBoss = boss };
                             bossStateTime = signal.Timestamp;
                         }
@@ -442,6 +444,8 @@ public sealed partial class CombatEngine
                         else Fight.Pets = PetCollection.Apply(previousPets, item.Network, Fight.LocalPlayer);
                     }
                     petNotices.Observe(previousPets, Fight.Pets, item.Network.Kind);
+                    if (item.Network.Kind is "account-login" or "local-zone") PetGathering.Clear();
+                    if (LiveIdentityReady) PetGathering.Observe(previousPets, Fight.Pets, item.Network.Kind);
                     if (item.Network.Timestamp >= skillBoundaryTime) {
                         Fight.LocalTarget = LocalTarget.Apply(Fight.LocalTarget, item.Network, skillsAwaitingIdentity || cachedLocalIdentity ? 0 : Fight.LocalPlayer);
                         Fight.PartyBossTarget = PartyBossTarget.Apply(Fight.PartyBossTarget, item.Network);
@@ -733,7 +737,7 @@ public sealed partial class CombatEngine
                 Builds = previous.Builds.Where(p => previous.Actors.GetValueOrDefault(p.Key)?.OriginalEntityId == 0).ToDictionary(p => p.Key, p => FightMetadata.Copy(p.Value)), PartyKnown = previous.PartyKnown, PartySource = previous.PartySource, PartyLeaderName = previous.PartyLeaderName };
             lastDeaths.Clear(); lastCombat = null; lastPartyCombat = null; recoveryBlocked = false; resumable = null; recoveryCasts = null; recoveryLoot = null; resumeTargets.Clear(); phaseAnchors.Clear();
             Fight.Pets = pets;
-            networkRetention.Reset();BossAlerts.Clear();
+            networkRetention.Reset();BossAlerts.ResetEncounter();
             Fight.LocalTarget = previous.LocalTarget;
             Fight.PartyBossTarget = previous.PartyBossTarget;
             Fight.LocalPosition = previous.LocalPosition;
@@ -855,7 +859,7 @@ public sealed partial class CombatEngine
                 Fight.Deaths.AddRange(current.Deaths); NetworkSnapshotRetention.Merge(Fight.Network, current.Network);
                 Gathering.Merge(Fight, current);
                 BossTelegraphs.Merge(Fight, current);
-                networkRetention.Reset();BossAlerts.Clear();
+                networkRetention.Reset();
                 lastDeaths.Clear();
                 foreach (var death in Fight.Deaths) lastDeaths[death.EntityId] = Math.Max(lastDeaths.GetValueOrDefault(death.EntityId), death.Timestamp);
                 revision++;

@@ -13,6 +13,7 @@ internal sealed class BossAlertTracker
     long boundary=-1;
     void Remember(int entity,long time){latest[entity]=time;if(latest.Count>32)latest.Remove(latest.MinBy(p=>p.Value).Key);}
     internal void Clear(long at=-1){alerts.Clear();latest.Clear();health.Clear();boundary=at;}
+    internal void ResetEncounter(){alerts.Clear();health.ResetEncounter();}
     internal void Remove(int entity){foreach(var key in alerts.Keys.Where(k=>k.Entity==entity).ToArray())alerts.Remove(key);health.Remove(entity);}
     internal void Apply(NetworkEvent message,Fight fight){
         if(message.Timestamp<0||message.Timestamp<boundary||message.Fields.ValueKind!=JsonValueKind.Object)return;

@@ -23,6 +23,9 @@ public sealed class Preferences
     public bool DecodeEu { get; set; } = true;
     public Dictionary<int, double> CooldownFallbackSeconds { get; set; } = new();
     public int[] CooldownSkills { get; set; } = [];
+    public int[] CooldownBuffs { get; set; } = [];
+    public string? CooldownCharacterKey { get; set; }
+    public Dictionary<string, CooldownCharacterPreset> CooldownCharacters { get; set; } = new();
     public bool CooldownShowReady { get; set; } = true;
     public string CooldownStyle { get; set; } = "Square";
     public bool CooldownReadyGlow { get; set; } = true;
@@ -50,6 +53,7 @@ public sealed class Preferences
     public double? FarmingOverlayTop { get; set; }
     public int FarmingTargetGoal { get; set; } = 1;
     public bool PetTrackerLocked { get; set; }
+    public bool PetGatheringAutoShow { get; set; } = true;
     public double? PetTrackerLeft { get; set; }
     public double? PetTrackerTop { get; set; }
     public int PetTrackerGoal { get; set; } = 1;
@@ -949,11 +953,29 @@ public sealed partial class MainWindow : Window
         tabs.SelectedItem = tabs.Items.Cast<TabItem>().First(t => t.Header?.ToString() == "PvP"); Refresh();
     }
     Fight LoadArchiveDetails(Fight entry) => entry.ArchiveSummary == null ? entry : store.Load(System.IO.Path.Combine(store.Root, entry.Id + ".json"));
+    CooldownSettingsWindow? cooldownEditor;
+    void RefreshCooldownCharacter()
+    {
+        Actor? actor;
+        lock (engine.Gate) actor = engine.LiveIdentityReady ? engine.Fight.Actors.GetValueOrDefault(engine.Fight.LocalPlayer) : null;
+        var key = CooldownCharacterPresets.Key(actor);
+        if (key == null || key == preferences.CooldownCharacterKey) return;
+        // An editor holds a copy of its character's selection. Never let an old
+        // dialog save that selection into the character just logged in.
+        cooldownEditor?.Close();
+        if (CooldownCharacterPresets.Activate(preferences, actor)) {
+            SavePreferences();
+            cooldownOverlay?.Refresh();
+        }
+    }
     void ConfigureCooldowns()
     {
+        if (capture != null) RefreshCooldownCharacter();
         var editor = new CooldownSettingsWindow(preferences, skills, cooldownTracker.ObservedSkills,
-            () => { SavePreferences(); cooldownOverlay?.Refresh(); }, OpenCooldownOverlay) { Owner = settingsWindow.IsActive ? settingsWindow : this, Topmost = cooldownOverlay?.IsVisible == true };
-        editor.ShowDialog();
+            () => { CooldownCharacterPresets.Save(preferences); SavePreferences(); cooldownOverlay?.Refresh(); }, OpenCooldownOverlay, () => liveEffects.Active(Environment.TickCount64)) { Owner = settingsWindow.IsActive ? settingsWindow : this, Topmost = cooldownOverlay?.IsVisible == true };
+        cooldownEditor = editor;
+        try { editor.ShowDialog(); }
+        finally { if (ReferenceEquals(cooldownEditor, editor)) cooldownEditor = null; }
     }
     void ToggleCooldownOverlay()
     {
@@ -1059,6 +1081,7 @@ public sealed partial class MainWindow : Window
     {
         if (grids.Count == 0) return;
         if (capture != null) {
+            RefreshCooldownCharacter();
             lock (engine.Gate) liveOverlaySession.Observe(engine, LiveSnapshot(), cooldownTracker, liveEffects, partyDebuffs,
                 DateTimeOffset.UtcNow.ToUnixTimeMilliseconds(), Environment.TickCount64);
             var debuffs = partyDebuffs.Poll(Environment.TickCount64, preferences.PartyDebuffThreshold, preferences.PartyDebuffAlerts);
@@ -1338,6 +1361,13 @@ public sealed partial class MainWindow : Window
             }
             Render(cooldownEditor, "test-artifacts/Cooldown-settings-compact.png");
         } finally { cooldownEditor.Close(); }
+        int buffId = EffectCatalogue.Default.Buffs.First().Id;
+        var buffPicker = new BuffTrackingSettings(cooldownTestSettings, [buffId], [new(1,buffId,0,1,120)], _ => { });
+        try { buffPicker.Show(); buffPicker.UpdateLayout(); Render(buffPicker,"test-artifacts/Cooldown-buff-picker.png"); }
+        finally { buffPicker.Close(); }
+        var buffPreview = new CooldownOverlayWindow(new Preferences { CooldownBuffs = [buffId], CooldownWidth=320, CooldownHeight=160 }, cooldownTestTracker, skills, skillIcons, () => true, () => {}, () => {});
+        try { buffPreview.Show(); buffPreview.UpdateLayout(); Render(buffPreview,"test-artifacts/Cooldown-buff-uptime.png"); }
+        finally { buffPreview.Close(); }
         var testOverlay = new OverlayWindow(skillName: id => skills.GetSkillName(id), skillIcons: skillIcons); var testPreferences = new Preferences { OverlayScope = "Party", OverlayPinLocal = true };
         testOverlay.Update(Current, testPreferences); testOverlay.Show(); testOverlay.UpdateLayout();
         var priorOverlay=overlay;bool priorWanted=meterWanted;var priorViewed=viewed;var priorPreferences=preferences;

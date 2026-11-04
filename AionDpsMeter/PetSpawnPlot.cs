@@ -8,6 +8,7 @@ internal sealed class PetSpawnPlot : FrameworkElement
 {
     readonly PetSpawnViewport viewport = new();
     internal bool OverlayOnly {get;set;}
+    internal bool ShowPointsOnOverlay {get;set;}
     internal bool FollowPlayer {get;set;}
     internal bool AlignmentGuide {get;set;}
     internal MapViewportState Viewport => viewport.Snapshot();
@@ -42,6 +43,10 @@ internal sealed class PetSpawnPlot : FrameworkElement
     internal event Action<PetSpawnPoint?>? Selected;
     internal PetSpawnPlot() { ClipToBounds = true; Focusable = true; Cursor = Cursors.Hand; Unloaded += (_, _) => tiles.Clear(); }
     internal void SetSite(PetSpawnSite? site) { terrain = site == null ? null : PetTerrain.Find(site.MapKey); tiles.Clear(); points = site?.Spawns ?? []; selected = -1; Selected?.Invoke(null); Fit(); }
+    internal void SetPoints(PetSpawnPoint[] value) {
+        if (points.AsSpan().SequenceEqual(value)) return;
+        points = value; selected = -1; InvalidateVisual();
+    }
     internal void Fit() { viewport.Fit(points); InvalidateVisual(); }
     internal void FitWithPlayer(double minimumSpan = 100) {
         viewport.Fit(player is { } p ? points.Append(new PetSpawnPoint(0, p.X, p.Y, p.Z)).ToArray() : points, minimumSpan);
@@ -69,14 +74,14 @@ internal sealed class PetSpawnPlot : FrameworkElement
             dc.DrawLine(grid, new(ActualWidth * i / 6, 0), new(ActualWidth * i / 6, ActualHeight));
             dc.DrawLine(grid, new(0, ActualHeight * i / 6), new(ActualWidth, ActualHeight * i / 6));
         }
-        for (int i = 0; i < points.Length; i++) {
+        dc.Pop();
+        }
+        if (!OverlayOnly || AlignmentGuide || ShowPointsOnOverlay) for (int i = 0; i < points.Length; i++) {
             var p = viewport.Project(points[i].X, points[i].Y, RenderSize);
             if (p.X < -8 || p.Y < -8 || p.X > ActualWidth + 8 || p.Y > ActualHeight + 8) continue;
             bool pinned = highlighted.Contains(points[i].NpcId);
             double radius = i == selected ? 7 : pinned ? 4.5 : 3.5;
             dc.DrawEllipse(i == selected || pinned ? highlight : marker, null, p, radius, radius);
-        }
-        dc.Pop();
         }
         double dpi=VisualTreeHelper.GetDpi(this).PixelsPerDip;
         if(routeLabels.Length!=route.Length||labelDpi!=dpi){

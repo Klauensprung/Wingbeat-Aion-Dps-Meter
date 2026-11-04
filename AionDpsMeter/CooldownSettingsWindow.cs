@@ -5,16 +5,18 @@ namespace AionDpsMeter.Local;
 
 internal sealed class CooldownSettingsWindow : Window
 {
-    internal CooldownSettingsWindow(Preferences settings, SkillNames names, IEnumerable<int> observed, Action saved, Action open)
+    internal CooldownSettingsWindow(Preferences settings, SkillNames names, IEnumerable<int> observed, Action saved, Action open, Func<LiveEffect[]>? activeEffects = null)
     {
         Title = "Tracked cooldowns"; Width = 920; Height = 710; MinWidth = 760; MinHeight = 540;
         WindowStartupLocation = WindowStartupLocation.CenterOwner; UiTheme.Apply(this, settings);
         var selected = CooldownSkillChoice.Group(settings.CooldownSkills ?? [], names).Take(24).ToList();
         var observedIds = observed.ToArray();
         var fallback = new Dictionary<int, double>(settings.CooldownFallbackSeconds ?? new());
+        int[] buffs = [.. settings.CooldownBuffs ?? []];
         var root = new DockPanel { Margin = new(16) }; Content = root;
         var top = new StackPanel(); DockPanel.SetDock(top, Dock.Top); root.Children.Add(top);
         top.Children.Add(UiSections.Heading("Tracked cooldowns", "Choose up to 24 skills. Charge levels share one timer; observed skills appear first."));
+        top.Children.Add(new TextBlock { Text = CooldownCharacterPresets.Description(settings), TextWrapping = TextWrapping.Wrap, Margin = new(0, 0, 0, 12) });
         var query = new TextBox { Tag = "Search skill names or IDs...", Margin = new(0, 0, 0, 12), ToolTip = "Search skill names (or look up an ID)" }; top.Children.Add(query);
         var bottom = new StackPanel { Margin = new(12, 0, 4, 0) };
         var options = new ScrollViewer { Content = bottom, Width = 280, VerticalScrollBarVisibility = ScrollBarVisibility.Auto,
@@ -37,11 +39,14 @@ internal sealed class CooldownSettingsWindow : Window
         bottom.Children.Add(ready); bottom.Children.Add(early); bottom.Children.Add(locked);
         bottom.Children.Add(new TextBlock { Text = "Overlay layout" }); bottom.Children.Add(layout); bottom.Children.Add(glow);
         bottom.Children.Add(combatOnly);
+        var buffButton = new Button { Content = $"Track buff uptime ({buffs.Length})", Margin = new(0, 12, 0, 0) };
+        buffButton.Click += (_, _) => new BuffTrackingSettings(settings, buffs, activeEffects?.Invoke() ?? [], ids => { buffs = ids; buffButton.Content = $"Track buff uptime ({buffs.Length})"; }) { Owner = this }.ShowDialog();
+        bottom.Children.Add(buffButton);
         var actions = new StackPanel { Orientation = Orientation.Horizontal, HorizontalAlignment = HorizontalAlignment.Right, Margin = new(0, 12, 0, 0) };
         DockPanel.SetDock(actions, Dock.Bottom); root.Children.Insert(1, actions);
         void Save() { settings.CooldownCombatOnly = combatOnly.IsChecked == true; settings.CooldownStyle = layout.SelectedItem?.ToString() ?? "Square"; settings.CooldownReadyGlow = glow.IsChecked == true; settings.CooldownFallbackSeconds = fallback; settings.CooldownSkills = selected.Select(c => c.Id).ToArray(); settings.CooldownShowReady = ready.IsChecked == true; settings.CooldownOneSecondEarly = early.IsChecked == true; settings.CooldownLocked = locked.IsChecked == true; saved(); }
-        var show = new Button { Content = "Save and open overlay", Margin = new(0, 0, 8, 0) }; show.Click += (_, _) => { Save(); Close(); open(); }; actions.Children.Add(show);
-        var apply = new Button { Content = "Save" }; apply.Click += (_, _) => { Save(); Close(); }; actions.Children.Add(apply);
+        var show = new Button { Content = "Save and open overlay", Margin = new(0, 0, 8, 0) }; show.Click += (_, _) => { settings.CooldownBuffs = buffs; Save(); Close(); open(); }; actions.Children.Add(show);
+        var apply = new Button { Content = "Save" }; apply.Click += (_, _) => { settings.CooldownBuffs = buffs; Save(); Close(); }; actions.Children.Add(apply);
         var body = new Grid(); body.RowDefinitions.Add(new() { Height = new GridLength(1, GridUnitType.Star) }); body.RowDefinitions.Add(new() { Height = GridLength.Auto }); body.RowDefinitions.Add(new() { Height = new GridLength(1, GridUnitType.Star) }); root.Children.Add(body);
         var available = new ListBox(); body.Children.Add(UiSections.TableSection("Available skills", available));
         var middle = new StackPanel { Orientation = Orientation.Horizontal, Margin = new(0, 8, 0, 8) }; Grid.SetRow(middle, 1); body.Children.Add(middle);

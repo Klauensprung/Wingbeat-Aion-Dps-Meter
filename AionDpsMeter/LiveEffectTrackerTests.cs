@@ -58,5 +58,21 @@ internal static class LiveEffectTrackerTests
         enteringTracker.Observe(entering, 3000, 3000);
         check(enteringTracker.Active(3000) is [{ Slot: 2, RemainingSeconds: 59 }],
             "Scene entry preserves following same-timestamp spawn effects while clearing preceding and older effects");
+        check(BuffTracking.Rows([10], enteringTracker.Active(3000), true) is [{ Time: "59s", Missing: false }],
+            "Tracked buff uptime uses effect lifetime independently of cooldown display lead");
+        check(BuffTracking.Rows([10], enteringTracker.Active(63000), true) is [{ Time: "Check buff", Missing: true }] &&
+            BuffTracking.Rows([10], [], false) is [{ Time: "Start capture", Missing: false }],
+            "Expired buffs remain visible for rebuff checks while stopped capture does not claim missing buffs");
+        check(BuffTracking.Rows([10], [new(1,10,0,1,5),new(2,10,0,2,20)], true).Single().Time == "20s" &&
+            BuffTracking.Rows([10], [new(1,10,0,1,null,true)], true).Single().Time == "Active",
+            "Duplicate buff sources use the longest active duration and indefinite effects have no invented countdown");
+        var presets = new Preferences { CooldownBuffs = [10] };
+        var owner = new Actor(1,"Buff owner",true,true,0,"Cleric",1) { PersistentId=10 };
+        CooldownCharacterPresets.Activate(presets,owner);
+        CooldownCharacterPresets.Activate(presets,owner with { PersistentId=11 });
+        check(presets.CooldownBuffs.Length == 0,"New character does not inherit another character's tracked buffs");
+        presets = JsonSerializer.Deserialize<Preferences>(JsonSerializer.Serialize(presets))!;
+        CooldownCharacterPresets.Activate(presets,owner);
+        check(presets.CooldownBuffs.SequenceEqual(new[]{10}),"Character buff selections survive save, restart and character switching");
     }
 }

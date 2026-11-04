@@ -23,14 +23,20 @@ internal sealed class BossHealthAlerts
     }
     readonly Dictionary<int,Reading> readings = new();
     internal void Clear() => readings.Clear();
+    internal void ResetEncounter()
+    {
+        // DPS segmentation is not a new network scene. Current-only HP updates
+        // still need the maximum and baseline captured before the reset.
+        foreach (var reading in readings.Values) reading.Fired.Clear();
+    }
     internal void Remove(int id) => readings.Remove(id);
     internal BossAlert? Apply(int entity, string name, long now, JsonElement fields, out bool reset)
     {
         reset = false;
         if (!profiles.Value.TryGetValue(Normalize(name), out var rules)) return null;
         if (!readings.TryGetValue(entity, out var reading)) {
-            // Do not evict active encounter state and accidentally repeat warnings.
-            if (readings.Count >= 32) return null;
+            // Expired encounters must not permanently prevent new bosses tracking.
+            if (readings.Count >= 32) readings.Remove(readings.MinBy(p => p.Value.Time).Key);
             readings[entity] = reading = new();
         }
         if (now < reading.Time) return null;
@@ -40,14 +46,18 @@ internal sealed class BossHealthAlerts
         if (hp is < 0 || max is < 0 || hp > (max ?? reading.Maximum) && (max ?? reading.Maximum) > 0) return null;
         reading.Time = now;
         if (max is > 0) {
-            if (reading.Maximum > 0 && reading.Maximum != max) reading.Percent = null;
+            if (reading.Maximum > 0 && reading.Maximum != max) {
+                reading.Percent = null;
+                reading.Fired.Clear();
+                reset = true;
+            }
             reading.Maximum = max.Value;
         }
         if (hp == null || reading.Maximum <= 0) return null;
         double percent = hp.Value * 100d / reading.Maximum;
         double? previous = reading.Percent;
         // A return to full health is an observed encounter reset, not ordinary healing.
-        if (percent >= 99 && previous is < 95) { reading.Fired.Clear(); previous = null; reset = true; }
+        if (percent >= 99 && previous is < 99) { reading.Fired.Clear(); previous = null; reset = true; }
         reading.Percent = percent;
         BossHealthProfile? selected = null;
         double selectedHp = 101;

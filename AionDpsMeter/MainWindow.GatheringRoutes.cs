@@ -48,7 +48,7 @@ public sealed partial class MainWindow
             bool tracked=resource.SelectedItem is GatherRouteChoice choice&&choice.Targets.All(id=>trackedTargets.Snapshot().Any(t=>t.Kind=="gatherable"&&t.Id==id));
             track.IsEnabled=resource.SelectedItem!=null&&!tracked;track.Content=tracked?"Resource tracked":"Track resource";
             plot.SetPlayer(null);plot.SetRoute(route);
-            if(mapOverlay!=null&&world.SelectedItem is MarkerWorld selected&&route.Length>0){mapOverlay.UpdateMap(selected.Id,route);lockOverlay.Content=mapOverlay.Locked?"Unlock overlay":"Lock overlay";}
+            if(mapOverlay!=null&&world.SelectedItem is MarkerWorld selected){mapOverlay.UpdateMap(selected.Id,route,candidates);lockOverlay.Content=mapOverlay.Locked?"Unlock overlay":"Lock overlay";}
             status.Text=route.Length==0?$"{candidates.Length} known locations. Click a marker to choose a starting point, then Start route.":$"{route.Length} route stops. The route stays visible until you hide it. Player-following uses predicted movement. Stops are not completed automatically.";
         }
         void SelectResource() {
@@ -79,7 +79,7 @@ public sealed partial class MainWindow
             activeResource=choice.Name;activeMap=selected.Id;activeLimit=(int)stopLimit.SelectedItem;
             route=FarmingRoute.Build(candidates,origin,activeLimit);
             feedback.Text="Route ready. Open Map overlay, align it with your minimap, then lock it.";
-            plot.SetSite(new(0,LocalPositionTracker.MapKey(selected.Id)??"", "Gathering route",route));
+            plot.SetSite(new(0,LocalPositionTracker.MapKey(selected.Id)??"", "Gathering route",candidates));
             Update();plot.FitWithPlayer(20000);
         };
         fit.Click+=(_,_)=>{plot.FitWithPlayer(20000);mapOverlay?.FitRoute();};
@@ -115,7 +115,7 @@ public sealed partial class MainWindow
                 resource.SelectedItem=resource.Items.OfType<GatherRouteChoice>().FirstOrDefault(c=>c.Name==activeResource);
                 activeMap=destination;chosenStart=null;
                 route=FarmingRoute.Build(nearby,position,activeLimit);
-                plot.SetSite(new(0,LocalPositionTracker.MapKey(destination)??"","Gathering route",route));
+                plot.SetSite(new(0,LocalPositionTracker.MapKey(destination)??"","Gathering route",candidates));
                 Update();plot.FitWithPlayer(20000);
                 feedback.Text="Route refreshed to the nearest resource locations at your new position.";
             };

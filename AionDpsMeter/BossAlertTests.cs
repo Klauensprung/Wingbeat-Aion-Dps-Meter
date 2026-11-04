@@ -72,6 +72,19 @@ internal static class BossAlertTests
         check(hpEngine.BossAlerts.Snapshot(3100).Length==1,"Engine feeds HP alerts without rescanning retained network history");
         hpEngine.NewFight("HP next");
         check(hpEngine.BossAlerts.Snapshot(3100).Length==0,"New fight clears HP preparation state");
+        hpEngine.Apply(new("network",Network:Event("hp",3200,new {EntityId=20,CurrentHp=1000L})));
+        hpEngine.Apply(new("network",Network:Event("hp",3300,new {EntityId=20,CurrentHp=780L})));
+        check(hpEngine.BossAlerts.Snapshot(3300).Length==1,"Retry retains maximum HP when the server only sends current health");
+        hpEngine.NewFight("Mid-pull reset");
+        hpEngine.Apply(new("network",Network:Event("hp",3400,new {EntityId=20,CurrentHp=530L})));
+        check(hpEngine.BossAlerts.Snapshot(3400).Single().Detail!.Contains("~50%"),"DPS reset retains the current baseline for the next phase crossing");
+        hpTracker.Clear();Hp(3500,970,1000);
+        hpTracker.Apply(Event("cast-start",3510,new {ActorId=20,SkillCode=123,CastingMs=5000}),hpFight);
+        Hp(3520,1000);
+        check(hpTracker.Snapshot(3520).Length==0,"Early wipe returning from 97 percent to full health clears the old cast");
+        hpTracker.Clear();Hp(3600,1000,1000);Hp(3610,780);
+        Hp(3620,2000,2000);Hp(3630,1560);
+        check(hpTracker.Snapshot(3630).Single().Started==3630,"A changed maximum HP rearms phase thresholds for the refreshed boss");
         var arriving=new BossAlertTracker();
         void Arrival(string kind,long time,object fields)=>arriving.Apply(Event(kind,time,fields),hpFight);
         Arrival("local-zone",4000,new {MapId=600002,AwaitingIdentity=true});
@@ -107,5 +120,9 @@ internal static class BossAlertTests
         Scene("cast-start",6300,new {ActorId=30,SkillCode=123,CastingMs=3000});
         check(sceneEngine.Fight.Actors[30].CapturedBoss==true&&sceneEngine.BossAlerts.Snapshot(6400).Length==1,
             "Arrival confirmation keeps fresh NPCs eligible for live boss recognition and subsequent alerts");
+        Scene("actor-position",6500,new {ActorId=30,VisibilityReason=1});
+        Scene("cast-start",6600,new {ActorId=30,SkillCode=456,CastingMs=3000});
+        check(sceneEngine.Fight.Actors[30].CapturedBoss==true&&sceneEngine.BossAlerts.Snapshot(6700).Single().Skill==456,
+            "Visibility refresh cannot demote a boss recognized by a live guard signal in the same scene");
     }
 }

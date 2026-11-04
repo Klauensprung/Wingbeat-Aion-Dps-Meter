@@ -10,8 +10,11 @@ namespace AionDpsMeter.Local;
 
 internal sealed class GatheringMapOverlay : Window
 {
-    sealed record Alignment(double Left,double Top,double Width,double Height,MapViewportState View);
-    readonly PetSpawnPlot plot=new(){OverlayOnly=true,AlignmentGuide=true,FollowPlayer=true};
+    sealed record Alignment(double Left,double Top,double Width,double Height,MapViewportState View,bool Locked=false);
+    readonly System.Windows.Threading.DispatcherTimer saveTimer=new(){Interval=TimeSpan.FromMilliseconds(400)};
+    bool restoring;
+    void QueueSave(){if(restoring||closed||map<=0)return;saveTimer.Stop();saveTimer.Start();}
+    readonly PetSpawnPlot plot=new(){OverlayOnly=true,AlignmentGuide=true,FollowPlayer=true,ShowPointsOnOverlay=true};
     readonly TextBlock heading=new(){Text="Align the center with your player | Wheel to match scale | Resize corner",Foreground=Brushes.White,Background=UiTheme.Brush("#D0101823"),Padding=new(8)};
     readonly Thumb resize=new(){Width=24,Height=24,HorizontalAlignment=HorizontalAlignment.Right,VerticalAlignment=VerticalAlignment.Bottom,Cursor=System.Windows.Input.Cursors.SizeNWSE,Background=Brushes.Gold};
     readonly string? path;
@@ -42,7 +45,8 @@ internal sealed class GatheringMapOverlay : Window
     void SetRendering(bool enabled){if(rendering==enabled)return;rendering=enabled;if(enabled)CompositionTarget.Rendering+=RenderMovement;else CompositionTarget.Rendering-=RenderMovement;}
     internal bool RenderingActive=>rendering;
     PetSpawnPoint[] currentRoute=[];
-    internal void FitRoute(){plot.SetSite(new(0,LocalPositionTracker.MapKey(map)??"", "Route alignment",currentRoute));plot.FitWithPlayer(20000);}
+    PetSpawnPoint[] selectedPoints=[];
+    internal void FitRoute(){plot.SetSite(new(0,LocalPositionTracker.MapKey(map)??"", "Route alignment",currentRoute));plot.FitWithPlayer(20000);plot.SetPoints(selectedPoints);QueueSave();}
     internal bool Locked {get;private set;}
     internal bool NativeVisible=>IsWindowVisible(new WindowInteropHelper(this).Handle);
     internal bool RouteVisible=>plot.IsVisible&&plot.RouteCount>0;
@@ -63,27 +67,34 @@ internal sealed class GatheringMapOverlay : Window
         try{if(path!=null&&File.Exists(path)&&new FileInfo(path).Length<65536){var data=JsonSerializer.Deserialize<Dictionary<int,Alignment>>(File.ReadAllText(path));if(data?.Count<=32)foreach(var p in data){
             if(p.Value==null||p.Value.View==null)continue;
             var validator=new PetSpawnViewport();validator.Restore(p.Value.View);
-            if(p.Key>0&&new[]{p.Value.Left,p.Value.Top,p.Value.Width,p.Value.Height}.All(double.IsFinite)&&p.Value.Width is >=220 and <=4000&&p.Value.Height is >=180 and <=4000)saved[p.Key]=p.Value;
+            if(p.Key>=0&&new[]{p.Value.Left,p.Value.Top,p.Value.Width,p.Value.Height}.All(double.IsFinite)&&p.Value.Width is >=220 and <=4000&&p.Value.Height is >=180 and <=4000)saved[p.Key]=p.Value;
         }}}catch(Exception ex)when(ex is IOException or JsonException or ArgumentException or UnauthorizedAccessException){saved.Clear();LocalLog.Write("Map alignment unavailable: "+ex.Message);}
-        IsVisibleChanged+=(_,_)=>SetRendering(IsVisible);
-        Closed+=(_,_)=>{closed=true;SetRendering(false);Save();};
+        saveTimer.Tick+=(_,_)=>{saveTimer.Stop();Save();};
+        LocationChanged+=(_,_)=>QueueSave();SizeChanged+=(_,_)=>QueueSave();
+        PreviewMouseWheel+=(_,_)=>QueueSave();
+        SourceInitialized+=(_,_)=>SetLocked(Locked);
+        IsVisibleChanged+=(_,_)=>{SetRendering(IsVisible);if(!IsVisible)Save();};
+        Closed+=(_,_)=>{closed=true;saveTimer.Stop();SetRendering(false);Save();};
     }
-    internal void UpdateMap(int world,PetSpawnPoint[] route) {
-        if(map!=world){Save();prediction.Clear();map=world;SetLocked(false);plot.SetSite(new(0,LocalPositionTracker.MapKey(world)??"", "Route alignment",route));plot.FitWithPlayer(20000);
-            if(saved.TryGetValue(world,out var a)){Width=a.Width;Height=a.Height;
+    internal void UpdateMap(int world,PetSpawnPoint[] route,PetSpawnPoint[]? gatherables=null) {
+        if(map!=world){Save();restoring=true;try{prediction.Clear();map=world;plot.SetSite(new(0,LocalPositionTracker.MapKey(world)??"", "Route alignment",route));plot.FitWithPlayer(20000);
+            if(saved.TryGetValue(world,out var a)||saved.TryGetValue(0,out a)){Width=a.Width;Height=a.Height;
                 Left=Math.Clamp(a.Left,SystemParameters.VirtualScreenLeft,SystemParameters.VirtualScreenLeft+Math.Max(0,SystemParameters.VirtualScreenWidth-Width));
-                Top=Math.Clamp(a.Top,SystemParameters.VirtualScreenTop,SystemParameters.VirtualScreenTop+Math.Max(0,SystemParameters.VirtualScreenHeight-Height));plot.RestoreViewport(a.View);}}
-        currentRoute=route;plot.SetRoute(route);plot.Visibility=Visibility.Visible;
+                Top=Math.Clamp(a.Top,SystemParameters.VirtualScreenTop,SystemParameters.VirtualScreenTop+Math.Max(0,SystemParameters.VirtualScreenHeight-Height));plot.RestoreViewport(a.View);SetLocked(a.Locked);}
+            else SetLocked(false);
+        }finally{restoring=false;}}
+        currentRoute=route;selectedPoints=gatherables??route;plot.SetPoints(selectedPoints);plot.SetRoute(route);plot.Visibility=Visibility.Visible;
     }
     internal void SetLocked(bool value) {
         Locked=value;plot.AlignmentGuide=!value;plot.IsHitTestVisible=!value;heading.Visibility=resize.Visibility=value?Visibility.Hidden:Visibility.Visible;
         var handle=new WindowInteropHelper(this).Handle;if(handle!=IntPtr.Zero){int style=GetStyle(handle,-20);SetStyle(handle,-20,value?style|0x20:style&~0x20);}
-        plot.InvalidateVisual();if(value)Save();
+        plot.InvalidateVisual();Save();
     }
     void Save(){
-        if(map<=0||path==null)return;
-        saved[map]=new(Left,Top,ActualWidth>0?ActualWidth:Width,ActualHeight>0?ActualHeight:Height,plot.Viewport);
-        if(saved.Count>32)saved.Remove(saved.Keys.First());
+        if(restoring||map<=0||path==null||!double.IsFinite(Left)||!double.IsFinite(Top))return;
+        saved[map]=new(Left,Top,Width,Height,plot.Viewport,Locked);
+        saved[0]=saved[map];
+        if(saved.Count>32)saved.Remove(saved.Keys.First(key=>key!=0&&key!=map));
         try{Directory.CreateDirectory(Path.GetDirectoryName(Path.GetFullPath(path))!);File.WriteAllText(path+".tmp",JsonSerializer.Serialize(saved));File.Move(path+".tmp",path,true);}
         catch(Exception ex)when(ex is IOException or UnauthorizedAccessException){LocalLog.Write("Could not save map alignment: "+ex.Message);}
     }
