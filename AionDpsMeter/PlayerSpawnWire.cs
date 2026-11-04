@@ -13,8 +13,8 @@ internal static class PlayerSpawnWire
         if (entity <= 0 || (flags & ~0x7ffffffU) != 0) throw new InvalidDataException("Invalid player spawn header.");
         byte desc = r.Byte(); if ((desc & ~31) != 0) throw new InvalidDataException("Unknown player description flags.");
         string name = (desc & 1) != 0 ? Text(ref r) : ""; int template = unchecked((int)r.U32());
-        if ((desc & 2) != 0) r.Byte(); if ((desc & 4) != 0) r.Byte();
-        if ((desc & 8) != 0) r.Take(5); if ((desc & 16) != 0) r.Byte();
+        byte race = (desc & 2) != 0 ? r.Byte() : (byte)0; if ((desc & 4) != 0) r.Byte();
+        if ((desc & 8) != 0) r.Take(5); byte overrideRace = (desc & 16) != 0 ? r.Byte() : (byte)0;
         var state = CharacterStateWire.Read(ref r);
         ushort server = (flags & 1) != 0 ? r.U16() : (ushort)0;
         string guild = (flags & 2) != 0 ? PlayerMetadata.Guild(ref r) : "";
@@ -41,7 +41,7 @@ internal static class PlayerSpawnWire
         int cp = checked((int)r.U64()); r.Byte(); r.Bit();
         if (template <= 0 || r.Remaining != 0) throw new InvalidDataException("Invalid player spawn trailer.");
         return new(new(entity, string.IsNullOrWhiteSpace(name) ? $"Entity {entity}" : name, true, false, cp, CapturedClass.Name(template), server)
-            { PersistentId = persistentId, CpSource = "Player spawn packet", Metadata = new(level, guild, timestamp, timestamp, gearScore, timestamp) }, state, effects, stats, equipment) { Reason = reason };
+            { OverrideRace = overrideRace, Race = race switch { 1 => "light", 2 => "dark", _ => null }, PersistentId = persistentId, CpSource = "Player spawn packet", Metadata = new(level, guild, timestamp, timestamp, gearScore, timestamp) }, state, effects, stats, equipment) { Reason = reason };
     }
     internal static VisibleItem[] Equipment(ref WireReader r)
     {

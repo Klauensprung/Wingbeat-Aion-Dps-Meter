@@ -607,6 +607,8 @@ public sealed partial class CombatEngine
                     CpSource = actor.Cp > 0 || actor.CpSource is "Captured party" or "Player spawn packet" or "Local character packet" or "Local CP update" ? actor.CpSource : previous.CpSource,
                     CharacterId = actor.CharacterId > 0 ? actor.CharacterId : previous.CharacterId,
                     PersistentId = actor.PersistentId > 0 ? actor.PersistentId : previous.PersistentId,
+                    Race = actor.Race ?? previous.Race,
+                    OverrideRace = actor.OverrideRace ?? previous.OverrideRace,
                     Server = actor.Server > 0 ? actor.Server : previous.Server, NpcId = actor.NpcId > 0 ? actor.NpcId : previous.NpcId,
                     OwnerId = actor.OwnerId ?? previous.OwnerId,
                     CapturedBoss = actor.CapturedBoss ?? (previous.BossScene == bossScene ? previous.CapturedBoss : null),

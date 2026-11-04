@@ -11,6 +11,8 @@ public sealed record Actor(int Id, string Name, bool Player, bool Party, int Cp,
     public int OriginalEntityId { get; init; }
     public string CachedJob { get; init; } = "Unknown";
     public int NpcId { get; init; }
+    public string? Race { get; init; }
+    public byte? OverrideRace { get; init; }
     public bool? CapturedBoss { get; init; }
     internal long BossScene { get; init; }
     public int? OwnerId { get; init; }

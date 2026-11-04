@@ -15,7 +15,9 @@ internal sealed record PartyHealthRow(int Entity, string Name, double? Percent, 
 
 internal sealed class PartyHealthView : StackPanel
 {
-    sealed record Row(Border Card, Grid Gauge, Border Fill, TextBlock Name, TextBlock Health, TextBlock Debuffs);
+    sealed record Row(Border Card, Grid Gauge, Border Fill, Border RecoveryFill, TextBlock Name, TextBlock Health, TextBlock Debuffs);
+    static readonly Brush NormalRecovery = UiTheme.Brush("#7095F5A6");
+    static readonly Brush DebuffedRecovery = UiTheme.Brush("#7055A66F");
     readonly Dictionary<int, Row> rows = new();
     readonly TextBlock empty = new() { Text="Waiting for your character and party…", Margin=new(12), TextWrapping=TextWrapping.Wrap };
     internal int RowCount => rows.Count;
@@ -54,7 +56,7 @@ internal sealed class PartyHealthView : StackPanel
                 var gauge=new Grid{MinHeight=34,Background=UiTheme.Brush("#80232D3B")};
                 gauge.ColumnDefinitions.Add(new());gauge.ColumnDefinitions.Add(new());gauge.ColumnDefinitions.Add(new());
                 var fill=new Border();gauge.Children.Add(fill);
-                var recoveryFill=new Border { Background=UiTheme.Brush("#7095F5A6") };Grid.SetColumn(recoveryFill,1);gauge.Children.Add(recoveryFill);
+                var recoveryFill=new Border { Background=NormalRecovery };Grid.SetColumn(recoveryFill,1);gauge.Children.Add(recoveryFill);
                 var labels=new Grid{Margin=new(10,6,10,6)};Grid.SetColumnSpan(labels,3);
                 labels.ColumnDefinitions.Add(new());labels.ColumnDefinitions.Add(new(){Width=GridLength.Auto});
                 var name=new TextBlock{Foreground=Brushes.White,FontWeight=FontWeights.SemiBold,TextTrimming=TextTrimming.CharacterEllipsis,Margin=new(0,0,10,0)};
@@ -63,7 +65,7 @@ internal sealed class PartyHealthView : StackPanel
                 var debuffs=new TextBlock{Foreground=UiTheme.Brush("#FFADB6"),TextWrapping=TextWrapping.Wrap,Margin=new(10,4,10,6),FontSize=11};
                 var content=new StackPanel();content.Children.Add(gauge);content.Children.Add(debuffs);
                 var card=new Border{Child=content,Background=UiTheme.Brush("#B010151F"),Margin=new(7,3,7,3),CornerRadius=new(4)};
-                rows[item.Entity]=row=new(card,gauge,fill,name,hp,debuffs);Children.Add(card);
+                rows[item.Entity]=row=new(card,gauge,fill,recoveryFill,name,hp,debuffs);Children.Add(card);
             }
             if(Children.IndexOf(row.Card)!=i){Children.Remove(row.Card);Children.Insert(i,row.Card);}
             double fraction=(item.Percent??0)/100;
@@ -71,7 +73,9 @@ internal sealed class PartyHealthView : StackPanel
             double recoveryFraction=item.Unavailable?0:Math.Clamp(item.RecoveryPercent/100,0,1-fraction);
             row.Gauge.ColumnDefinitions[1].Width=new(recoveryFraction,GridUnitType.Star);
             row.Gauge.ColumnDefinitions[2].Width=new(Math.Max(0,1-fraction-recoveryFraction),GridUnitType.Star);
-            var color=item.Unavailable?Color.FromRgb(112,121,133):HealthColor(item.Percent);
+            bool debuffed=item.Debuffs.Length>0;
+            var color=item.Unavailable?Color.FromRgb(112,121,133):debuffed?Color.FromRgb(32,112,65):HealthColor(item.Percent);
+            row.RecoveryFill.Background=debuffed?DebuffedRecovery:NormalRecovery;
             var fillColor=Color.FromArgb(184,color.R,color.G,color.B);
             if(row.Fill.Background is not SolidColorBrush existing||existing.Color!=fillColor){
                 var brush=new SolidColorBrush(fillColor);brush.Freeze();row.Fill.Background=brush;

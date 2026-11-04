@@ -42,3 +42,13 @@ internal static class GameCursorState
         return(valid,valid&&(info.Flags&1)!=0&&info.Cursor!=0,Down(0x12)||Down(0xA4)||Down(0xA5),Down(1)||Down(2));
     }
 }
+
+internal static class OverlayInputTrace
+{
+    static readonly long until=Environment.GetEnvironmentVariable("WINGBEAT_ALT_TRACE")=="1"?Environment.TickCount64+180000:0;
+    static int remaining=400;
+    internal static void Write(string message)
+    {
+        if(Environment.TickCount64<until&&remaining-->0)LocalLog.Write("Overlay input trace: "+message);
+    }
+}

@@ -24,20 +24,19 @@ public sealed partial class MainWindow
         }
         bool game=GameForeground.IsGameFocused();
         var cursor=game?GameCursorState.Read():default;
-        bool hidden=gameMenuVisibility.Observe(Environment.TickCount64,game,cursor.Valid,cursor.Visible,cursor.Alt||overlayAltInput?.Down==true,cursor.MouseDown,classic,game&&cursor.Visible&&OverlayHideControls.PointerOverOverlay());
-        string trace=$"game={game} cursor={cursor.Visible} valid={cursor.Valid} asyncAlt={cursor.Alt} listenerAlt={overlayAltInput?.Down} menuHidden={hidden} manualHidden={overlaysHidden}";
+        bool hovered=game&&cursor.Visible&&OverlayHideControls.PointerOverOverlay();
+        bool hidden=gameMenuVisibility.Observe(Environment.TickCount64,game,cursor.Valid,cursor.Visible,cursor.Alt,cursor.MouseDown,classic,hovered);
+        string trace=$"game={game} cursor={cursor.Visible} valid={cursor.Valid} asyncAlt={cursor.Alt} hover={hovered} armed={gameMenuVisibility.Armed} classic={classic} menuHidden={hidden} manualHidden={overlaysHidden}";
         if(trace!=lastMenuTrace){lastMenuTrace=trace;OverlayInputTrace.Write(trace);}
         return hidden;
     }
     OverlayHotkey? overlayHotkey;
-    OverlayAltInput? overlayAltInput;
     System.Windows.Controls.TextBlock? overlayHotkeyStatus;
     void ToggleOverlayVisibility(){overlaysHidden=!overlaysHidden;RefreshCooldownVisibility();}
     void InitializeOverlayHotkey()
     {
         if(demoMode)return;
         overlayHotkey ??= new(this,ToggleOverlayVisibility);
-        overlayAltInput ??= new(this,RefreshCooldownVisibility);
         ApplyOverlayHotkey();
     }
     void ApplyOverlayHotkey()
@@ -54,6 +53,7 @@ public sealed partial class MainWindow
         refreshGatheringMapVisibility?.Invoke(foregroundAllowed&&!suppressOverlays);
         RefreshBossAlerts(foregroundAllowed&&!suppressOverlays&&OverlayHideControls.Allows(bossAlertOverlay));
         bool allowed = !suppressOverlays && CooldownVisibility.ForegroundAllows(preferences.OverlaysGameOnly,foregroundAllowed);
+        RefreshNearbyEnemies(allowed&&OverlayHideControls.Allows(nearbyEnemiesOverlay));
         RefreshPingOverlay(allowed&&OverlayHideControls.Allows(pingOverlay));
         RefreshLootOverlay(allowed&&OverlayHideControls.Allows(lootOverlay));
         RefreshFarmingOverlay(allowed&&OverlayHideControls.Allows(farmingOverlay));

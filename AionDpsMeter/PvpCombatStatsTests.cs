@@ -24,6 +24,12 @@ internal static class PvpCombatStatsTests
         Death(2, 1, 21000);
         check(PvpAnalysis.Build(f).Combatants.Single(c => c.Id == 1).ConfirmedKills == 0,
             "A kill packet without a corresponding captured death does not manufacture a kill");
+        f.Deaths.Add(new(2,21000));
+        var saved=JsonSerializer.Deserialize<Fight>(JsonSerializer.Serialize(f.ForStorage()))!;
+        check(PvpAnalysis.Build(saved).Combatants.Single(c=>c.Id==1).ConfirmedKills==1 &&
+            PvpAnalysis.Build(saved.ForStorage()).Combatants.Single(c=>c.Id==1).ConfirmedKills==1,
+            "Your confirmed player kills survive compact save/load and repeated saves without double counting");
+        f.Deaths.RemoveAll(d=>d.EntityId==2);
         f.Actors[3] = new(3, "Second opponent", true, false, 0, "Ranger", 1);
         f.Damage.Add(new() { ActorId = 3, TargetId = 1, Damage = 1, Timestamp = 19000 }); Death(1, 3, 20000);
         check(PvpAnalysis.Build(f).Combatants.All(c => c.ConfirmedKills == 0),

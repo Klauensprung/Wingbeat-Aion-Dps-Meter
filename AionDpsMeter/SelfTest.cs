@@ -172,6 +172,7 @@ public static class SelfTest
             ControlEffectTests.Run(Check);
             PartyDebuffTests.Run(Check);
             PartyHealthTests.Run(Check);
+            NearbyEnemiesTests.Run(Check);
             OverlayVisibilityTests.Run(Check);
             PvpCombatStatsTests.Run(Check);
             PvpOpponentTests.Run(Check);

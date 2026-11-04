@@ -17,7 +17,7 @@ internal static class LocalCharacterWire
         byte race = (detail & 2) != 0 ? r.Byte() : (byte)0;
         int level = checked((int)r.U32()), gearScore = checked((int)r.U32()); r.Take(28); byte gender = (detail & 4) != 0 ? r.Byte() : (byte)0;
         r.Take(Count(ref r, 256) * 14); r.Take(Count(ref r, 256) * 13);
-        r.Take(17); if ((detail & 8) != 0) r.Byte();
+        r.Take(17); byte overrideRace = (detail & 8) != 0 ? r.Byte() : (byte)0;
         if ((detail & 16) != 0) Points(ref r); if ((detail & 32) != 0) Points(ref r);
         var state = CharacterStateWire.Read(ref r);
         string guild = (flags & 1) != 0 ? PlayerMetadata.Guild(ref r) : "";
@@ -50,7 +50,7 @@ internal static class LocalCharacterWire
         if ((flags & 536870912) != 0) r.Take(Count(ref r, 4096) * 8);
         if (string.IsNullOrWhiteSpace(name) || server == 0 || template <= 0 || map <= 0 || r.Remaining != 0)
             throw new InvalidDataException("Invalid local character record.");
-        return new(new(entity, name, true, false, cp, CapturedClass.Name(template), server) { PersistentId = persistentId, CpSource = "Local character packet", Metadata = new(level, guild, timestamp, timestamp, gearScore, timestamp) },
+        return new(new(entity, name, true, false, cp, CapturedClass.Name(template), server) { OverrideRace = overrideRace, Race = race switch { 1 => "light", 2 => "dark", _ => null }, PersistentId = persistentId, CpSource = "Local character packet", Metadata = new(level, guild, timestamp, timestamp, gearScore, timestamp) },
             state, map, stats, effects, equipment, new(entity, race == 0 ? null : race == 1 ? "light" : "dark", gender == 0 ? null : gender == 1 ? "male" : "female", appearance, state.WingId, state.WingSkinId));
     }
     static void Pins(ref WireReader r)

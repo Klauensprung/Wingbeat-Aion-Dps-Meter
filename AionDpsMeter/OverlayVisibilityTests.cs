@@ -8,21 +8,12 @@ internal static class OverlayVisibilityTests
     internal static void Run(Action<bool, string> check)
     {
         var menus=new GameMenuVisibility();
-        var physicalAlt=new AltHeldState();
-        var hookAlt=new AltHeldState();
-        hookAlt.ApplyHook(0xA4,0);
-        check(!hookAlt.ApplyHook(0xA4,0x90)&&hookAlt.Down,"Synthetic Alt release cannot cancel physical Left Alt override");
-        hookAlt.ApplyHook(0xA5,1);hookAlt.ApplyHook(0xA4,0x80);
-        check(hookAlt.Down&&hookAlt.ApplyHook(0xA5,0x81)&&!hookAlt.Down,"Physical releases clear each Alt key independently");
-        check(!hookAlt.ApplyHook(0xA4,0x10)&&!hookAlt.Down,"Synthetic Alt press cannot latch the override");
-        check(physicalAlt.Apply(0x12,false,false)&&physicalAlt.Down&&!physicalAlt.Apply(0x12,false,false),
-            "Raw Left Alt press is retained and autorepeat does not toggle the override");
-        physicalAlt.Apply(0x12,true,false);physicalAlt.Apply(0x12,false,true);
-        check(physicalAlt.Down&&physicalAlt.Apply(0x12,true,true)&&!physicalAlt.Down,"Both Alt keys are tracked independently until both are released");
-        physicalAlt.Apply(0x41,false,false);
-        check(!physicalAlt.Down,"Raw Alt observer ignores unrelated keyboard input");
-        physicalAlt.Apply(0xA4,false,false);menus.Observe(0,true,true,false,false,false);menus.Observe(100,true,true,true,false,false);menus.Observe(500,true,true,true,false,false);
-        check(!menus.Observe(600,true,true,true,physicalAlt.Down,false),"Physical Alt overrides a detected menu when asynchronous Alt polling reports released");
+        menus.Observe(0,true,true,false,false,false);
+        menus.Observe(100,true,true,true,true,false);
+        menus.Observe(200,false,false,false,false,false);
+        menus.Observe(300,true,true,true,false,false);
+        check(!menus.Observe(2299,true,true,true,false,false)&&menus.Observe(2300,true,true,true,false,false),
+            "An Alt press before switching focus cannot keep menu hiding disabled after the current key state is released");
         menus.Reset();
         check(!menus.Observe(0,true,true,true,false,false)&&!menus.Observe(10000,true,true,true,false,false)&&!menus.Armed,
             "Always-visible classic-style cursors do not arm automatic menu hiding");

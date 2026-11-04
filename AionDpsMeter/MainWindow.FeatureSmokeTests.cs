@@ -47,6 +47,8 @@ public sealed partial class MainWindow
                 if(hidePreview.IsVisible||OverlayHideControls.Allows(hidePreview))throw new InvalidOperationException("Live refresh defeated overlay snooze.");
                 results.Add("PASS Global hide/show and per-overlay 60-second snooze survive visibility refreshes");
             } finally { hidePreview.Close();pingOverlay=oldPing;overlaysHidden=oldHidden; }
+            var enemiesPreview=new NearbyEnemiesOverlayWindow(preferences,()=>{});
+            try { enemiesPreview.Update([new(2,"Stronger enemy",125000,3200){Job="Cleric",Tagged=true,HeightDifference=350,LocalCp=100000,HealthPercent=65},new(3,"Equal enemy",100000,2400){Job="Ranger",HeightDifference=-350,LocalCp=100000,HealthPercent=100},new(4,"Weaker enemy",90000,1800){Job="Sorcerer",LocalCp=100000,HealthPercent=25},new(5,"Enemy without health",0,null)],"No enemies");enemiesPreview.Show();enemiesPreview.UpdateLayout();Render(enemiesPreview,"test-artifacts/Nearby-enemies.png"); } finally { enemiesPreview.Close(); }
             long now = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
             var sample = FeatureTests.Sample(); sample.Label = "Synthetic feature preview";
             sample.Actors[sample.LocalPlayer] = sample.Actors[sample.LocalPlayer] with { CharacterId = 30, Server = 1 };

@@ -35,6 +35,11 @@ public sealed class Preferences
     public bool HideOverlaysInGameMenus { get; set; } = true;
     public int OverlayHideKey { get; set; } = 0x79;
     public int OverlayHideModifiers { get; set; } = 6;
+    public double NearbyEnemiesWidth { get; set; } = 330;
+    public double NearbyEnemiesHeight { get; set; } = 400;
+    public bool NearbyEnemiesLocked { get; set; }
+    public double? NearbyEnemiesLeft { get; set; }
+    public double? NearbyEnemiesTop { get; set; }
     public bool PingLocked { get; set; }
     public double? PingLeft { get; set; }
     public double? PingTop { get; set; }
@@ -262,6 +267,7 @@ public sealed partial class MainWindow : Window
         overlayControls.Children.Add(IconButton(UiIcon.Chart, "Gathering routes", ShowGatheringRoutes));
         OverlayAction(UiIcon.Chart, "Farming overlay", ToggleFarmingOverlay, () => farmingOverlay != null);
         OverlayAction(UiIcon.Catalogue, "Pet farming", TogglePetTracker, () => petTrackerOverlay != null);
+        OverlayAction(UiIcon.Boss, "Nearby enemies", ToggleNearbyEnemies, () => nearbyEnemiesOverlay != null);
         OverlayAction(UiIcon.Network, "Ping overlay", TogglePingOverlay, () => pingOverlay != null);
         OverlayAction(UiIcon.Boss,"Boss alerts",()=>ConfigureBossAlerts(!preferences.BossAlertsEnabled,false),()=>preferences.BossAlertsEnabled);
         OverlayAction(UiIcon.Cooldowns, "Control alerts", () => ConfigureControlAlerts(!preferences.ControlAlertsEnabled, true), () => preferences.ControlAlertsEnabled);
@@ -397,12 +403,12 @@ public sealed partial class MainWindow : Window
         timer.Start();
         SourceInitialized += (_,_) => InitializeOverlayHotkey();
         Loaded += (_,_) => InitializeOverlayHotkey();
-        Closed += (_,_) => {overlayAltInput?.Dispose();overlayHotkey?.Dispose();};
+        Closed += (_,_) => {overlayHotkey?.Dispose();};
         Closing += (_, e) => {
             if (shuttingDown) return;
             try { capture?.Dispose(); engine.StopTraining(DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()); LogCapture(); capture = null; FinishAutosave(); engine.SaveCompleted(store); var f = LiveSnapshot(); if (f.HasRecordedData) SaveFight(f); playerProfiles.Save(); dutyMissions.Save(); accountCharacters.Save(); shopPurchases.Save(); crafting.Save(); gatheringTracking.Save(); killTracking.Save(); lootTracking.Save(); soulTracking.Save(); petRegistrationTracking.Save(); petLevelTracking.Save(); engine.SaveVisibilityMemory(); engine.FieldBossCache.Save(); }
             catch (Exception ex) { e.Cancel = true; notice = "Could not save before closing: " + ex.Message; Refresh(); return; }
-            shuttingDown = true; secondMeter?.Close(); archiveLoading?.Cancel(); timer.Stop(); settingsWindow.Shutdown(); reminderToast?.Close(); reminderSound.Close(); windowsNotifications?.Dispose(); bossAlertOverlay?.Close(); controlOverlay?.Close(); ticketOverlay?.Close(); currencyOverlay?.Close(); lootOverlay?.Close(); farmingOverlay?.Close(); petTrackerOverlay?.Close(); petMapOverlay?.Close(); pingOverlay?.Close(); cooldownOverlay?.Close(); overlay?.Close(); LocalLog.Write("Application closed.");
+            shuttingDown = true; secondMeter?.Close(); archiveLoading?.Cancel(); timer.Stop(); settingsWindow.Shutdown(); reminderToast?.Close(); reminderSound.Close(); windowsNotifications?.Dispose(); bossAlertOverlay?.Close(); controlOverlay?.Close(); ticketOverlay?.Close(); currencyOverlay?.Close(); lootOverlay?.Close(); farmingOverlay?.Close(); petTrackerOverlay?.Close(); petMapOverlay?.Close(); pingOverlay?.Close(); nearbyEnemiesOverlay?.Close(); cooldownOverlay?.Close(); overlay?.Close(); LocalLog.Write("Application closed.");
         };
     }
     static TextBlock Label(string text) => new() { Text = text, VerticalAlignment = VerticalAlignment.Center, Margin = new(6) };

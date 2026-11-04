@@ -12,7 +12,7 @@ internal static class OverlayScale
     internal static readonly (string Key,string Label)[] Options = [
         ("DPS1","DPS1"),("DPS2","DPS2"),(nameof(CooldownOverlayWindow),"Cooldowns and buff uptime"),
         (nameof(BossAlertOverlayWindow),"Boss warnings"),(nameof(ControlOverlayWindow),"Control alerts"),
-        (nameof(PingOverlayWindow),"Ping"),(nameof(LootOverlayWindow),"Loot history"),
+        (nameof(NearbyEnemiesOverlayWindow),"Nearby enemies"),(nameof(PingOverlayWindow),"Ping"),(nameof(LootOverlayWindow),"Loot history"),
         (nameof(FarmingOverlayWindow),"Farming"),(nameof(CurrencyOverlayWindow),"Currency"),
         (nameof(TicketOverlayWindow),"Tickets"),(nameof(PetTrackerOverlayWindow),"Pet gathering"),
         (nameof(PetMapOverlayWindow),"Pet map"),(nameof(GatheringMapOverlay),"Gathering map")];
