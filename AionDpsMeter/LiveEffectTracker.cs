@@ -11,8 +11,10 @@ internal sealed class LiveEffectTracker
     int processed;
     long discardedBefore = -1;
     long sceneStartedAt = -1;
+    int map;
+    long zoneTime = -1;
     internal int RetainedSlots => slots.Count;
-    internal void Reset() { slots.Clear(); fightId = identity = null; processed = 0; discardedBefore = sceneStartedAt = -1; }
+    internal void Reset() { slots.Clear(); fightId = identity = null; processed = 0; discardedBefore = sceneStartedAt = zoneTime = -1; map = 0; }
     void Put(int slot, Entry entry)
     {
         if (!slots.ContainsKey(slot) && slots.Count >= 1024) {
@@ -38,7 +40,15 @@ internal sealed class LiveEffectTracker
                 e.Kind == "entity-removed" && Number(e.Fields, "EntityId") == fight.LocalPlayer)) {
                 // A character spawn emits local-zone before its effects at the
                 // same timestamp. Preserve that stream order at the scene boundary.
-                if (e.Kind == "local-zone") sceneStartedAt = Math.Max(sceneStartedAt, e.Timestamp);
+                if (e.Kind == "local-zone") {
+                    if (e.Timestamp < zoneTime) continue;
+                    int nextMap = (int)(Number(e.Fields,"MapId") ?? 0);
+                    bool preparing = e.Fields.TryGetProperty("AwaitingIdentity", out var value) && value.ValueKind == JsonValueKind.True;
+                    bool duplicate = zoneTime >= 0 && nextMap == map && (!preparing || e.Timestamp == zoneTime);
+                    zoneTime = e.Timestamp; map = nextMap;
+                    if (duplicate) continue;
+                    sceneStartedAt = Math.Max(sceneStartedAt, e.Timestamp);
+                }
                 else discardedBefore = Math.Max(discardedBefore, e.Timestamp);
                 foreach (int removedSlot in slots.Where(p => p.Value.Timestamp <= e.Timestamp).Select(p => p.Key).ToArray()) slots.Remove(removedSlot);
                 continue;

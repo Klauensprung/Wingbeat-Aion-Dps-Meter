@@ -74,5 +74,31 @@ internal static class LiveEffectTrackerTests
         presets = JsonSerializer.Deserialize<Preferences>(JsonSerializer.Serialize(presets))!;
         CooldownCharacterPresets.Activate(presets,owner);
         check(presets.CooldownBuffs.SequenceEqual(new[]{10}),"Character buff selections survive save, restart and character switching");
+        var variants = EffectCatalogue.Default.Buffs.Where(b => b.Name == "Tempered Soul").Select(b => b.Id).Order().ToArray();
+        check(variants.Length >= 2 && BuffChoice.Group(variants).Length == 1 && BuffChoice.Search([],variants[1].ToString()).Any(b => b.Id == variants[0]),
+            "Buff variants share one choice and searches by alternate ID resolve to that choice");
+        check(BuffTracking.Rows(variants,[new(1,variants[1],0,1,45)],true) is [{Time:"45s",Missing:false}],
+            "Existing selections of either buff ID track the active alternate variant without duplicate rows");
+        check(BuffTracking.Rows([variants[1]],[new(1,variants[0],0,1,45),new(2,variants[1],0,2,60)],true) is [{Time:"60s"}],
+            "Grouped buffs retain uptime while any matching variant remains active");
+        check(BuffChoice.Group([987654321,987654322]).Length == 2 && BuffChoice.Resolve(variants[0]).Id != BuffChoice.Resolve(130).Id,
+            "Unrelated and unknown buff IDs remain distinct");
+        check(BuffTracking.Rows([181600501,181600511],[new(1,181600011,18160001,1,1)],true) is [{Name:"Sprint Mantra",Missing:false}] &&
+            BuffTracking.Rows([181900501,181900511],[new(1,181900211,18190021,1,1)],true) is [{Name:"Undefeated Mantra",Missing:false}],
+            "Captured Sprint and Undefeated Mantra pulse IDs match either named catalogue selection");
+        check(BuffTracking.Rows([181900511],[new(1,181900201,18190020,1,null,true),new(2,181900411,18190041,1,1)],true) is [{Name:"Undefeated Mantra",Time:"Active"}] &&
+            BuffChoice.Search([],"Sprint Mantra").Length == 1 && BuffChoice.Search([],"Undefeated Mantra").Length == 1,
+            "Mantra persistent and pulsing rank variants collapse into one active buff and one picker entry");
+        check(BuffChoice.Resolve(111100001).Name == "Focused Block" && BuffChoice.Resolve(111100001).Id == BuffChoice.Resolve(130).Id &&
+            BuffChoice.Resolve(10000101).Name == "Protective Shield",
+            "Online alias list repairs verified placeholders without overwriting conflicting existing names");
+        entering.Network.Add(new("local-zone",4000,"test",JsonSerializer.SerializeToElement(new {MapId=1010})));
+        enteringTracker.Observe(entering,4000,4000);
+        check(enteringTracker.Active(4000) is [{RemainingSeconds:58}],"Repeated map confirmation preserves active buff duration");
+        entering.Network.Add(new("local-zone",5000,"test",JsonSerializer.SerializeToElement(new {MapId=1010,AwaitingIdentity=true})));
+        entering.Network.Add(Apply(5000,1,4,60000));
+        entering.Network.Add(new("local-zone",5100,"test",JsonSerializer.SerializeToElement(new {MapId=1010})));
+        enteringTracker.Observe(entering,6000,6000);
+        check(enteringTracker.Active(6000) is [{Slot:4,RemainingSeconds:59}],"Teleport clears old buffs but preserves newly captured arrival effects through confirmation");
     }
 }

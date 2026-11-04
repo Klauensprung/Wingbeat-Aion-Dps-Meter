@@ -42,11 +42,14 @@ internal sealed class CooldownSettingsWindow : Window
         var buffButton = new Button { Content = $"Track buff uptime ({buffs.Length})", Margin = new(0, 12, 0, 0) };
         buffButton.Click += (_, _) => new BuffTrackingSettings(settings, buffs, activeEffects?.Invoke() ?? [], ids => { buffs = ids; buffButton.Content = $"Track buff uptime ({buffs.Length})"; }) { Owner = this }.ShowDialog();
         bottom.Children.Add(buffButton);
+        bottom.Children.Add(new TextBlock { Text = "Buff uptime layout", Margin = new(0,10,0,0) });
+        var buffLayout = new ComboBox { ItemsSource = new[] { "Bars", "Round", "Square" }, SelectedItem = BuffTracking.Style(settings.BuffUptimeStyle), Margin = new(0,4,0,6) };
+        bottom.Children.Add(buffLayout);
         var actions = new StackPanel { Orientation = Orientation.Horizontal, HorizontalAlignment = HorizontalAlignment.Right, Margin = new(0, 12, 0, 0) };
         DockPanel.SetDock(actions, Dock.Bottom); root.Children.Insert(1, actions);
         void Save() { settings.CooldownCombatOnly = combatOnly.IsChecked == true; settings.CooldownStyle = layout.SelectedItem?.ToString() ?? "Square"; settings.CooldownReadyGlow = glow.IsChecked == true; settings.CooldownFallbackSeconds = fallback; settings.CooldownSkills = selected.Select(c => c.Id).ToArray(); settings.CooldownShowReady = ready.IsChecked == true; settings.CooldownOneSecondEarly = early.IsChecked == true; settings.CooldownLocked = locked.IsChecked == true; saved(); }
-        var show = new Button { Content = "Save and open overlay", Margin = new(0, 0, 8, 0) }; show.Click += (_, _) => { settings.CooldownBuffs = buffs; Save(); Close(); open(); }; actions.Children.Add(show);
-        var apply = new Button { Content = "Save" }; apply.Click += (_, _) => { settings.CooldownBuffs = buffs; Save(); Close(); }; actions.Children.Add(apply);
+        var show = new Button { Content = "Save and open overlay", Margin = new(0, 0, 8, 0) }; show.Click += (_, _) => { settings.BuffUptimeStyle = buffLayout.SelectedItem?.ToString() ?? "Bars"; settings.CooldownBuffs = buffs; Save(); Close(); open(); }; actions.Children.Add(show);
+        var apply = new Button { Content = "Save" }; apply.Click += (_, _) => { settings.BuffUptimeStyle = buffLayout.SelectedItem?.ToString() ?? "Bars"; settings.CooldownBuffs = buffs; Save(); Close(); }; actions.Children.Add(apply);
         var body = new Grid(); body.RowDefinitions.Add(new() { Height = new GridLength(1, GridUnitType.Star) }); body.RowDefinitions.Add(new() { Height = GridLength.Auto }); body.RowDefinitions.Add(new() { Height = new GridLength(1, GridUnitType.Star) }); root.Children.Add(body);
         var available = new ListBox(); body.Children.Add(UiSections.TableSection("Available skills", available));
         var middle = new StackPanel { Orientation = Orientation.Horizontal, Margin = new(0, 8, 0, 8) }; Grid.SetRow(middle, 1); body.Children.Add(middle);

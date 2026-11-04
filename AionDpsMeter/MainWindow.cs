@@ -28,6 +28,7 @@ public sealed class Preferences
     public Dictionary<string, CooldownCharacterPreset> CooldownCharacters { get; set; } = new();
     public bool CooldownShowReady { get; set; } = true;
     public string CooldownStyle { get; set; } = "Square";
+    public string BuffUptimeStyle { get; set; } = "Bars";
     public bool CooldownReadyGlow { get; set; } = true;
     public bool CooldownCombatOnly { get; set; }
     public bool OverlaysGameOnly { get; set; }
@@ -1368,6 +1369,24 @@ public sealed partial class MainWindow : Window
         var buffPreview = new CooldownOverlayWindow(new Preferences { CooldownBuffs = [buffId], CooldownWidth=320, CooldownHeight=160 }, cooldownTestTracker, skills, skillIcons, () => true, () => {}, () => {});
         try { buffPreview.Show(); buffPreview.UpdateLayout(); Render(buffPreview,"test-artifacts/Cooldown-buff-uptime.png"); }
         finally { buffPreview.Close(); }
+        var uptimeView = new TrackedBuffView();
+        TrackedBuff[] uptimeRows = [
+            new(181600001,"Sprint Mantra","Active",false) { SourceSkill=18160001 },
+            new(181900001,"Undefeated Mantra","Active",false) { SourceSkill=18190021 },
+            new(1,"Guardian Blessing","87s",false) { Seconds=87 },
+            new(2,"Power of the Storm","4s",false) { Seconds=4 },
+            new(3,"Blessing of Life","Check buff",true)
+        ];
+        uptimeView.Update(uptimeRows, skills, skillIcons);
+        var uptimePreview = new Window { Content=uptimeView, Width=340, SizeToContent=SizeToContent.Height, Background=UiTheme.Brush("#10151F"), Title="Buff uptime preview" };
+        try {
+            uptimePreview.Show();
+            foreach (string buffStyle in new[] { "Bars", "Round", "Square" }) {
+                uptimeView.Update(uptimeRows, skills, skillIcons, buffStyle); uptimePreview.UpdateLayout();
+                Render(uptimePreview,$"test-artifacts/Cooldown-buff-{buffStyle}.png");
+            }
+        }
+        finally { uptimePreview.Close(); }
         var testOverlay = new OverlayWindow(skillName: id => skills.GetSkillName(id), skillIcons: skillIcons); var testPreferences = new Preferences { OverlayScope = "Party", OverlayPinLocal = true };
         testOverlay.Update(Current, testPreferences); testOverlay.Show(); testOverlay.UpdateLayout();
         var priorOverlay=overlay;bool priorWanted=meterWanted;var priorViewed=viewed;var priorPreferences=preferences;

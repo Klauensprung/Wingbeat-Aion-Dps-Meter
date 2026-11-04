@@ -68,6 +68,14 @@ internal sealed class CooldownOverlayWindow : Window
             option.Click += (_, _) => { settings.CooldownStyle = style; Refresh(); save(); }; styles.Add(option); menu.Items.Add(option);
         }
         var glow = new MenuItem { Header = "Glow when ready", IsCheckable = true };
+        var buffLayouts = new MenuItem { Header = "Buff uptime layout" };
+        foreach (string buffStyle in new[] { "Bars", "Round", "Square" }) {
+            var option = new MenuItem { Header = buffStyle, IsCheckable = true };
+            option.Click += (_, _) => { settings.BuffUptimeStyle = buffStyle; Refresh(); save(); };
+            buffLayouts.Items.Add(option);
+        }
+        buffLayouts.SubmenuOpened += (_, _) => { foreach (MenuItem option in buffLayouts.Items) option.IsChecked = option.Header.ToString() == BuffTracking.Style(settings.BuffUptimeStyle); };
+        menu.Items.Add(buffLayouts);
         glow.Click += (_, _) => { settings.CooldownReadyGlow = glow.IsChecked; Refresh(); save(); }; menu.Items.Add(glow);
         var showEffects = new MenuItem { Header = "Show effects on my character", IsCheckable = true };
         showEffects.Click += (_, _) => { settings.CooldownShowEffects = showEffects.IsChecked; Refresh(); save(); }; menu.Items.Add(showEffects);
@@ -142,8 +150,8 @@ internal sealed class CooldownOverlayWindow : Window
         string style = CooldownPresentation.Style(settings.CooldownStyle);
         bool buffs = settings.CooldownBuffs?.Length > 0;
         buffView.Visibility = buffs ? Visibility.Visible : Visibility.Collapsed;
-        if (buffs) buffView.Update(BuffTracking.Rows(settings.CooldownBuffs!, effects?.Active(now) ?? [], capturing()));
-        MinWidth = style == "Bars" || settings.CooldownShowEffects || buffs ? 260 : 64;
+        if (buffs) buffView.Update(BuffTracking.Rows(settings.CooldownBuffs!, effects?.Active(now) ?? [], capturing()), names, icons, settings.BuffUptimeStyle);
+        MinWidth = style == "Bars" && selected.Length > 0 || settings.CooldownShowEffects || buffs && BuffTracking.Style(settings.BuffUptimeStyle) == "Bars" ? 260 : 64;
         if (Width < MinWidth) Width = MinWidth;
         empty.Visibility = selected.Length == 0 && !settings.CooldownShowEffects && !buffs ? Visibility.Visible : Visibility.Collapsed;
         effectView.Visibility = settings.CooldownShowEffects ? Visibility.Visible : Visibility.Collapsed;

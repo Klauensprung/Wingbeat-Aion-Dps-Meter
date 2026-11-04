@@ -38,6 +38,7 @@
     <EmbeddedResource Include="Assets/map-tiles/altgard/*.jpg" LogicalName="Wingbeat.MapTiles.altgard.%(Filename)%(Extension)" />
     <EmbeddedResource Include="Assets/map-tiles/abyss/*.jpg" LogicalName="Wingbeat.MapTiles.abyss.%(Filename)%(Extension)" />
     <EmbeddedResource Include="Assets/effects.json" LogicalName="Wingbeat.Effects.json" />
+    <EmbeddedResource Include="Assets/buff-name-aliases.json" LogicalName="Wingbeat.BuffNameAliases.json" />
     <EmbeddedResource Include="Assets/combat-effects.json" LogicalName="Wingbeat.CombatEffects.json" />
     <EmbeddedResource Include="Assets/world-object-names.json" LogicalName="Wingbeat.WorldObjectNames.json" />
     <EmbeddedResource Include="Assets/items.json" LogicalName="Wingbeat.Items.json" />
