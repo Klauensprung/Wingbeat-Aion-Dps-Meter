@@ -35,6 +35,7 @@ public sealed class Preferences
     public bool HideOverlaysInGameMenus { get; set; } = true;
     public int OverlayHideKey { get; set; } = 0x79;
     public int OverlayHideModifiers { get; set; } = 6;
+    public bool NearbyEnemiesEnabled { get; set; } = true;
     public double NearbyEnemiesWidth { get; set; } = 330;
     public double NearbyEnemiesHeight { get; set; } = 400;
     public bool NearbyEnemiesLocked { get; set; }
@@ -43,6 +44,7 @@ public sealed class Preferences
     public bool PingLocked { get; set; }
     public double? PingLeft { get; set; }
     public double? PingTop { get; set; }
+    public bool LootOverlayEnabled { get; set; } = true;
     public bool LootLocked { get; set; }
     public double? LootLeft { get; set; }
     public double? LootTop { get; set; }
@@ -262,12 +264,12 @@ public sealed partial class MainWindow : Window
         }
         OverlayAction(UiIcon.Meter, "DPS2 overlay", ToggleSecondMeter, () => SecondMeterOptions.Enabled);
         OverlayAction(UiIcon.Meter, "Hide / show overlays", ToggleOverlayVisibility, () => overlaysHidden);
-        OverlayAction(UiIcon.Folder, "Loot overlay", ToggleLootOverlay, () => lootOverlay != null);
+        OverlayAction(UiIcon.Folder, "Loot overlay", ToggleLootOverlay, () => preferences.LootOverlayEnabled);
         overlayControls.Children.Add(IconButton(UiIcon.Chart, "Farming", ShowFarming));
         overlayControls.Children.Add(IconButton(UiIcon.Chart, "Gathering routes", ShowGatheringRoutes));
         OverlayAction(UiIcon.Chart, "Farming overlay", ToggleFarmingOverlay, () => farmingOverlay != null);
         OverlayAction(UiIcon.Catalogue, "Pet farming", TogglePetTracker, () => petTrackerOverlay != null);
-        OverlayAction(UiIcon.Boss, "Nearby enemies", ToggleNearbyEnemies, () => nearbyEnemiesOverlay != null);
+        OverlayAction(UiIcon.Boss, "Nearby enemies", ToggleNearbyEnemies, () => preferences.NearbyEnemiesEnabled);
         OverlayAction(UiIcon.Network, "Ping overlay", TogglePingOverlay, () => pingOverlay != null);
         OverlayAction(UiIcon.Boss,"Boss alerts",()=>ConfigureBossAlerts(!preferences.BossAlertsEnabled,false),()=>preferences.BossAlertsEnabled);
         OverlayAction(UiIcon.Cooldowns, "Control alerts", () => ConfigureControlAlerts(!preferences.ControlAlertsEnabled, true), () => preferences.ControlAlertsEnabled);
@@ -535,7 +537,7 @@ public sealed partial class MainWindow : Window
         fieldBosses.Click += (_, _) => ShowFieldBosses(); menu.Items.Add(fieldBosses);
         var loot = new MenuItem { Header = "Loot…" };
         loot.Click += (_, _) => ShowLoot(); menu.Items.Add(loot);
-        var lootOverlayItem = new MenuItem { Header = "Loot overlay", IsCheckable = true, IsChecked = lootOverlay != null };
+        var lootOverlayItem = new MenuItem { Header = "Loot overlay", IsCheckable = true, IsChecked = preferences.LootOverlayEnabled };
         lootOverlayItem.Click += (_, _) => ToggleLootOverlay(); menu.Items.Add(lootOverlayItem);
         var petTrackerItem = new MenuItem { Header = "Pet farming overlay", IsCheckable = true, IsChecked = petTrackerOverlay != null };
         petTrackerItem.Click += (_, _) => TogglePetTracker(); menu.Items.Add(petTrackerItem);

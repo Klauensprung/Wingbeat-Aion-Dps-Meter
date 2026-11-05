@@ -7,6 +7,12 @@ internal static class LootLedgerTests
     internal static void Run(Action<bool, string> check)
     {
         LootPickup Pickup(long time, uint drop = 1, int item = 500000001, uint character = 30, uint quantity = 3) => new(time, drop, item, quantity, character, 1);
+        var notification=new LootItemRow(1,1000,"Player",500000001,3,1,1000,1000);
+        var notificationView=new LootLedger.OverlayView([notification],false);
+        check(LootOverlayWindow.Recent(notificationView,10999).Length==1&&LootOverlayWindow.Recent(notificationView,11000).Length==0,
+            "Pickup overlay expires items after ten seconds even without a new loot snapshot");
+        check(LootOverlayWindow.Recent(notificationView,999).Length==0&&notificationView.Rows.Length==1,
+            "Pickup overlay rejects future timestamps and preserves loot history when notifications expire");
         var ledger = new LootLedger();
         var partial=new LootLedger();var originalView=partial.OverlaySnapshot();partial.RecordOmitted(2);
         var partialCopy=partial.Copy();partial.RecordOmitted(1);

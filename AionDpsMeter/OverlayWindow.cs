@@ -41,15 +41,13 @@ public sealed class OverlayWindow : Window
     readonly TextBlock moveGrip = new() { Text = "⋮⋮", FontSize = 15, VerticalAlignment = VerticalAlignment.Center, Foreground = UiTheme.Brush("#93A2B8") };
     readonly TextBlock duration = new() { FontSize = 12, VerticalAlignment = VerticalAlignment.Center, Margin = new(4, 0, 8, 0) };
     readonly TextBlock encounter = new() { FontSize = 11, TextTrimming = TextTrimming.CharacterEllipsis, Margin = new(7, 0, 0, 0), VerticalAlignment = VerticalAlignment.Center };
+    readonly TextBlock headerSummary = new() { FontSize=10, Foreground=UiTheme.Brush("#B9C4D3"), Margin=new(10,0,10,4), TextTrimming=TextTrimming.CharacterEllipsis };
     readonly TextBlock targetHealthText = new() { FontSize = 11, TextTrimming = TextTrimming.CharacterEllipsis, Margin = new(12, 3, 12, 6),
         Foreground = UiTheme.Brush("#E7CF7D"), Visibility = Visibility.Collapsed };
-    readonly TextBlock total = new() { FontSize = 11, FontWeight = FontWeights.SemiBold, Margin = new(10, 7, 10, 4) };
     readonly StackPanel targetGuard = new() { Margin = new(12, 0, 12, 6), Visibility = Visibility.Collapsed };
     readonly TextBlock targetGuardText = new() { FontSize = 10, TextTrimming = TextTrimming.CharacterEllipsis };
     readonly Grid targetGuardBar = new() { Height = 3, Margin = new(0, 3, 0, 0), Background = UiTheme.Brush("#344154") };
     readonly Border targetGuardFill = new();
-    readonly TextBlock energy = new() { FontSize = 10, Margin = new(10, 0, 20, 8) };
-    readonly PingView pingStatus = new() { Margin = new(10, 0, 20, 4) };
     readonly Button mode, moveLock;
     readonly Action? reset;
     readonly Action? trainingAction;
@@ -103,6 +101,7 @@ public sealed class OverlayWindow : Window
         AutomationProperties.SetAutomationId(moveGrip, "OverlayMoveGrip");
         header.Children.Add(toolbar);
         header.Children.Add(new Border { Child = moveRow, Background = Brushes.Transparent, MinHeight = 27, Padding = new(10, 0, 10, 6) });
+        header.Children.Add(headerSummary);
         header.Children.Add(targetHealthText);
         targetGuardBar.ColumnDefinitions.Add(new() { Width = new(0, GridUnitType.Star) });
         targetGuardBar.ColumnDefinitions.Add(new() { Width = new(1, GridUnitType.Star) });
@@ -111,9 +110,7 @@ public sealed class OverlayWindow : Window
         // Keep the local row outside the scrolling opponents/party list so it
         // stays visible even when the overlay only has room for a single row.
         DockPanel.SetDock(ownMeter, Dock.Top); root.Children.Add(ownMeter);
-        var footer = new Grid { Background = UiTheme.Brush("#6010151F") }; DockPanel.SetDock(footer, Dock.Bottom); root.Children.Add(footer);
-        var footerText = new StackPanel(); footerText.Children.Add(total); footerText.Children.Add(pingStatus); footerText.Children.Add(energy); footer.Children.Add(footerText);
-        footer.Children.Add(resizeGrip);
+        layers.Children.Add(resizeGrip);
         actorScroll = new ScrollViewer { Content = meter, VerticalScrollBarVisibility = ScrollBarVisibility.Auto, HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled };
         root.Children.Add(actorScroll);
         meter.ActorSelected += id => actorSelected?.Invoke(id);
@@ -222,7 +219,7 @@ public sealed class OverlayWindow : Window
             UiTheme.Apply(this, settings); lastTheme = settings.Theme; lastAccent = settings.Accent;
             // Shared themes set an opaque window surface for the main app.
             Background = Brushes.Transparent;
-            duration.Foreground = encounter.Foreground = energy.Foreground = UiTheme.Brush("#93A2B8"); total.Foreground = UiTheme.Brush("#E7EDF7");
+            duration.Foreground = encounter.Foreground = UiTheme.Brush("#93A2B8");
         }
         RefreshMeter();
     }
@@ -257,7 +254,6 @@ public sealed class OverlayWindow : Window
         else data = participantColors.Apply(fight, data);
         data = data with { Rows = data.Rows.Select(r => r with { Health = health.GetValueOrDefault(r.Id)?.Label ?? "" }).ToArray() };
         CurrentScope = data.Scope;
-        pingStatus.Update(fight.LocalPing, DateTimeOffset.UtcNow.ToUnixTimeMilliseconds());
         mode.Content = (showPvp ? "PVP · " : "") + (healing ? "HEALING" : "DAMAGE") + "  ▾";
         moveLock.Content = preferences.OverlayLocked ? "◆" : "◇";
         moveLock.ToolTip = preferences.OverlayLocked ? "Unlock overlay position" : "Lock overlay position";
@@ -271,14 +267,18 @@ public sealed class OverlayWindow : Window
         encounter.Text = (fight.Demo ? "DEMO  ·  " : "") + fight.Label + "  ·  " + data.Scope;
         var own = data.Rows.Where(r => preferences.OverlayPinLocal && r.Local).ToArray();
         var others = data.Rows.Where(r => !preferences.OverlayPinLocal || !r.Local).ToArray();
-        ownMeter.Update(own, preferences.OverlayCompact, healing, fight.HasEvents, showClassSymbols: true);
-        ownMeter.Visibility = own.Length == 0 ? Visibility.Collapsed : Visibility.Visible;
-        actorScroll.Visibility = own.Length > 0 && others.Length == 0 ? Visibility.Collapsed : Visibility.Visible;
+        // Skills mode supplies its own stable personal row below. Clearing it
+        // with the normal unpinned rows first would recreate it on every tick.
+        if (!showSkills && !showHealth) {
+            ownMeter.Update(own, preferences.OverlayCompact, healing, fight.HasEvents, showClassSymbols: true);
+            ownMeter.Visibility = own.Length == 0 ? Visibility.Collapsed : Visibility.Visible;
+            actorScroll.Visibility = own.Length > 0 && others.Length == 0 ? Visibility.Collapsed : Visibility.Visible;
+        }
         string? filteredEmpty = selectedTarget == -1 ? "No in-game target captured." : bossesOnly || selectedTarget > 0 ? "No matching events for this target and player scope." : null;
         meter.Update(others, preferences.OverlayCompact, healing, fight.HasEvents, emptyText: filteredEmpty, startPosition: own.Length > 0 ? 2 : 1, showClassSymbols: true);
-        total.Text = showPvp && !healing ? $"YOU   {MeterPresentation.Number(displayPvp.YourDamage)}     ·     ENEMY   {MeterPresentation.Number(displayPvp.EnemyDamage)}" :
-            $"TOTAL   {MeterPresentation.Number(data.Amount)}     ·     {MeterPresentation.Number(data.Rate)} {(healing ? "HPS" : "DPS")}";
-        energy.Text = fight.Energy == null ? "Wingbeat  ·  local" : $"Loot energy   {fight.Energy.Daily:N0} daily  /  {fight.Energy.Bonus:N0} bonus";
+        string summary=showPvp&&!healing?$"YOU {MeterPresentation.Number(displayPvp.YourDamage)} | ENEMY {MeterPresentation.Number(displayPvp.EnemyDamage)}":
+            $"TOTAL {MeterPresentation.Number(data.Amount)} | {MeterPresentation.Number(data.Rate)} {(healing?"HPS":"DPS")}";
+        string status=fight.Energy==null?"Wingbeat local":$"Energy {fight.Energy.Daily:N0} daily / {fight.Energy.Bonus:N0} bonus";
         actorScroll.Content = showSkills ? skillBreakdown : meter;
         if (showSkills) {
             if (!ReferenceEquals(skillSnapshot, display) || skillHealing != healing) {
@@ -293,8 +293,8 @@ public sealed class OverlayWindow : Window
             CurrentScope = "Your skills"; mode.Content = "MY SKILLS  ▾";
             encounter.Text = (fight.Demo ? "DEMO  ·  " : "") + fight.Name(fight.LocalPlayer) + "  ·  " + fight.Label;
             duration.Text = MeterPresentation.Duration(fight);
-            long amount = personalSkills.Sum(r => r.Amount);
-            total.Text = $"YOU   {MeterPresentation.Number(amount)}     ·     {MeterPresentation.Number(amount / fight.Seconds)} {(healing ? "HPS" : "DPS")}";
+            long amount=personalSkills.Sum(r=>r.Amount);
+            summary=$"YOU {MeterPresentation.Number(amount)} | {MeterPresentation.Number(amount/fight.Seconds)} {(healing?"HPS":"DPS")}";
         } else { skillSnapshot = null; personalSkills = []; }
         if (bossesOnly || selectedTarget != 0) encounter.Text += "  ·  " + TargetLabel;
         int healthTarget = selectedTarget > 0 ? selectedTarget : preferences.OverlayFollowGameTarget ? 0 : engagedBoss;
@@ -302,15 +302,15 @@ public sealed class OverlayWindow : Window
         var guard = guards.GetValueOrDefault(healthTarget);
         targetGuard.Visibility = targetHealthText.Visibility == Visibility.Visible && guard != null ? Visibility.Visible : Visibility.Collapsed;
         targetGuardText.Text = guard?.Label ?? ""; targetGuard.ToolTip = targetGuardText.Text;
-        targetGuardBar.ColumnDefinitions[0].Width = new(guard?.Ratio ?? 0, GridUnitType.Star);
-        targetGuardBar.ColumnDefinitions[1].Width = new(1 - (guard?.Ratio ?? 0), GridUnitType.Star);
+        OverlayMotion.Column(targetGuardBar.ColumnDefinitions[0],guard?.Ratio??0,IsVisible);
+        OverlayMotion.Column(targetGuardBar.ColumnDefinitions[1],1-(guard?.Ratio??0),IsVisible);
         targetGuardFill.Background = UiTheme.Brush(guard?.Broken == true ? "#E7CF7D" : "#75B5F5");
         targetHealthText.Text = healthTarget > 0 ? $"{fight.Name(healthTarget)} · {health.GetValueOrDefault(healthTarget)?.Label ?? "HP not captured"}" : "";
         targetHealthText.ToolTip = (selectedTarget > 0 ? "Selected target" : "Most recently engaged recognized boss") + "\n" + targetHealthText.Text +
             "\nHealth is the last captured value. Maximum HP is unavailable; no percentage is inferred.";
         if (training) {
+            status=TrainingLabel.Contains("stop",StringComparison.Ordinal)?TrainingLabel:"Saved training attempt";
             mode.Content = "TRAINING  ▾";
-            energy.Text = TrainingLabel.Contains("stop", StringComparison.Ordinal) ? TrainingLabel : "Saved training attempt";
             duration.Text = MeterPresentation.Duration(fight.Seconds);
         }
         if (showHealth) {
@@ -319,19 +319,19 @@ public sealed class OverlayWindow : Window
             var ranges=PartyRanges?.Invoke(fight);
             if(ranges!=null)healthRows=healthRows.Select(row=>row with {Range=row.Entity==fight.LocalPlayer?PartyRange.Nearby:ranges.GetValueOrDefault(row.Entity,PartyRange.Unknown)}).ToArray();
             if (distances != null) healthRows = healthRows.Select(row => row with { Proximity = row.Entity == fight.LocalPlayer ? "" : distances.GetValueOrDefault(row.Entity, "Distance unknown") }).ToArray();
+            summary=$"{healthRows.Length} MEMBERS | {healthRows.Count(r=>r.Critical)} at or below 25% HP";
+            status="Green 75% | yellow 50% | red 25%";
             partyHealth.Update(healthRows, preferences.OverlayCompact);
             actorScroll.Content = partyHealth; actorScroll.Visibility = Visibility.Visible;
             ownMeter.Visibility = Visibility.Collapsed; targetHealthText.Visibility = targetGuard.Visibility = Visibility.Collapsed;
             mode.Content = "PARTY HEALTH  ▾"; CurrentScope = "Party health";
             encounter.Text = fight.PartyKnown ? "Party health · last captured HP" : PartyHealthView.HasRoster(fight)
                 ? "Party health · partial roster · last captured HP" : "Party health · waiting for party roster";
-            total.Text = $"{healthRows.Length} MEMBERS   ·   {healthRows.Count(r=>r.Critical)} AT OR BELOW 25%";
-            energy.Text = "Green 75% · yellow 50% · red 25% · captured debuffs";
         }
+        string headerText=summary+" | "+(Notification.Length>0?Notification:status);
+        if(headerSummary.Text!=headerText){headerSummary.Text=headerText;headerSummary.ToolTip=headerText;}
         encounter.ToolTip = encounter.Text;
         if(MeterLabel.Length>0)mode.Content=MeterLabel+" · "+mode.Content;
-        if (Notification.Length > 0) { energy.Text = Notification; energy.ToolTip = Notification; }
-        else energy.ToolTip = null;
     }
     string TargetLabel => preferences.OverlayFollowGameTarget ? "In-game: " + (selectedTarget > 0 && fight != null ? fight.Name(selectedTarget) : "not captured") : selectedTarget > 0 && fight != null ? fight.Name(selectedTarget) : preferences.OverlayBossesOnly ? "Bosses only" : "All targets";
     void ShowTargets()

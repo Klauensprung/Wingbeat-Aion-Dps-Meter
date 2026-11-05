@@ -27,7 +27,7 @@ internal static class PersonalSkills
     }
 }
 
-internal sealed class SkillBreakdownView(Func<int, string> name, SkillIcons? icons) : StackPanel
+internal sealed class SkillBreakdownView(Func<int, string> name, SkillIcons? icons) : AnimatedStackPanel
 {
     readonly Dictionary<int, SkillBar> bars = new();
     readonly TextBlock empty = new() { Foreground = UiTheme.Brush("#A5B2C5"), TextWrapping = TextWrapping.Wrap, Margin = new(16, 26, 16, 26) };
@@ -52,31 +52,39 @@ internal sealed class SkillBreakdownView(Func<int, string> name, SkillIcons? ico
     }
     sealed class SkillBar : Border
     {
-        readonly Image icon = new() { Width = 20, Height = 20, Margin = new(0, 0, 6, 0) };
-        readonly TextBlock title = new() { FontSize = 11, FontWeight = FontWeights.SemiBold, Foreground = UiTheme.Brush("#EFF4FC"), TextTrimming = TextTrimming.CharacterEllipsis };
-        readonly TextBlock rate = new() { FontSize = 11, FontWeight = FontWeights.Bold, Foreground = UiTheme.Brush("#EFF4FC"), Margin = new(6, 0, 0, 0) };
-        readonly TextBlock amount = new() { FontSize = 9, Foreground = UiTheme.Brush("#A5B2C5") };
-        readonly ProgressBar progress = new() { Height = 2, Minimum = 0, Maximum = 1, BorderThickness = new(0), Background = UiTheme.Brush("#243044"), Margin = new(0, 1, 0, 0) };
+        readonly Image icon=new(){Width=28,Height=28,Margin=new(4,2,8,2),Stretch=Stretch.Uniform};
+        readonly TextBlock title=new(){FontSize=11,FontWeight=FontWeights.SemiBold,Foreground=Brushes.White,TextTrimming=TextTrimming.CharacterEllipsis,VerticalAlignment=VerticalAlignment.Center};
+        readonly TextBlock values=new(){FontSize=11,FontWeight=FontWeights.Bold,Foreground=Brushes.White,Margin=new(8,0,8,0),VerticalAlignment=VerticalAlignment.Center};
+        readonly Grid gauge=new(){Background=UiTheme.Brush("#80243044")};
+        readonly Border fill=new(){Opacity=.45,CornerRadius=new(6)};
+        (PersonalSkill Row,string Name,ImageSource? Icon,bool Healing,bool Compact,string Accent)? previous;
         internal SkillBar()
         {
-            CornerRadius = new(3); Padding = new(6, 3, 6, 3); Margin = new(0, 0, 0, 2);
-            Background = UiTheme.Brush("#D916202E");
-            var layout = new DockPanel(); DockPanel.SetDock(icon, Dock.Left); layout.Children.Add(icon);
-            var body = new StackPanel(); var heading = new DockPanel(); DockPanel.SetDock(rate, Dock.Right);
-            heading.Children.Add(rate); heading.Children.Add(title); body.Children.Add(heading); body.Children.Add(amount); body.Children.Add(progress);
-            layout.Children.Add(body); Child = layout;
+            CornerRadius=new(7);Margin=new(0,0,0,3);Background=Brushes.Transparent;
+            var layout=new Grid();layout.ColumnDefinitions.Add(new(){Width=GridLength.Auto});layout.ColumnDefinitions.Add(new());
+            layout.Children.Add(icon);Grid.SetColumn(gauge,1);layout.Children.Add(gauge);Child=layout;
+            RoundedBar.Clip(gauge);gauge.ColumnDefinitions.Add(new());gauge.ColumnDefinitions.Add(new());gauge.Children.Add(fill);
+            var labels=new Grid{Margin=new(7,0,0,0)};Grid.SetColumnSpan(labels,2);
+            labels.ColumnDefinitions.Add(new());labels.ColumnDefinitions.Add(new(){Width=GridLength.Auto});
+            labels.Children.Add(title);Grid.SetColumn(values,1);labels.Children.Add(values);gauge.Children.Add(labels);
         }
-        internal void Update(PersonalSkill row, string name, ImageSource? source, bool healing, bool compact, string accent)
+        internal void Update(PersonalSkill row,string name,ImageSource? source,bool healing,bool compact,string accent)
         {
-            title.Text = row.SummonAmount > 0 && row.SummonAmount == row.Amount ? name + " (summon)" : name; icon.Source = source ?? SkillIcons.Placeholder;
-            rate.Text = $"{MeterPresentation.Number(row.Rate)} {(healing ? "HPS" : "DPS")}";
-            amount.Text = $"{MeterPresentation.Number(row.Amount)} {(healing ? "healing" : "damage")}   ·   {row.Share:0.0}%   ·   {row.Hits:N0} hits";
-            progress.Value = row.Fraction; progress.Foreground = UiTheme.Brush(accent);
-            if (row.SummonAmount > 0 && row.SummonAmount < row.Amount) amount.Text += $"   ({MeterPresentation.Number(row.SummonAmount)} via summons)";
-            Padding = compact ? new(6, 1, 6, 1) : new(6, 3, 6, 3);
-            ToolTip = $"{name}\n{row.Amount:N0} total · {row.Rate:N1} {(healing ? "HPS" : "DPS")}\n{row.Hits:N0} hits · {row.Crit:0.0}% critical\n{row.Share:0.0}% of your {(healing ? "healing" : "damage")}";
-            if (row.SummonSources.Length > 0) ToolTip += $"\nSummons: {row.SummonSources}\n{row.SummonAmount:N0} from summons; {row.Amount - row.SummonAmount:N0} directly";
-            System.Windows.Automation.AutomationProperties.SetName(this, $"{title.Text}, {rate.Text}, {amount.Text}");
+            var next=(row,name,source,healing,compact,accent);if(previous==next)return;
+            string label=row.SummonAmount>0&&row.SummonAmount==row.Amount?name+" (summon)":name;
+            if(title.Text!=label)title.Text=label;
+            var image=source??SkillIcons.Placeholder;if(icon.Source!=image)icon.Source=image;
+            string text=$"{MeterPresentation.Number(row.Amount)} | {row.Share:0.0}% | {MeterPresentation.Number(row.Rate)} {(healing?"HPS":"DPS")}";
+            if(values.Text!=text)values.Text=text;
+            double fraction=Math.Clamp(row.Share/100,0,1);
+            OverlayMotion.Column(gauge.ColumnDefinitions[0],fraction,IsVisible);
+            OverlayMotion.Column(gauge.ColumnDefinitions[1],1-fraction,IsVisible);
+            if(previous==null||previous.Value.Accent!=accent)fill.Background=UiTheme.Brush(accent);
+            Height=compact?34:38;
+            ToolTip=$"{name}\n{row.Amount:N0} total | {row.Rate:N1} {(healing?"HPS":"DPS")}\n{row.Hits:N0} hits | {row.Crit:0.0}% critical\n{row.Share:0.0}% of your {(healing?"healing":"damage")}";
+            if(row.SummonSources.Length>0)ToolTip+=$"\nSummons: {row.SummonSources}\n{row.SummonAmount:N0} from summons; {row.Amount-row.SummonAmount:N0} directly";
+            System.Windows.Automation.AutomationProperties.SetName(this,$"{label}, {text}");
+            previous=next;
         }
     }
 }

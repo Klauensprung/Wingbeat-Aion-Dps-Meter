@@ -21,6 +21,17 @@ internal static class NearbyEnemiesTests
             NearbyEnemies.Build(fight,spatial,origin with{Z=300},10000).Single().HeightArrow=="\u2193","Enemy arrows compare captured vertical position in both directions");
         check(NearbyEnemies.Build(fight,spatial,origin,16000).Single().HeightDifference==null&&
             NearbyEnemies.Build(fight,spatial,origin with{MapId=1110},10000).Single().HeightArrow=="","Stale or cross-map positions cannot produce height arrows");
+        fight.Actors[4]=fight.Actors[4] with{Party=false,Name=fight.Actors[3].Name};
+        Send("actor-position",10000,new{ActorId=4,X=300,Y=400,Z=12,EntityKind="player",VisibilityReason=1});
+        fight.LocalTarget=new(4,10000);
+        check(NearbyEnemies.Build(fight,spatial,origin,10000) is [{Id:4,Targeted:true},{Id:3,Targeted:false}],"Current enemy target sorts first by entity ID even when farther away and names match");
+        fight.LocalTarget=new(0,10000);
+        check(NearbyEnemies.Build(fight,spatial,origin,10000) is [{Id:3,Targeted:false},{Id:4,Targeted:false}],"Clearing target restores distance order and removes highlight");
+        fight.LocalTarget=new(2,10000);
+        check(NearbyEnemies.Build(fight,spatial,origin,10000).All(e=>!e.Targeted),"Friendly targets cannot highlight an enemy row");
+        fight.LocalTarget=new(4,0);
+        check(NearbyEnemies.Build(fight,spatial,origin,10000).All(e=>!e.Targeted),"Previous-zone target evidence does not pin an enemy");
+        fight.LocalTarget=null;fight.Actors[4]=fight.Actors[4] with{Party=true};
         fight.Network.Add(new("hp",10000,"test",JsonSerializer.SerializeToElement(new{EntityId=3,CurrentHp=250,MaximumHp=1000})));
         check(NearbyEnemies.Build(fight,spatial,origin,10000) is [{HealthPercent:25,LocalCp:20000}],"Enemy rows project captured HP percentage and local CP for the existing comparison colors");
         fight.Network.Add(new("entity-revived",10001,"test",JsonSerializer.SerializeToElement(new{EntityId=3})));

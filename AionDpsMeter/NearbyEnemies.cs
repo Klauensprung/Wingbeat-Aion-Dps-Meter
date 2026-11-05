@@ -10,6 +10,7 @@ internal sealed record NearbyEnemy(int Id, string Name, int Cp, double? Distance
     internal double? HeightDifference { get; init; }
     internal string HeightArrow => HeightDifference is >200 ? "\u2191" : HeightDifference is < -200 ? "\u2193" : "";
     internal bool Tagged { get; init; }
+    internal bool Targeted { get; init; }
     internal string Job { get; init; } = "Unknown";
     internal int LocalCp { get; init; }
     internal double? HealthPercent { get; init; }
@@ -22,6 +23,7 @@ internal static class NearbyEnemies
     {
         string? race=EffectiveRace(fight.Actors.GetValueOrDefault(fight.LocalPlayer));
         if(race is not ("light" or "dark"))return [];
+        int target=fight.LocalTarget is {} selected&&selected.Timestamp>=spatial.Boundary&&selected.Timestamp<=now?selected.EntityId:0;
         var health=CapturedHealth.Build(fight);
         int localCp=fight.Actors.GetValueOrDefault(fight.LocalPlayer)?.Cp??0;
         var reused=fight.Actors.Values.Where(a=>a.OriginalEntityId>0).Select(a=>a.OriginalEntityId).ToHashSet();
@@ -42,14 +44,16 @@ internal static class NearbyEnemies
             var hp=health.GetValueOrDefault(actor.Id);
             double? percent=hp?.Value is long current&&hp.Maximum is >0&&current>=0&&current<=hp.Maximum
                 ? current*100d/hp.Maximum.Value:null;
-            return new NearbyEnemy(actor.Id,actor.Name,actor.Cp,distance){HeightDifference=heightDifference,Job=string.IsNullOrWhiteSpace(actor.Job)?"Unknown":actor.Job,LocalCp=localCp,HealthPercent=percent,Tagged=tags.ContainsKey(actor.Id)};
-        }).OfType<NearbyEnemy>().OrderBy(e=>e.Distance??double.MaxValue).ThenBy(e=>e.Name).Take(32).ToArray();
+            return new NearbyEnemy(actor.Id,actor.Name,actor.Cp,distance){Targeted=actor.Id==target,HeightDifference=heightDifference,Job=string.IsNullOrWhiteSpace(actor.Job)?"Unknown":actor.Job,LocalCp=localCp,HealthPercent=percent,Tagged=tags.ContainsKey(actor.Id)};
+        }).OfType<NearbyEnemy>().OrderByDescending(e=>e.Targeted).ThenBy(e=>e.Distance??double.MaxValue).ThenBy(e=>e.Name).Take(32).ToArray();
     }
 }
 
 internal sealed class NearbyEnemiesOverlayWindow : Window
 {
-    readonly StackPanel list=new();
+    readonly AnimatedStackPanel list=new();
+    readonly Dictionary<int,EnemyVisual> enemyRows=new();
+    readonly TextBlock emptyLabel=new(){Foreground=Brushes.White,TextWrapping=TextWrapping.Wrap};
     readonly EncounterView.ClassIconConverter classIcons=new();
     NearbyEnemy[] previous=[];
     string previousEmpty="";
@@ -83,47 +87,87 @@ internal sealed class NearbyEnemiesOverlayWindow : Window
     internal void Update(NearbyEnemy[] enemies,string empty)
     {
         if(previous.SequenceEqual(enemies)&&previousEmpty==empty)return;
-        previous=enemies;previousEmpty=empty;list.Children.Clear();
-        if(enemies.Length==0)list.Children.Add(new TextBlock{Text=empty,Foreground=Brushes.White,TextWrapping=TextWrapping.Wrap});
+        previous=enemies;previousEmpty=empty;
+        var active=enemies.Select(e=>e.Id).ToHashSet();
+        foreach(int id in enemyRows.Keys.Where(id=>!active.Contains(id)).ToArray()){list.Children.Remove(enemyRows[id]);enemyRows.Remove(id);}
+        list.Children.Remove(emptyLabel);
+        if(enemies.Length==0){emptyLabel.Text=empty;list.Children.Add(emptyLabel);}
+        int index=0;
         foreach(var enemy in enemies){
-            var cpColor=UiTheme.Brush(MeterPresentation.CombatPowerColor(enemy.Cp,enemy.LocalCp));
-            var classColor=UiTheme.Brush(MeterPresentation.ClassColorFor(enemy.Job,"#8392A5"));
-            var row=new StackPanel{Margin=new(0,1,0,3)};
-            var gauge=new Grid{Height=36,Background=UiTheme.Brush("#80232D3B")};
-            double percent=enemy.HealthPercent??0;
-            gauge.ColumnDefinitions.Add(new(){Width=new(percent,GridUnitType.Star)});
-            gauge.ColumnDefinitions.Add(new(){Width=new(100-percent,GridUnitType.Star)});
-            gauge.Children.Add(new Border{Background=classColor,Opacity=.55});
-            var heading=new Grid{Margin=new(7,2,7,2)};Grid.SetColumnSpan(heading,2);
-            heading.RowDefinitions.Add(new(){Height=new(18)});heading.RowDefinitions.Add(new(){Height=new(14)});
-            heading.ColumnDefinitions.Add(new());heading.ColumnDefinitions.Add(new(){Width=GridLength.Auto});heading.ColumnDefinitions.Add(new(){Width=GridLength.Auto});
-            var identity=new DockPanel();
-            if(ClassEvidence.Known(enemy.Job)){
-                var icon=new Image{Source=classIcons.Convert(enemy.Job,typeof(ImageSource),null!,System.Globalization.CultureInfo.InvariantCulture) as ImageSource,
-                    Width=16,Height=16,Margin=new(0,0,5,0),ToolTip=enemy.Job,VerticalAlignment=VerticalAlignment.Center};
-                DockPanel.SetDock(icon,Dock.Left);identity.Children.Add(icon);
-            }
-            identity.Children.Add(new TextBlock{Text=enemy.Name,Foreground=Brushes.White,FontSize=12,FontWeight=FontWeights.SemiBold,Margin=new(0,0,8,0),TextTrimming=TextTrimming.CharacterEllipsis,VerticalAlignment=VerticalAlignment.Center});
-            heading.Children.Add(identity);
-            var hpText=new TextBlock{Text=enemy.HealthPercent is double hp?$"{hp:0.#}%":"HP unknown",Foreground=Brushes.White,FontSize=12,FontWeight=FontWeights.Bold,VerticalAlignment=VerticalAlignment.Center};
-            if(enemy.Tagged){
-                var tagged=new TextBlock{Text="Tagged",Foreground=Brushes.White,FontSize=10,FontWeight=FontWeights.Bold,Margin=new(0,0,8,0),VerticalAlignment=VerticalAlignment.Center};
-                Grid.SetColumn(tagged,1);heading.Children.Add(tagged);
-            }
-            Grid.SetColumn(hpText,2);heading.Children.Add(hpText);gauge.Children.Add(heading);
-            row.Children.Add(gauge);
-            string cpText=enemy.Cp>0?$"{enemy.Cp:N0} CP":"CP unknown";
-            string distanceText=enemy.Distance is double d?$"{d:N0} units{(enemy.HeightArrow.Length>0?"  "+enemy.HeightArrow:"")}":"Distance unknown";
-            var details=new TextBlock{Foreground=Brushes.White,FontSize=10,TextTrimming=TextTrimming.CharacterEllipsis,VerticalAlignment=VerticalAlignment.Center};
-            details.Inlines.Add(new System.Windows.Documents.Run(cpText){Foreground=cpColor,FontWeight=FontWeights.Bold});
-            details.Inlines.Add(new System.Windows.Documents.Run("  |  "+distanceText));
-            details.ToolTip=cpText+"  |  "+distanceText+(enemy.HeightDifference is double dz?$"\nHeight difference: {dz:+0;-0;0} world units. Arrows appear beyond 200 units above/below; positions must be fresh.":"");
-            Grid.SetRow(details,1);Grid.SetColumnSpan(details,3);heading.Children.Add(details);
-            row.ToolTip="Tagged means your damage was captured in this fight since the last observed death or revival; it does not confirm server assist credit. Last captured HP."+MeterPresentation.CombatPowerComparison(enemy.Cp,enemy.LocalCp);
-            list.Children.Add(row);
+            if(!enemyRows.TryGetValue(enemy.Id,out var row)){row=new EnemyVisual(classIcons);enemyRows[enemy.Id]=row;}
+            row.Update(enemy,list.IsVisible);
+            if(list.Children.IndexOf(row)!=index){list.Children.Remove(row);list.Children.Insert(index,row);}
+            index++;
         }
         ToolTip="Opposing-faction players currently in captured view. Distance is in game-world units and requires positions updated within five seconds. Faction does not establish attackability in safe zones or arena teams.";
     }
+    sealed class EnemyVisual : Border
+    {
+        readonly Grid gauge=new(){Height=36,Background=UiTheme.Brush("#80232D3B")};
+        readonly Border fill=new(){Opacity=.55,CornerRadius=new(6)};
+        readonly TextBlock name=new(){Foreground=Brushes.White,FontSize=12,FontWeight=FontWeights.SemiBold,Margin=new(0,0,8,0),TextTrimming=TextTrimming.CharacterEllipsis,VerticalAlignment=VerticalAlignment.Center};
+        readonly TextBlock hp=new(){Foreground=Brushes.White,FontSize=12,FontWeight=FontWeights.Bold,VerticalAlignment=VerticalAlignment.Center};
+        readonly TextBlock tagged=new(){Text="Tagged",Foreground=Brushes.White,FontSize=10,FontWeight=FontWeights.Bold,Margin=new(0,0,8,0),VerticalAlignment=VerticalAlignment.Center};
+        readonly Image icon=new(){Width=16,Height=16,Margin=new(0,0,5,0),VerticalAlignment=VerticalAlignment.Center};
+        readonly TextBlock details=new(){Foreground=Brushes.White,FontSize=10,TextTrimming=TextTrimming.CharacterEllipsis,VerticalAlignment=VerticalAlignment.Center};
+        readonly System.Windows.Shapes.Path directionIcon=new(){
+            Data=Geometry.Parse("M 7,0 L 14,6 L 10,6 L 10,13 L 4,13 L 4,6 L 0,6 Z"),
+            Fill=UiTheme.Brush("#FFE395"),Stroke=UiTheme.Brush("#18202B"),StrokeThickness=1,
+            Width=14,Height=13,Stretch=Stretch.Uniform,RenderTransformOrigin=new(.5,.5)};
+        readonly Border directionBadge=new(){Width=20,Height=14,Margin=new(5,0,0,0),CornerRadius=new(3),Background=UiTheme.Brush("#80202A35"),Visibility=Visibility.Collapsed};
+        readonly System.Windows.Documents.Run cp=new(){FontWeight=FontWeights.Bold};
+        readonly System.Windows.Documents.Run distance=new();
+        readonly EncounterView.ClassIconConverter icons;
+        NearbyEnemy? previous;
+        string? cpColor;
+        internal EnemyVisual(EncounterView.ClassIconConverter icons){
+            this.icons=icons;Margin=new(0,1,0,3);BorderThickness=new(2);CornerRadius=new(8);Child=gauge;
+            RoundedBar.Clip(gauge);
+            gauge.ColumnDefinitions.Add(new());gauge.ColumnDefinitions.Add(new());gauge.Children.Add(fill);
+            var heading=new Grid{Margin=new(7,2,7,2)};Grid.SetColumnSpan(heading,2);
+            heading.RowDefinitions.Add(new(){Height=new(18)});heading.RowDefinitions.Add(new(){Height=new(14)});
+            heading.ColumnDefinitions.Add(new());heading.ColumnDefinitions.Add(new(){Width=GridLength.Auto});heading.ColumnDefinitions.Add(new(){Width=GridLength.Auto});
+            var identity=new DockPanel();DockPanel.SetDock(icon,Dock.Left);identity.Children.Add(icon);identity.Children.Add(name);
+            heading.Children.Add(identity);Grid.SetColumn(tagged,1);heading.Children.Add(tagged);Grid.SetColumn(hp,2);heading.Children.Add(hp);
+            details.Inlines.Add(cp);details.Inlines.Add(distance);
+            directionBadge.Child=directionIcon;
+            details.Inlines.Add(new System.Windows.Documents.InlineUIContainer(directionBadge){BaselineAlignment=BaselineAlignment.Center});
+            Grid.SetRow(details,1);Grid.SetColumnSpan(details,3);heading.Children.Add(details);gauge.Children.Add(heading);
+        }
+        internal void Update(NearbyEnemy enemy,bool visible){
+            if(previous==enemy)return;
+            if(previous?.Name!=enemy.Name)name.Text=enemy.Name;
+            if(previous?.Job!=enemy.Job){
+                fill.Background=UiTheme.Brush(MeterPresentation.ClassColorFor(enemy.Job,"#8392A5"));
+                icon.Source=icons.Convert(enemy.Job,typeof(ImageSource),null!,System.Globalization.CultureInfo.InvariantCulture) as ImageSource;
+                icon.Visibility=icon.Source==null?Visibility.Collapsed:Visibility.Visible;icon.ToolTip=enemy.Job;
+            }
+            if(previous==null||previous.HealthPercent!=enemy.HealthPercent){
+                double percent=enemy.HealthPercent??0;
+                OverlayMotion.Column(gauge.ColumnDefinitions[0],percent,visible);OverlayMotion.Column(gauge.ColumnDefinitions[1],100-percent,visible);
+                string text=enemy.HealthPercent is double h?$"{h:0.#}%":"HP unknown";if(hp.Text!=text)hp.Text=text;
+            }
+            if(previous==null||previous.Tagged!=enemy.Tagged)tagged.Visibility=enemy.Tagged?Visibility.Visible:Visibility.Collapsed;
+            if(previous==null||previous.Targeted!=enemy.Targeted)BorderBrush=enemy.Targeted?UiTheme.Brush("#FF4D57"):Brushes.Transparent;
+            string color=MeterPresentation.CombatPowerColor(enemy.Cp,enemy.LocalCp);
+            if(cpColor!=color){cpColor=color;cp.Foreground=UiTheme.Brush(color);}
+            string cpText=enemy.Cp>0?$"{enemy.Cp:N0} CP":"CP unknown";
+            string distanceText=enemy.Distance is double d?$"{d:N0} units":"Distance unknown";
+            if(previous==null||previous.HeightArrow!=enemy.HeightArrow){
+                directionBadge.Visibility=enemy.HeightArrow.Length>0?Visibility.Visible:Visibility.Collapsed;
+                directionIcon.RenderTransform=new RotateTransform(enemy.HeightDifference<0?180:0);
+                directionBadge.ToolTip=enemy.HeightDifference<0?"Below you":"Above you";
+            }
+            if(cp.Text!=cpText)cp.Text=cpText;
+            if(distance.Text!="  |  "+distanceText)distance.Text="  |  "+distanceText;
+            string tip=cpText+"  |  "+distanceText+(enemy.HeightDifference is double dz?$"\nHeight difference: {dz:+0;-0;0} world units. Arrows appear beyond 200 units above/below; positions must be fresh.":"");
+            if(!Equals(details.ToolTip,tip))details.ToolTip=tip;
+            if(previous==null||previous.Targeted!=enemy.Targeted||previous.Cp!=enemy.Cp||previous.LocalCp!=enemy.LocalCp)
+                ToolTip=(enemy.Targeted?"Your current target.\n":"")+"Tagged means your damage was captured in this fight since the last observed death or revival; it does not confirm server assist credit. Last captured HP."+MeterPresentation.CombatPowerComparison(enemy.Cp,enemy.LocalCp);
+            previous=enemy;
+        }
+    }
+
 }
 
 public sealed partial class MainWindow
@@ -131,13 +175,22 @@ public sealed partial class MainWindow
     NearbyEnemiesOverlayWindow? nearbyEnemiesOverlay;
     void ToggleNearbyEnemies()
     {
-        if(nearbyEnemiesOverlay!=null){nearbyEnemiesOverlay.Close();return;}
+        preferences.NearbyEnemiesEnabled=!preferences.NearbyEnemiesEnabled;
+        if(!preferences.NearbyEnemiesEnabled)nearbyEnemiesOverlay?.Close();
+        SavePreferences();RefreshCooldownVisibility();
+    }
+    void EnsureNearbyEnemies()
+    {
+        if(nearbyEnemiesOverlay!=null||!preferences.NearbyEnemiesEnabled||shuttingDown)return;
         var window=new NearbyEnemiesOverlayWindow(preferences,SavePreferences);nearbyEnemiesOverlay=window;
-        window.Closed+=(_,_)=>{if(ReferenceEquals(nearbyEnemiesOverlay,window))nearbyEnemiesOverlay=null;};
-        RefreshCooldownVisibility();
+        window.Closed+=(_,_)=>{
+            if(ReferenceEquals(nearbyEnemiesOverlay,window))nearbyEnemiesOverlay=null;
+            if(!shuttingDown){preferences.NearbyEnemiesEnabled=false;SavePreferences();}
+        };
     }
     void RefreshNearbyEnemies(bool allowed)
     {
+        EnsureNearbyEnemies();
         if(nearbyEnemiesOverlay==null)return;
         NearbyEnemy[] rows=[];string empty="Waiting for capture";
         lock(engine.Gate){
@@ -147,6 +200,7 @@ public sealed partial class MainWindow
             }
         }
         nearbyEnemiesOverlay.Update(rows,empty);
+        allowed=allowed&&rows.Length>0&&OverlayHideControls.Allows(nearbyEnemiesOverlay);
         if(allowed&&!nearbyEnemiesOverlay.IsVisible)nearbyEnemiesOverlay.Show();
         else if(!allowed&&nearbyEnemiesOverlay.IsVisible)nearbyEnemiesOverlay.Hide();
     }

@@ -107,7 +107,7 @@ public static class MeterPresentation
 
 // The same ranked bars serve the overview and overlay. Existing rows are reused
 // across capture ticks, retaining hover/click targets while their values change.
-public sealed class MeterView : StackPanel
+public sealed class MeterView : AnimatedStackPanel
 {
     readonly Dictionary<int, MeterBar> bars = new();
     readonly TextBlock empty = new() { Text = "Ready for your next fight", FontSize = 15, Foreground = UiTheme.Brush("#95A3B7"),
@@ -139,7 +139,7 @@ public sealed class MeterView : StackPanel
 sealed class MeterBar : Border
 {
     readonly Grid canvas = new() { ClipToBounds = true };
-    readonly Border fill = new() { HorizontalAlignment = HorizontalAlignment.Left, CornerRadius = new(3), IsHitTestVisible = false };
+    readonly Border fill = new() { HorizontalAlignment = HorizontalAlignment.Left, CornerRadius = new(6), IsHitTestVisible = false };
     readonly Border stripe = new() { Width = 3, HorizontalAlignment = HorizontalAlignment.Left, IsHitTestVisible = false };
     readonly TextBlock rank = new() { FontSize = 11, HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center };
     readonly TextBlock name = new() { FontWeight = FontWeights.SemiBold, TextTrimming = TextTrimming.CharacterEllipsis };
@@ -151,10 +151,12 @@ sealed class MeterBar : Border
     readonly System.Windows.Shapes.Path classSymbol = new() { Width = 14, Height = 14, Stretch = Stretch.Uniform, StrokeThickness = 1.5, StrokeLineJoin = PenLineJoin.Round, Margin = new(0, 0, 5, 0), VerticalAlignment = VerticalAlignment.Center };
     readonly TextBlock amount = new() { FontSize = 10, HorizontalAlignment = HorizontalAlignment.Right };
     MeterRow? current;
+    (int Position,bool Compact,bool Healing,bool Symbols) presentation;
     public event Action<int>? Selected;
     public MeterBar()
     {
-        CornerRadius = new(4); Margin = new(0, 0, 0, 4);
+        CornerRadius = new(8); Margin = new(0, 0, 0, 4);
+        RoundedBar.Clip(canvas,7);
         Cursor = Cursors.Hand; Child = canvas; canvas.Children.Add(fill); canvas.Children.Add(stripe);
         var content = new Grid { Margin = new(3, 0, 10, 0) };
         content.ColumnDefinitions.Add(new() { Width = new GridLength(29) });
@@ -189,9 +191,12 @@ sealed class MeterBar : Border
             (current.CombatPower == 0 && !current.Local && metadata.Visibility != Visibility.Collapsed))
             throw new InvalidOperationException("Overlay icons, bars or death counts do not match the current row.");
     }
-    void SetWidth() => fill.Width = Math.Max(0, canvas.ActualWidth * (current?.Fraction ?? 0));
+    void SetWidth() => OverlayMotion.Number(fill,WidthProperty,Math.Max(0,canvas.ActualWidth*(current?.Fraction??0)));
     public void Update(MeterRow row, int position, bool compact, bool healing, bool showClassSymbols)
     {
+        var nextPresentation=(position,compact,healing,showClassSymbols);
+        if(current==row&&presentation==nextPresentation)return;
+        presentation=nextPresentation;
         if (current?.Job != row.Job) {
             classSymbol.Data = ClassSymbols.For(row.Job);
             classSymbol.ToolTip = row.Job == "Unknown" ? "Class not known yet" : row.Job;
@@ -208,18 +213,16 @@ sealed class MeterBar : Border
             var gradient = new LinearGradientBrush(Color.FromArgb(130, color.R, color.G, color.B), Color.FromArgb(55, color.R, color.G, color.B), 0);
             gradient.Freeze(); fill.Background = gradient; stripe.Background = UiTheme.Brush(row.Color);
         }
-        bool showCp = row.CombatPower > 0, showPing = showClassSymbols && row.Local;
-        bool showMetadata = showCp || showPing;
+        bool showCp = row.CombatPower > 0;
+        bool showMetadata = showCp;
         current = row; Height = (compact ? 35 : 48) + (showMetadata ? 12 : 0) + (row.Health.Length > 0 ? 13 : 0);
         healthStatus.Text = row.Health; healthStatus.Visibility = row.Health.Length > 0 ? Visibility.Visible : Visibility.Collapsed;
         healthStatus.ToolTip = row.Health + ". Last captured health or revival state, not a live estimate.";
         metadata.Visibility = showMetadata ? Visibility.Visible : Visibility.Collapsed;
-        metadata.Text = (showCp ? "CP " + row.CombatPower.ToString("N0") : "") +
-            (showPing ? (showCp ? "  |  " : "") + "Ping " + (row.LocalPingMs is int ping ? $"~{ping} ms" : "--") : "");
+        metadata.Text = showCp ? "CP " + row.CombatPower.ToString("N0") : "";
         metadata.Foreground = UiTheme.Brush(MeterPresentation.CombatPowerColor(row.CombatPower, row.LocalCombatPower, row.Local));
         metadata.ToolTip = (row.CombatPower > 0 ? $"Combat power: {row.CombatPower:N0} ({row.CombatPowerSource})" : "Combat power not captured. Party profile packets can supply it; character details also allow manual entry.") +
             MeterPresentation.CombatPowerComparison(row.CombatPower, row.LocalCombatPower, row.Local) +
-            (showClassSymbols && row.Local ? "\nPing is the last local client-clock echo estimate." : "") +
             (row.Health.Length > 0 ? "\n" + row.Health + ". Last captured health or revival state, not a live estimate." : "");
         BorderBrush = row.Local ? UiTheme.Brush(row.Color) : Brushes.Transparent;
         rank.Text = position.ToString(); rank.Foreground = UiTheme.Brush("#CED5E1");

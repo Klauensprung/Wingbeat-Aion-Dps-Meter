@@ -62,6 +62,9 @@ public sealed partial class MainWindow
         RefreshPetTracker(allowed);
         RefreshControlOverlay(allowed&&OverlayHideControls.Allows(controlOverlay));
         UpdateToolbarState();
+        bool active=demoMode||engine.OverlayActive(DateTimeOffset.UtcNow.ToUnixTimeMilliseconds());
+        if(overlay!=null)OverlayMotion.Number(overlay,System.Windows.UIElement.OpacityProperty,active||overlay.IsMouseOver?1:.4);
+        if(secondMeter!=null)OverlayMotion.Number(secondMeter,System.Windows.UIElement.OpacityProperty,active||secondMeter.IsMouseOver?1:.4);
         if (overlay != null) {
             bool meterAllowed=allowed&&OverlayHideControls.Allows(overlay);
             if (meterWanted && meterAllowed && !overlay.IsVisible) overlay.Show();

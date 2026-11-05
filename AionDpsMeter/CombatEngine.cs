@@ -95,6 +95,10 @@ public sealed partial class CombatEngine
     bool recoveryBlocked;
     long? lastCombat;
     long? lastPartyCombat;
+    long? lastOverlayHealing;
+    internal bool OverlayActive(long timestamp){
+        lock(Gate){long last=Math.Max(lastPartyCombat??-1,lastOverlayHealing??-1);return last>=0&&timestamp>=last&&timestamp-last<=15000;}
+    }
     public bool HasRecentPartyCombat(long timestamp)
     {
         lock (Gate) return lastPartyCombat is long last && timestamp >= last && timestamp - last < 10000;
@@ -685,6 +689,8 @@ public sealed partial class CombatEngine
                 if (DungeonRunTracker.Same(Fight.DungeonRun, dungeonRun.Current)) Fight.DungeonRun = dungeonRun.Current;
                 UpdateDetachedRunProgress();
             }
+            if(healing&&damage.Damage>0&&(damage.ActorId==Fight.LocalPlayer||Fight.Actors.GetValueOrDefault(damage.ActorId)?.Party==true))
+                lastOverlayHealing=Math.Max(lastOverlayHealing??damage.Timestamp,damage.Timestamp);
             if (!healing && damage.Damage > 0) ObservePartyCombat(damage.Timestamp, damage.ActorId, damage.TargetId);
             EnsureActor(damage.ActorId); EnsureActor(damage.TargetId);
             ObserveTraining(damage, healing);
@@ -742,7 +748,7 @@ public sealed partial class CombatEngine
             var pets = previous.Pets;
             Fight = new() { Label = label, LocalPlayer = previous.LocalPlayer, Actors = actorCarryover.Select(previous), Specs = new(previous.Specs), Energy = previous.Energy, PartyProfiles = [..previous.PartyProfiles], LocalPing = previous.LocalPing, LocalStats = CharacterReadings.Copy(previous.LocalStats), LocalResources = previous.LocalResources,
                 Builds = previous.Builds.Where(p => previous.Actors.GetValueOrDefault(p.Key)?.OriginalEntityId == 0).ToDictionary(p => p.Key, p => FightMetadata.Copy(p.Value)), PartyKnown = previous.PartyKnown, PartySource = previous.PartySource, PartyLeaderName = previous.PartyLeaderName };
-            lastDeaths.Clear(); lastCombat = null; lastPartyCombat = null; recoveryBlocked = false; resumable = null; recoveryCasts = null; recoveryLoot = null; resumeTargets.Clear(); phaseAnchors.Clear();
+            lastDeaths.Clear(); lastCombat = null; lastPartyCombat = null; lastOverlayHealing=null; recoveryBlocked = false; resumable = null; recoveryCasts = null; recoveryLoot = null; resumeTargets.Clear(); phaseAnchors.Clear();
             Fight.Pets = pets;
             networkRetention.Reset();BossAlerts.ResetEncounter();
             Fight.LocalTarget = previous.LocalTarget;

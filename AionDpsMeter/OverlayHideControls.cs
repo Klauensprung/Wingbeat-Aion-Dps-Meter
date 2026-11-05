@@ -62,6 +62,14 @@ internal static class OverlayHideControls
     internal static void Attach(Window window)
     {
         if (states.TryGetValue(window,out _)) return;
+        // Avoid the default Window template's opaque resize footer.
+        window.Template=(ControlTemplate)System.Windows.Markup.XamlReader.Parse("""
+            <ControlTemplate xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" TargetType="Window">
+              <Grid Background="Transparent">
+                <AdornerDecorator><ContentPresenter Content="{TemplateBinding Content}" ContentTemplate="{TemplateBinding ContentTemplate}"/></AdornerDecorator>
+              </Grid>
+            </ControlTemplate>
+            """);
         var state = new OverlaySnooze(); states.Add(window,state);
         var content = window.Content as UIElement;
         if (content == null) return;
