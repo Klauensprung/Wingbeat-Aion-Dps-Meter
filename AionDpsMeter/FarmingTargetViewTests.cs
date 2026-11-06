@@ -3,7 +3,22 @@ namespace AionDpsMeter.Local;
 internal static class FarmingTargetViewTests
 {
     internal static void Run(Action<bool,string> check) {
+        var markers=new MapTargetIndex([
+            new(1,1010,"Orichalcum","gatherable","ore",1,"gatherable",11,101),
+            new(2,1110,"Orichalcum","gatherable","ore",1,"gatherable",12,101),
+            new(3,1110,"Orichalcum","gatherable","ore",1,"gatherable",12,102),
+            new(4,1010,"Odyle","gatherable","ore",1,"gatherable",13,103)]);
+        FarmingViewRow Row(int id,string name)=>new(new("gatherable",id),name,new("gatherable",id,0,null,false,[]),null);
+        var combined=FarmingTargetView.CombineGatherables([Row(11,"Orichalcum"),Row(12,"Orichalcum"),Row(13,"Odyle")],markers,new Dictionary<int,long>{{101,2},{102,3},{103,7}});
+        check(combined.Length==2&&combined[0].Progress.Count==5&&combined[1].Progress.Count==7,"Farming overlay combines material variants and counts shared object IDs only once");
         var engine=new CombatEngine();engine.Apply(new("local-player",Actor:new(1,"Self",true,true,0,"Cleric",2301)));
+        var materialTargets=new MapTargets();materialTargets.SetItems([610620013,610620013]);
+        engine.LootTracking.Record(610620013,3);
+        var materialView=new FarmingTargetView();
+        var materialBefore=materialView.Update(engine,materialTargets.Snapshot(),1,1000000);
+        engine.LootTracking.Record(610620013,1);
+        var materialAfter=materialView.Update(engine,materialTargets.Snapshot(),1,1000001);
+        check(materialBefore.OverlayRows is [{Progress.Count:3}]&&materialAfter.OverlayRows is [{Progress.Count:4}]&&engine.GatheringTracking.Snapshot().Counts.Count==0,"Selected farming materials count acquired items without requiring gathering node events or duplicating selections");
         void Send(string kind,long at,object fields)=>engine.Apply(new("network",Network:new(kind,at,"synthetic",JsonSerializer.SerializeToElement(fields))));
         Send("local-zone",100,new {MapId=20});var view=new FarmingTargetView();MapTarget[] targets=[new("npc",2600094,2)];
         var first=view.Update(engine,targets,1,1000000);check(first.SceneChanged&&first.Notices.Length==0&&first.Rows[0].Nearby==0,"Shared farming view establishes a scene without announcing existing progress");

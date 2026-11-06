@@ -165,6 +165,8 @@ public static class SelfTest
             CooldownChargeTests.Run(Check, temp);
             StartupTests.Run(Check, temp);
             ReleaseUpdateTests.Run(Check);
+            EncounterLogTests.Run(Check);
+            GatheringRouteTests.Run(Check);
             TrainingTests.Run(Check, temp);
             FightChatSummaryTests.Run(Check);
             EffectAnalysisTests.Run(Check);

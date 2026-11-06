@@ -5,6 +5,8 @@ internal static class CooldownVisibility
     internal static bool ForegroundAllows(bool gameOnly, bool allowedForeground) => !gameOnly || allowedForeground;
     internal static bool ShouldShow(bool requested, bool combatOnly, bool capturing, bool combat, bool training) =>
         requested && (!combatOnly || capturing && (combat || training));
+    internal static double MeterOpacity(bool active, bool hovered, bool partyHealth, bool healing, bool training) =>
+        active || hovered || partyHealth || healing || training ? 1 : .4;
 }
 
 public sealed partial class MainWindow
@@ -63,8 +65,10 @@ public sealed partial class MainWindow
         RefreshControlOverlay(allowed&&OverlayHideControls.Allows(controlOverlay));
         UpdateToolbarState();
         bool active=demoMode||engine.OverlayActive(DateTimeOffset.UtcNow.ToUnixTimeMilliseconds());
-        if(overlay!=null)OverlayMotion.Number(overlay,System.Windows.UIElement.OpacityProperty,active||overlay.IsMouseOver?1:.4);
-        if(secondMeter!=null)OverlayMotion.Number(secondMeter,System.Windows.UIElement.OpacityProperty,active||secondMeter.IsMouseOver?1:.4);
+        if(overlay!=null)OverlayMotion.Number(overlay,System.Windows.UIElement.OpacityProperty,
+            CooldownVisibility.MeterOpacity(active,overlay.IsMouseOver,preferences.OverlayPartyHealth,preferences.OverlayHealing,engine.TrainingActive));
+        if(secondMeter!=null)OverlayMotion.Number(secondMeter,System.Windows.UIElement.OpacityProperty,
+            CooldownVisibility.MeterOpacity(active,secondMeter.IsMouseOver,SecondMeterOptions.PartyHealth,SecondMeterOptions.Healing,engine.TrainingActive));
         if (overlay != null) {
             bool meterAllowed=allowed&&OverlayHideControls.Allows(overlay);
             if (meterWanted && meterAllowed && !overlay.IsVisible) overlay.Show();

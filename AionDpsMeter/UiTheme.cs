@@ -91,15 +91,15 @@ internal static class UiTheme
         resources[typeof(TabItem)] = XamlReader.Parse("""
           <Style xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" TargetType="TabItem">
             <Setter Property="Foreground" Value="{DynamicResource Muted}"/><Setter Property="Background" Value="Transparent"/>
-            <Setter Property="HorizontalContentAlignment" Value="Stretch"/><Setter Property="VerticalContentAlignment" Value="Stretch"/><Setter Property="Width" Value="146"/>
+            <Setter Property="HorizontalContentAlignment" Value="Stretch"/><Setter Property="VerticalContentAlignment" Value="Stretch"/><Setter Property="Width" Value="178"/>
             <Setter Property="FontSize" Value="12"/>
             <Setter Property="Template"><Setter.Value><ControlTemplate TargetType="TabItem">
               <StackPanel>
-                <TextBlock x:Name="Group" Text="{TemplateBinding Tag}" Foreground="{DynamicResource Muted}" FontWeight="Normal" FontSize="9" Margin="12,6,0,2"/>
+                <TextBlock x:Name="Group" Text="{TemplateBinding Tag}" Foreground="{DynamicResource Muted}" FontWeight="Normal" FontSize="9" Margin="14,16,0,6"/>
                 <Border x:Name="Row" Background="{TemplateBinding Background}" BorderBrush="Transparent" BorderThickness="1" CornerRadius="6" Margin="0,1,8,1">
                   <Grid>
                     <Border x:Name="Active" Background="{DynamicResource Accent}" Width="3" Height="16" CornerRadius="1" HorizontalAlignment="Left" Visibility="Hidden"/>
-                    <ContentPresenter ContentSource="Header" HorizontalAlignment="Left" Margin="12,6"/>
+                    <ContentPresenter ContentSource="Header" HorizontalAlignment="Left" Margin="14,10"/>
                   </Grid>
                 </Border>
               </StackPanel><ControlTemplate.Triggers>
@@ -113,11 +113,14 @@ internal static class UiTheme
         resources[typeof(TabControl)] = XamlReader.Parse("""
           <Style xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" TargetType="TabControl">
             <Setter Property="Template"><Setter.Value><ControlTemplate TargetType="TabControl">
-              <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="158"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+              <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="190"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
                 <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
                   <StackPanel IsItemsHost="True" KeyboardNavigation.TabNavigation="Once"/>
                 </ScrollViewer>
-                <ContentPresenter Grid.Column="1" ContentSource="SelectedContent" Margin="{TemplateBinding Padding}" TextElement.Foreground="{DynamicResource Text}"/>
+                <DockPanel Grid.Column="1" Margin="{TemplateBinding Padding}" TextElement.Foreground="{DynamicResource Text}">
+                  <ContentPresenter DockPanel.Dock="Top" Content="{TemplateBinding Tag}"/>
+                  <ContentPresenter ContentSource="SelectedContent"/>
+                </DockPanel>
               </Grid>
             </ControlTemplate></Setter.Value></Setter>
           </Style>

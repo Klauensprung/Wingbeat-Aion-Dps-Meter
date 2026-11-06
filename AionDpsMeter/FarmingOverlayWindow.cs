@@ -1,43 +1,56 @@
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
+using System.Windows.Media.Animation;
 namespace AionDpsMeter.Local;
 internal sealed class FarmingOverlayWindow : Window
 {
-    readonly TextBlock summary=new(){FontSize=11,TextWrapping=TextWrapping.Wrap,Margin=new(0,6,0,8),Tag="Farming overlay summary"};
-    readonly TextBlock notice=new(){FontSize=11,TextWrapping=TextWrapping.Wrap,Margin=new(0,8,0,0),Tag="Farming overlay notice"};
-    readonly StackPanel rows=new();FarmingViewRow[] previous=[];
-    readonly FarmingNoticeQueue notices=new();
+    readonly StackPanel rows=new();
+    sealed record Bar(Border Card,TextBlock Name,TextBlock Count,Border Flash){internal decimal? Previous;}
+    readonly Dictionary<(string Kind,int Id),Bar> bars=new();
     internal FarmingOverlayWindow(Preferences settings,Action save,Action targets) {
         Title=global::AionDpsMeter.Local.Localization.T("Wingbeat farming");Width=360;SizeToContent=SizeToContent.Height;ResizeMode=ResizeMode.NoResize;WindowStyle=WindowStyle.None;
         AllowsTransparency=true;Topmost=true;ShowInTaskbar=false;ShowActivated=false;UiTheme.Apply(this,settings);Background=Brushes.Transparent;
-        var body=new StackPanel {Margin=new(12)};var header=new DockPanel();
-        var open=new Button {Content=global::AionDpsMeter.Local.Localization.T("Targets"),FontSize=11,Padding=new(8,3,8,3)};DockPanel.SetDock(open,Dock.Right);open.Click+=(_,_)=>targets();header.Children.Add(open);
-        var title=new TextBlock {Text=global::AionDpsMeter.Local.Localization.T("FARMING"),FontSize=11,FontWeight=FontWeights.SemiBold,Foreground=UiTheme.Brush(settings.Accent),VerticalAlignment=VerticalAlignment.Center};
-        title.MouseLeftButtonDown+=(_,e)=>{if(!settings.FarmingOverlayLocked){DragMove();e.Handled=true;}};header.Children.Add(title);body.Children.Add(header);
-        body.Children.Add(summary);body.Children.Add(rows);body.Children.Add(notice);
-        Content=new Border {Child=body,Background=UiTheme.Brush("#ED10151F"),BorderBrush=UiTheme.Brush("#293443"),BorderThickness=new(1),CornerRadius=new(8)};
+        var body=new StackPanel {Margin=new(12)};
+        body.Children.Add(rows);
+        body.MouseLeftButtonDown+=(_,e)=>{if(!settings.FarmingOverlayLocked){DragMove();e.Handled=true;}};
+        Content=new Border {Child=body,Background=Brushes.Transparent};
         if(settings.FarmingOverlayLeft is double left&&settings.FarmingOverlayTop is double top&&double.IsFinite(left)&&double.IsFinite(top)){
             Left=Math.Clamp(left,SystemParameters.VirtualScreenLeft,SystemParameters.VirtualScreenLeft+Math.Max(0,SystemParameters.VirtualScreenWidth-Width));
             Top=Math.Clamp(top,SystemParameters.VirtualScreenTop,SystemParameters.VirtualScreenTop+Math.Max(0,SystemParameters.VirtualScreenHeight-400));}
         var menu=UiTheme.Menu(this);var locked=new MenuItem {Header="Lock position",IsCheckable=true,IsChecked=settings.FarmingOverlayLocked};
         locked.Click+=(_,_)=>{settings.FarmingOverlayLocked=locked.IsChecked;save();};menu.Items.Add(locked);
+        var open=new MenuItem{Header="Targets"};open.Click+=(_,_)=>targets();menu.Items.Add(open);
         var close=new MenuItem {Header="Close farming overlay"};close.Click+=(_,_)=>Close();menu.Items.Add(close);ContextMenu=menu;
         OverlayPlacement.Track(this,()=>{settings.FarmingOverlayLeft=Left;settings.FarmingOverlayTop=Top;save();});
     }
     internal void Update(FarmingViewSnapshot view,bool capturing,int petGoal) {
-        var s=view.Session;
-        summary.Text=global::AionDpsMeter.Local.Localization.F($"{(capturing?Localization.T("Live capture"):Localization.T("Capture stopped"))} / Pet goal: level {petGoal}\nKills: {s.Kills:N0} ({s.KillsPerHour:N0}/h) / Souls gained: {s.Souls:N0}\nShowing {Math.Min(5,view.Rows.Length)} of {view.Rows.Length} targets");
-        summary.ToolTip=global::AionDpsMeter.Local.Localization.T("Totals start at each Farming reset; nearby counts use captured scene membership, not distance. Open Targets for reset timestamps and all entries.");
-        if(s.HasOmissions)summary.Text+=global::AionDpsMeter.Local.Localization.T(" / partial totals");
-        notice.Text=string.Join("\n",notices.Update(view.Notices,Environment.TickCount64,view.SceneChanged).Select(FarmingTargetView.Notice));
-        notice.Visibility=string.IsNullOrEmpty(notice.Text)?Visibility.Collapsed:Visibility.Visible;
-        var shown=view.Rows.Take(5).ToArray();if(previous.SequenceEqual(shown))return;previous=shown;rows.Children.Clear();
-        foreach(var row in shown){var p=row.Progress;var block=new StackPanel {Margin=new(0,4,0,4)};
-            block.Children.Add(new TextBlock {Text=row.Name,TextTrimming=TextTrimming.CharacterEllipsis,ToolTip=$"{row.Name} ({row.Target.Id})",FontSize=12});
-            string progress=Localization.T(p.Done==true?"Complete":p.Done==null?"Unknown progress":"In progress");
-            string goal=row.Target.Kind=="pet"?Localization.F($"level {petGoal}"):p.Goal?.ToString("N0")??"-";
-            block.Children.Add(new TextBlock {Text=global::AionDpsMeter.Local.Localization.F($"{(p.CountIsPartial?">=":"")}{p.Count?.ToString("N0")??"?"} / goal {goal} / near {row.Nearby?.ToString("N0")??"?"} / {progress}"),FontSize=10,TextWrapping=TextWrapping.Wrap});rows.Children.Add(block);
+        var shown=view.OverlayRows??view.Rows;
+        var keys=shown.Select(r=>(r.Target.Kind,r.Target.Id)).ToHashSet();
+        foreach(var key in bars.Keys.Where(k=>!keys.Contains(k)).ToArray()){rows.Children.Remove(bars[key].Card);bars.Remove(key);}
+        int index=0;
+        foreach(var item in shown){
+            var key=(item.Target.Kind,item.Target.Id);
+            if(!bars.TryGetValue(key,out var bar)){
+                var gauge=new Grid{Height=32,Background=UiTheme.Brush("#60232D3B")};RoundedBar.Clip(gauge);
+                gauge.Children.Add(new Border{Background=UiTheme.Brush("#55D6BE"),Opacity=.35,CornerRadius=new(6)});
+                var flash=new Border{Background=UiTheme.Brush("#B0FFF1"),Opacity=0,IsHitTestVisible=false};gauge.Children.Add(flash);
+                var labels=new Grid{Margin=new(8,0,8,0)};labels.ColumnDefinitions.Add(new());labels.ColumnDefinitions.Add(new(){Width=GridLength.Auto});
+                var name=new TextBlock{Foreground=Brushes.White,FontSize=12,FontWeight=FontWeights.SemiBold,VerticalAlignment=VerticalAlignment.Center,TextTrimming=TextTrimming.CharacterEllipsis,Margin=new(0,0,8,0)};
+                var count=new TextBlock{Foreground=Brushes.White,FontSize=12,FontWeight=FontWeights.Bold,VerticalAlignment=VerticalAlignment.Center,Tag="Farming overlay count"};
+                labels.Children.Add(name);Grid.SetColumn(count,1);labels.Children.Add(count);gauge.Children.Add(labels);
+                var card=new Border{Child=gauge,CornerRadius=new(6),Margin=new(0,2,0,2)};
+                bar=new(card,name,count,flash);bars[key]=bar;
+            }
+            if(bar.Name.Text!=item.Name)bar.Name.Text=item.Name;
+            string text=(item.Progress.CountIsPartial?">=":"")+(item.Progress.Count?.ToString("N0")??"?");
+            if(bar.Count.Text!=text)bar.Count.Text=text;
+            if(!view.SceneChanged&&bar.Previous is decimal before&&item.Progress.Count is decimal after&&after>before&&IsVisible)
+                bar.Flash.BeginAnimation(OpacityProperty,new DoubleAnimation(.7,0,TimeSpan.FromMilliseconds(550)){EasingFunction=new QuadraticEase{EasingMode=EasingMode.EaseOut}},HandoffBehavior.SnapshotAndReplace);
+            else if(view.SceneChanged||item.Progress.Count<bar.Previous)bar.Flash.BeginAnimation(OpacityProperty,null);
+            bar.Previous=item.Progress.Count;
+            bar.Card.ToolTip=item.Name;
+            if(rows.Children.IndexOf(bar.Card)!=index){rows.Children.Remove(bar.Card);rows.Children.Insert(index,bar.Card);}index++;
         }
     }
 }

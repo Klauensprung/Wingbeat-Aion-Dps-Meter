@@ -5,15 +5,17 @@ using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Media.Effects;
+using System.Windows.Media.Animation;
 using System.Windows.Threading;
 
 namespace AionDpsMeter.Local;
 
 internal sealed class CooldownOverlayWindow : Window
 {
-    sealed record Tile(Border Container, Image Icon, TextBlock Time, ImageSource Color, ImageSource Gray, ProgressBar Progress, TextBlock Reduction, TextBlock Charges)
+    sealed record Tile(Border Container, Image Icon, TextBlock Time, ImageSource Color, ImageSource Gray, ProgressBar Progress, TextBlock Reduction, TextBlock Charges, CooldownSweep Sweep, Border Flash)
     {
         internal double MaximumRemaining { get; set; }
+        internal bool? WasReady { get; set; }
     }
     string lastStyle = "";
     internal string DisplayedCharges(int skill) => rows.TryGetValue(skill, out var row) ? row.Charges.Text : "";
@@ -95,6 +97,17 @@ internal sealed class CooldownOverlayWindow : Window
     }
     internal string DisplayedTime(int skill) => rows[skill].Time.Text;
     internal bool Dimmed(int skill) => rows[skill].Icon.Opacity < 1;
+    internal void CheckSweep(int skill,bool ready,double expected) {
+        timer.Stop();
+        var frame=new DispatcherFrame();
+        var tick=new DispatcherTimer{Interval=TimeSpan.FromMilliseconds(25)};
+        tick.Tick+=(_,_)=>{tick.Stop();frame.Continue=false;};tick.Start();Dispatcher.PushFrame(frame);
+        var row=rows[skill];
+        double actual=lastStyle=="Bars"?row.Progress.Value:row.Sweep.Fraction;
+        if(lastStyle!="Bars"&&!ready)expected=1-expected;
+        if(Math.Abs(actual-expected)>.03||row.WasReady!=ready)
+            throw new InvalidOperationException($"Cooldown {lastStyle} fill {actual} expected {expected}; ready={row.WasReady}.");
+    }
     internal int VisibleSkills => rows.Values.Count(r => r.Container.Visibility == Visibility.Visible);
     internal void CheckStyles(long now, int readySkill, Action<FrameworkElement, string> render)
     {
@@ -166,7 +179,9 @@ internal sealed class CooldownOverlayWindow : Window
                 var icon = new Image { Source = source, Stretch = Stretch.UniformToFill };
                 var time = new TextBlock { FontSize = 21, FontWeight = FontWeights.Bold, Foreground = Brushes.White, HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center,
                     Effect = new DropShadowEffect { Color = Colors.Black, BlurRadius = 3, ShadowDepth = 1, Opacity = 1 }, IsHitTestVisible = false };
-                var tile = new Grid(); tile.Children.Add(icon); tile.Children.Add(time);
+                var tile = new Grid { ClipToBounds=true }; tile.Children.Add(icon);
+                var sweep=new CooldownSweep { Icon=source };
+                tile.Children.Add(sweep);tile.Children.Add(time);
                 var charges = new TextBlock { FontSize = 12, FontWeight = FontWeights.Bold, Foreground = Brushes.White,
                     Background = UiTheme.Brush("#DD10151F"), Padding = new(3, 0, 3, 0),
                     HorizontalAlignment = style == "Bars" ? HorizontalAlignment.Left : HorizontalAlignment.Right,
@@ -176,20 +191,23 @@ internal sealed class CooldownOverlayWindow : Window
                     Foreground = UiTheme.Brush("#65CBE9"), HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Top,
                     Effect = new DropShadowEffect { Color = Colors.Black, BlurRadius = 3, ShadowDepth = 0 }, Visibility = Visibility.Collapsed };
                 tile.Children.Add(reduction);
-                var progress = new ProgressBar { Minimum = 0, Maximum = 1, Height = 3, VerticalAlignment = VerticalAlignment.Bottom,
-                    Background = UiTheme.Brush("#293443"), Foreground = UiTheme.Brush("#55D6BE"), BorderThickness = new(0), Visibility = Visibility.Collapsed };
+                var progress = new ProgressBar { Minimum = 0, Maximum = 1, Height = 50, VerticalAlignment = VerticalAlignment.Stretch,
+                    Background = Brushes.Transparent, Foreground = UiTheme.Brush("#6055D6BE"), BorderThickness = new(0), Visibility = Visibility.Collapsed, IsHitTestVisible=false };
                 if (style == "Round") { tile.Clip = new EllipseGeometry(new Point(25, 25), 25, 25); }
                 if (style == "Bars") {
                     icon.Width = 40; icon.Height = 40; icon.HorizontalAlignment = HorizontalAlignment.Left; icon.Margin = new(4, 0, 0, 0);
+                    sweep.Width=40;sweep.Height=40;sweep.HorizontalAlignment=HorizontalAlignment.Left;sweep.Margin=new(4,0,0,0);
                     time.FontSize = 16; time.HorizontalAlignment = HorizontalAlignment.Right; time.Margin = new(0, 0, 10, 0);
                     var title = new TextBlock { Text = names.GetSkillName(id), Foreground = Brushes.White, FontSize = 11,
                         VerticalAlignment = VerticalAlignment.Center, Margin = new(52, 0, 65, 0), TextTrimming = TextTrimming.CharacterEllipsis };
-                    tile.Children.Add(title); progress.Visibility = Visibility.Visible; tile.Children.Add(progress);
+                    tile.Children.Add(title); progress.Visibility = Visibility.Visible; tile.Children.Insert(0,progress);
                 }
                 tile.Children.Add(charges);
+                var flash=new Border { Background=UiTheme.Brush("#C0B8FFF0"),Opacity=0,IsHitTestVisible=false };
+                tile.Children.Add(flash);
                 var border = new Border { Width = style == "Bars" ? 250 : 52, Height = 52, Child = tile, Background = UiTheme.Brush("#B010151F"),
                     Margin = new(4), CornerRadius = new(style == "Round" ? 26 : 4), BorderThickness = new(1) };
-                rows[id] = new(border, icon, time, source, gray, progress, reduction, charges); list.Children.Add(border);
+                rows[id] = new(border, icon, time, source, gray, progress, reduction, charges,sweep,flash); list.Children.Add(border);
             }
         }
         bool live = capturing();
@@ -207,10 +225,16 @@ internal sealed class CooldownOverlayWindow : Window
             if (charge != null) row.MaximumRemaining = charge.DurationSeconds;
             else if (ready || remaining == null) row.MaximumRemaining = 0;
             else row.MaximumRemaining = Math.Max(row.MaximumRemaining, remaining.Value);
-            CountdownBar.Update(row.Progress, CooldownPresentation.RemainingFraction(remaining, row.MaximumRemaining), remaining ?? 0);
+            double fill=ready?1:CooldownPresentation.RemainingFraction(remaining,row.MaximumRemaining);
+            CountdownBar.Update(row.Progress,fill,ready?0:remaining??0);
+            row.Sweep.Update(ready?1:remaining==null?0:1-fill,ready?0:remaining??0);
+            if(ready&&row.WasReady==false&&row.Container.IsVisible)
+                row.Flash.BeginAnimation(OpacityProperty,new DoubleAnimation(.85,0,TimeSpan.FromMilliseconds(500)){FillBehavior=FillBehavior.Stop});
+            if(!ready)row.Flash.BeginAnimation(OpacityProperty,null);
+            row.WasReady=remaining==null&&charge==null?null:ready;
             row.Container.BorderBrush = ready && settings.CooldownReadyGlow ? UiTheme.Brush("#55D6BE") : Brushes.Transparent;
             row.Container.Effect = ready && settings.CooldownReadyGlow ? readyGlow : null;
-            row.Icon.Source = ready ? row.Color : row.Gray; row.Icon.Opacity = ready ? 1 : .45;
+            row.Icon.Source = row.Color; row.Icon.Opacity = ready ? 1 : .35;
             row.Time.Text = remaining == null ? "?" : ready ? "" : (reading.Estimated ? "~" : "") + Math.Ceiling(remaining.Value).ToString();
             if (style == "Bars" && ready) row.Time.Text = global::AionDpsMeter.Local.Localization.T("Ready");
             if (charge != null) row.Time.Text = remaining > 0 ? Math.Ceiling(remaining.Value).ToString() : charge.Count == 0 ? "?" : "";
@@ -220,7 +244,7 @@ internal sealed class CooldownOverlayWindow : Window
                 (style == global::AionDpsMeter.Local.Localization.T("Bars") ? global::AionDpsMeter.Local.Localization.T("\nBar is relative to the longest countdown observed since this timer became active.") : "") +
                 (settings.CooldownLocked ? global::AionDpsMeter.Local.Localization.T("\nPosition locked. Right-click to unlock.") : global::AionDpsMeter.Local.Localization.T("\nDrag to move. Right-click for settings."));
             if (charge != null) row.Container.ToolTip = names.GetSkillName(id) + global::AionDpsMeter.Local.Localization.F($"\n{(charge.Estimated ? Localization.T("Estimated") : Localization.T("Reported"))} charges: {charge.Count} / {charge.Capacity}\nRecharge: {charge.RemainingSeconds:0.0}s\nLast reported charges: {tracker.Charges(id, now)!.Count}\nRecovered charges are estimated from elapsed recharge intervals.");
-            row.Container.Visibility = ready && !settings.CooldownShowReady && !(charge?.RemainingSeconds > 0) ? Visibility.Collapsed : Visibility.Visible;
+            row.Container.Visibility = remaining==null&&charge==null || ready && !settings.CooldownShowReady && !(charge?.RemainingSeconds > 0) ? Visibility.Collapsed : Visibility.Visible;
         }
     }
 }

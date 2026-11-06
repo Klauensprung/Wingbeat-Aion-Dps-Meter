@@ -53,9 +53,9 @@ internal static class UiIcons
         return new Viewbox { Width = size, Height = size, Child = canvas, IsHitTestVisible = false, Tag = icon };
     }
     internal static UiIcon ForView(string title) => title switch {
-        "Encounter" => UiIcon.Encounter, "Cooldowns" => UiIcon.Cooldowns, "Party" => UiIcon.Party, "Skills" => UiIcon.Skills,
+        "Overlays" => UiIcon.Meter, "Encounter" => UiIcon.Encounter, "Cooldowns" => UiIcon.Cooldowns, "Party" => UiIcon.Party, "Skills" => UiIcon.Skills,
         "Healing" => UiIcon.Healing, "PvP" => UiIcon.Pvp, "Rotations" => UiIcon.Rotation, "Player stats" => UiIcon.Player,
-        "Saved fights" => UiIcon.Folder, "Trends" => UiIcon.Chart, "Openers" => UiIcon.Opener, "Boss analysis" => UiIcon.Boss,
+        "Encounter log" => UiIcon.Catalogue, "Saved fights" => UiIcon.Folder, "Trends" => UiIcon.Chart, "Openers" => UiIcon.Opener, "Boss analysis" => UiIcon.Boss,
         "Boss catalogue" => UiIcon.Catalogue, "Report card" => UiIcon.Report, "Top 5%" => UiIcon.Trophy,
         "Top cohort" => UiIcon.Cohort, "Network events" => UiIcon.Network, "Tools" => UiIcon.Catalogue, _ => UiIcon.Chart
     };

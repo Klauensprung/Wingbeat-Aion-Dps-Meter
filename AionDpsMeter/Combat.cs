@@ -81,6 +81,7 @@ public sealed class Fight
     public List<DefenseEvent> Defense { get; set; } = new();
     public List<DeathEvent> Deaths { get; set; } = new();
     public List<NetworkEvent> Network { get; set; } = new();
+    public Dictionary<int,HealthReading> InitialHealth {get;set;}=new();
     public Dictionary<int, Spec> Specs { get; set; } = new();
     public Dictionary<int, ActorBuild> Builds { get; set; } = new();
     public bool PartyKnown { get; set; }
@@ -102,7 +103,7 @@ public sealed class Fight
     public bool HasEvents => ArchiveSummary?.HasEvents ?? Damage.Count + Healing.Count + Defense.Count > 0;
     public bool HasRecordedData => LiveLoot?.HasData == true || LiveCasts?.HasData == true || SavedCasts?.Rows.Length > 0 || SavedCasts?.OmittedStarts > 0 || Telegraphs.Count > 0 || OmittedTelegraphs > 0 || OmittedGathers > 0 || GatheredObjects.Count > 0 || DungeonRun?.HasProgress == true || SavedLoot?.Rows.Length > 0 || SavedLoot?.OmittedItems > 0 || SavedLoot?.OmittedSessions > 0 || Training != null || HasEvents || Deaths.Count > 0 || LocalStats != null || Network.Count > 0 || Energy != null || Builds.Count > 0 || PartyKnown || Actors.Values.Any(a => a.ProfileSource == "Entered locally");
     public Fight Copy() => new() { LiveCooldowns = LiveCooldowns?.Copy(), StaggerBreaks = StaggerBreaks?.ToArray(), StaggerBreaksTruncated = StaggerBreaksTruncated, LiveLoot = LiveLoot?.Copy(), LiveCasts = LiveCasts?.Copy(), Telegraphs = new(Telegraphs), OmittedTelegraphs = OmittedTelegraphs, GatheredObjects = new(GatheredObjects), OmittedGathers = OmittedGathers, LocalResources = LocalResources, SavedShields = SavedShields, SavedLoot = SavedLoot, SavedCasts = SavedCasts == null ? null : CastOutcomes.Copy(SavedCasts), SavedEffects = SavedEffects, DungeonRun = DungeonRun, ObservedRun = ObservedRun, MixedRunContexts = MixedRunContexts, LocalPosition = LocalPosition, LocalTarget = LocalTarget, PartyBossTarget = PartyBossTarget, Pets = Pets, BossRecords = BossRecords, Training = Training, DisplayWindow = DisplayWindow, ArchiveSummary = ArchiveSummary, Version = Version, Id = Id, Label = Label, Created = Created, Demo = Demo, LocalPlayer = LocalPlayer,
-        Actors = new(Actors), Damage = new(Damage), Healing = new(Healing), Defense = new(Defense), Network = new(Network), Deaths = new(Deaths), PartyProfiles = [..PartyProfiles], LocalPing = LocalPing, LocalStats = CharacterReadings.Copy(LocalStats),
+        InitialHealth = new(InitialHealth), Actors = new(Actors), Damage = new(Damage), Healing = new(Healing), Defense = new(Defense), Network = new(Network), Deaths = new(Deaths), PartyProfiles = [..PartyProfiles], LocalPing = LocalPing, LocalStats = CharacterReadings.Copy(LocalStats),
         Specs = Specs.ToDictionary(p => p.Key, p => p.Value with { Choices = p.Value.Choices.ToArray() }), Energy = Energy,
         Builds = Builds.ToDictionary(p => p.Key, p => FightMetadata.Copy(p.Value)), PartyKnown = PartyKnown, PartySource = PartySource, PartyLeaderName = PartyLeaderName };
 }

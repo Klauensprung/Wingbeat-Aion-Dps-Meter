@@ -506,16 +506,16 @@ public sealed partial class MainWindow
             var routeEngine=engine;var routeTargets=trackedTargets;trackedTargets=new();
             try {
                 engine=new CombatEngine();
+                engine.Position.Apply(new("local-zone",DateTimeOffset.UtcNow.ToUnixTimeMilliseconds(),"synthetic",JsonSerializer.SerializeToElement(new {MapId=1010,X=123,Y=456,Z=0})));
                 WindowTest(ShowGatheringRoutes,"Gathering-routes",window=>{
                     var choice=LayoutVisuals<ComboBox>(window).Single(c=>c.Tag?.ToString()=="Gathering route resource");
                     if(choice.Items.Count==0)throw new InvalidOperationException("Gathering resources missing.");
                     var start=LayoutVisuals<Button>(window).Single(b=>b.Content?.ToString()=="Start route");
-                    if(!start.IsEnabled)throw new InvalidOperationException("Static route requires a player position.");
+                    if(!start.IsEnabled)throw new InvalidOperationException("Route did not accept a fresh player position.");
                     start.RaiseEvent(new RoutedEventArgs(System.Windows.Controls.Button.ClickEvent));
                     var selected=(GatherRouteChoice)choice.SelectedItem;
                     if(!selected.Targets.All(id=>trackedTargets.Snapshot().Any(t=>t.Kind=="gatherable"&&t.Id==id)))throw new InvalidOperationException("Route did not save selected resource.");
                     if(LayoutVisuals<Button>(window).Any(b=>b.Content?.ToString() is "Mark visited" or "Skip stop")||LayoutVisuals<CheckBox>(window).Any(c=>c.Content?.ToString()?.Contains("Auto-visit")==true))throw new InvalidOperationException("Static route retains automatic or manual gathering actions.");
-                    LayoutVisuals<Button>(window).Single(b=>b.Content?.ToString()=="Map overlay").RaiseEvent(new RoutedEventArgs(System.Windows.Controls.Button.ClickEvent));
                     var overlay=Application.Current.Windows.OfType<GatheringMapOverlay>().Single();overlay.Width=800;overlay.Height=600;overlay.UpdateLayout();
                     var alignment=overlay.AlignmentView;int stops=overlay.StopCount;
                     LayoutVisuals<Button>(window).Single(b=>b.Content?.ToString()=="Lock overlay").RaiseEvent(new RoutedEventArgs(System.Windows.Controls.Button.ClickEvent));
@@ -689,27 +689,17 @@ public sealed partial class MainWindow
                 Render(petTrackerTest, "test-artifacts/Feature-Pet-tracker-overlay.png");
             } finally { petTrackerTest.Close(); }
             preferences.OverlaysGameOnly=false;
-            ToggleFarmingOverlay();var farmingTest=farmingOverlay??throw new InvalidOperationException("Farming overlay did not open.");opened.Add(farmingTest);
+            OpenFarmingOverlay();var farmingTest=farmingOverlay??throw new InvalidOperationException("Farming overlay did not open.");opened.Add(farmingTest);
             try {
                 var previewRows=Enumerable.Range(1,7).Select(i=>new FarmingViewRow(new("npc",i,10),$"Farming target {i}",new("npc",i,i,10,false,[]),i)).ToArray();
                 farmingTest.Update(new(previewRows,new(now,now,28,1680,3,false),[new("goal","npc:1","Example target",10,null)],true),true,2);
                 farmingTest.UpdateLayout();
-                if(!LayoutVisuals<TextBlock>(farmingTest).Any(t=>t.Tag?.ToString()=="Farming overlay summary"&&t.Text.Contains("Showing 5 of 7"))||LayoutVisuals<TextBlock>(farmingTest).Any(t=>t.Text=="Farming target 6"))throw new InvalidOperationException("Farming overlay row limit or summary failed.");
-                if(!LayoutVisuals<TextBlock>(farmingTest).Any(t=>t.Tag?.ToString()=="Farming overlay notice"&&t.Text.Contains("Goal reached")))throw new InvalidOperationException("Farming overlay notice delivery failed.");
+                if(LayoutVisuals<TextBlock>(farmingTest).Count(t=>t.Tag?.ToString()=="Farming overlay count")!=previewRows.Length||!LayoutVisuals<TextBlock>(farmingTest).Any(t=>t.Text=="Farming target 7"))throw new InvalidOperationException("Farming overlay did not show every selected target.");
                 Render(farmingTest,"test-artifacts/Feature-Farming-overlay.png");
-                farmingTest.Update(new(previewRows,new(now,now,28,1680,3,false),[
-                    new("registered","pet:1005","Unstable Spider",null,null),
-                    new("levelup","pet:1005","Unstable Spider",3,null),
-                    new("milestone","collection:50","50 pets collected",50,null)],false),true,2);
-                farmingTest.UpdateLayout();
-                var noticeText=LayoutVisuals<TextBlock>(farmingTest).Single(t=>t.Tag?.ToString()=="Farming overlay notice").Text;
-                if(noticeText.Split('\n').Length!=3||!noticeText.Contains("Pet registered")||!noticeText.Contains("Pet level up")||!noticeText.Contains("10 candy")||noticeText.Contains("Goal reached"))
-                    throw new InvalidOperationException("Farming overlay did not render the three latest pet notices.");
-                Render(farmingTest,"test-artifacts/Feature-Farming-pet-notices.png");
                 RefreshFarmingOverlay(false);if(farmingTest.IsVisible)throw new InvalidOperationException("Farming overlay ignored foreground visibility gating.");
                 RefreshFarmingOverlay(true);if(!farmingTest.IsVisible)throw new InvalidOperationException("Farming overlay did not restore visibility.");
-                LayoutVisuals<Button>(farmingTest).Single(b=>b.Content?.ToString()=="Targets").RaiseEvent(new RoutedEventArgs(System.Windows.Controls.Button.ClickEvent));
-                if(trackedTargetsWindow==null)throw new InvalidOperationException("Farming overlay Targets button failed.");trackedTargetsWindow.Close();
+                farmingTest.ContextMenu.Items.OfType<MenuItem>().Single(b=>b.Header?.ToString()=="Targets").RaiseEvent(new RoutedEventArgs(MenuItem.ClickEvent));
+                if(farmingMaterialPicker==null)throw new InvalidOperationException("Farming overlay material picker failed.");farmingMaterialPicker.Close();
             } finally {farmingTest.Close();}
             if(farmingOverlay!=null||farmingOverlayView!=null)throw new InvalidOperationException("Closed farming overlay retained its state monitor.");
             var petMapTest = new PetMapOverlayWindow(preferences, () => { }); opened.Add(petMapTest);

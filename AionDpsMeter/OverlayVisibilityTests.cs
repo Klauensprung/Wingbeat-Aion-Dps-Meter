@@ -7,7 +7,39 @@ internal static class OverlayVisibilityTests
 {
     internal static void Run(Action<bool, string> check)
     {
+        check(CooldownVisibility.MeterOpacity(false,false,true,false,false)==1,
+            "Party health stays fully readable without recent damage or healing");
+        check(CooldownVisibility.MeterOpacity(false,false,false,true,false)==1,
+            "Healing meters stay fully readable during healing-free boss phases");
+        check(CooldownVisibility.MeterOpacity(false,false,false,false,false)==.4 &&
+            CooldownVisibility.MeterOpacity(true,false,false,false,false)==1 &&
+            CooldownVisibility.MeterOpacity(false,true,false,false,false)==1 &&
+            CooldownVisibility.MeterOpacity(false,false,false,false,true)==1,
+            "Only inactive damage meters fade; activity, hover and training restore full opacity");
         var menus=new GameMenuVisibility();
+        var encounter=new CombatEngine();
+        encounter.Apply(new("local-player",Actor:new(1,"Local",true,true,0,"Cleric",1)));
+        encounter.Apply(new("actor",Actor:new Actor(10,"Boss",false,false,0,"Unknown",0){CapturedBoss=true}));
+        encounter.RecordDamage(new DamageEvent{ActorId=1,TargetId=10,Timestamp=1000,Damage=100},false);
+        check(encounter.OverlayActive(17000),"Engaged boss keeps DPS bright after the fifteen-second damage gap without any warning banner");
+        encounter.AdvanceTime(61000);
+        check(encounter.OverlayActive(62000),"Automatic idle fight splits do not fade an ongoing boss encounter");
+        encounter.NewFight("Manual reset");
+        check(!encounter.OverlayActive(63000),"Manual fight reset clears retained boss brightness");
+        var activity=new OverlayBossActivity();
+        NetworkEvent BossEvent(string kind,long time,object fields)=>new(kind,time,"test",JsonSerializer.SerializeToElement(fields));
+        foreach(string end in new[]{"entity-death","entity-removed","combat-state","hp","local-zone","account-login"}){
+            activity.Engage(10,1000);
+            activity.Apply(BossEvent(end,2000,new{EntityId=10,State=0,CurrentHp=0}));
+            check(!activity.Active(3000),"Boss brightness ends on "+end);
+        }
+        activity.Apply(BossEvent("hp",1000,new{EntityId=10,CurrentHp=500}));
+        check(!activity.Active(2000),"An unengaged nearby boss cannot keep DPS bright");
+        activity.Engage(10,1000);
+        activity.Apply(BossEvent("entity-death",500,new{EntityId=10}));
+        check(activity.Active(2000),"Stale boss death does not clear a newer engagement");
+        activity.Apply(BossEvent("hp",250000,new{EntityId=10,CurrentHp=500}));
+        check(activity.Active(400000)&&!activity.Active(550001),"Fresh boss reports extend visibility while lost capture eventually expires");
         menus.Observe(0,true,true,false,false,false);
         menus.Observe(100,true,true,true,true,false);
         menus.Observe(200,false,false,false,false,false);

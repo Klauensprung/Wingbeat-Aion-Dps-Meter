@@ -10,6 +10,7 @@ internal sealed record FightArchiveSummary(long Start, long End, bool HasEvents,
 {
     internal bool HasLocalHealing { get; init; }
     internal int LootPickups { get; init; }
+    internal LogBoss[] LogBosses { get; init; } = [];
     internal Dictionary<int, int> DeathCounts { get; init; } = new();
     internal static Fight Create(Fight source)
     {
@@ -55,6 +56,7 @@ internal sealed record FightArchiveSummary(long Start, long End, bool HasEvents,
                 searchableActors.Where(a => a.Player).Select(a => a.Name).Distinct().ToArray(), totals, stats) {
                     HasLocalHealing = source.LocalPlayer > 0 && source.Healing.Any(h => h.ActorId == source.LocalPlayer && h.Damage > 0),
                     LootPickups = SavedHistory.LootPickups(source),
+                    LogBosses = EncounterLog.Bosses(source),
                     DeathCounts = source.Deaths.Where(d => source.Actors.GetValueOrDefault(d.EntityId)?.Player == true)
                         .GroupBy(d => d.EntityId).ToDictionary(g => g.Key, g => g.Count())
                 }

@@ -96,8 +96,10 @@ public sealed partial class CombatEngine
     long? lastCombat;
     long? lastPartyCombat;
     long? lastOverlayHealing;
+    readonly OverlayBossActivity overlayBossActivity = new();
     internal bool OverlayActive(long timestamp){
-        lock(Gate){long last=Math.Max(lastPartyCombat??-1,lastOverlayHealing??-1);return last>=0&&timestamp>=last&&timestamp-last<=15000;}
+        lock(Gate){long last=Math.Max(lastPartyCombat??-1,lastOverlayHealing??-1);return overlayBossActivity.Active(timestamp)||
+            last>=0&&timestamp>=last&&timestamp-last<=15000;}
     }
     public bool HasRecentPartyCombat(long timestamp)
     {
@@ -107,6 +109,8 @@ public sealed partial class CombatEngine
     {
         bool Friendly(int id) => id > 0 && (id == Fight.LocalPlayer || Fight.Actors.GetValueOrDefault(id)?.Party == true);
         if (Friendly(actor) || Friendly(target)) lastPartyCombat = Math.Max(lastPartyCombat ?? timestamp, timestamp);
+        if(Friendly(actor)&&Fight.Actors.GetValueOrDefault(target) is {} boss&&CapturedBoss.IsBoss(boss))overlayBossActivity.Engage(target,timestamp);
+        if(Friendly(target)&&Fight.Actors.GetValueOrDefault(actor) is {} attacker&&CapturedBoss.IsBoss(attacker))overlayBossActivity.Engage(actor,timestamp);
     }
     Fight? resumable;
     // One bounded continuation of the recovery candidate. Feed packets as they
@@ -177,7 +181,7 @@ public sealed partial class CombatEngine
                     if (detachedRunProgress != null) { completed.Enqueue(detachedRunProgress); detachedRunProgress = null; }
                     observedRun = pendingObservedRun ?? new(); pendingObservedRun = null;
                     dungeonRun = pendingDungeonRun ?? new(); pendingDungeonRun = null;
-                    NewFight(Fight.Label); // Also invalidates any idle/add-phase recovery.
+                    NewFight(Fight.Label, preserveHealth:false); // Also invalidates any idle/add-phase recovery.
                     foreach (var carried in Fight.Actors.Values.Where(a => !a.Player && a.BossScene != bossScene).ToArray())
                         Fight.Actors[carried.Id] = carried with { CapturedBoss = false };
                     if (pendingGatheredObjects != null) {
@@ -186,7 +190,7 @@ public sealed partial class CombatEngine
                     }
                     ClearSummonOwners(); ownershipSceneTime = -1;
                     Fight.LocalTarget = null;
-                    LiveSceneRevision++;BossAlerts.Clear();Recovery.Clear();
+                    LiveSceneRevision++;BossAlerts.Clear();overlayBossActivity.Clear();Recovery.Clear();
                     Fight.PartyBossTarget = null;
                     Fight.LocalResources = null;
                     FieldBosses.Clear();
@@ -389,7 +393,7 @@ public sealed partial class CombatEngine
                         skillBoundaryTime = item.Network.Timestamp; skillsAwaitingIdentity = true; loginAwaitingMap = true;
                         pendingObservedRun = new(); pendingDungeonRun = new(true);
                         pendingGatheredObjects = new(); pendingOmittedGathers = 0;
-                        LiveSceneRevision++;BossAlerts.Clear();Recovery.Clear();
+                        LiveSceneRevision++;BossAlerts.Clear();overlayBossActivity.Clear();Recovery.Clear();
                         pendingStats = null; pendingSkills = null; pendingDaevanion = null; pendingPets = null; pendingWings = null; pendingTitles = null; pendingCollections = null; pendingGear = null; pendingDutyMissions = null;
                         inventoryLoot.Login(item.Network.Timestamp);
                         farmingLoot.Reset(item.Network.Timestamp);
@@ -420,7 +424,7 @@ public sealed partial class CombatEngine
                         }
                         skillBoundaryTime = item.Network.Timestamp;
                         skillsAwaitingIdentity = true;
-                        LiveSceneRevision++;BossAlerts.Clear();Recovery.Clear();
+                        LiveSceneRevision++;BossAlerts.Clear();overlayBossActivity.Clear();Recovery.Clear();
                         Fight.LocalTarget = null;
                         if (!initialUnassigned && !loginAwaitingMap) { pendingDutyMissions = null; pendingStats = null; pendingSkills = null; pendingDaevanion = null; pendingPets = null; pendingWings = null; pendingTitles = null; pendingCollections = null; pendingGear = null; }
                         if (!initialUnassigned && !loginAwaitingMap) AppearancePresets.Clear(item.Network.Timestamp);
@@ -495,7 +499,7 @@ public sealed partial class CombatEngine
                         pendingOmittedGathers = Gathering.Apply(pendingGatheredObjects, pendingOmittedGathers, WorldObjects, item.Network);
                     else Gathering.Apply(Fight, WorldObjects, item.Network);
                     BossTelegraphs.Apply(Fight, item.Network);
-                    if(item.Network.Timestamp>=skillBoundaryTime)BossAlerts.Apply(item.Network,Fight);
+                    if(item.Network.Timestamp>=skillBoundaryTime){BossAlerts.Apply(item.Network,Fight);overlayBossActivity.Apply(item.Network);}
                     long spatialBoundary = Spatial.Boundary;
                     if (item.Network.Timestamp >= skillBoundaryTime)
                         Spatial.Apply(item.Network, skillsAwaitingIdentity || cachedLocalIdentity ? 0 : Fight.LocalPlayer);
@@ -739,18 +743,24 @@ public sealed partial class CombatEngine
             Fight.PartyKnown = edited.PartyKnown; Fight.PartySource = edited.PartySource; Fight.PartyLeaderName = edited.PartyLeaderName; revision++;
         }
     }
-    public void NewFight(string label)
+    public void NewFight(string label, bool preserveOverlayBoss = false, bool preserveHealth = true)
     {
         lock (Gate)
         {
+            if(!preserveOverlayBoss)overlayBossActivity.Clear();
             profiles.Update(Fight, inferClasses: true);
-            var previous = Fight; fightMapChanged = false;
+            var previous = Fight;
+            var healthCarry = preserveHealth && !fightMapChanged && !skillsAwaitingIdentity && !cachedLocalIdentity
+                ? CapturedHealth.Build(previous).Where(p=>p.Value.Timestamp>=skillBoundaryTime && previous.Actors.GetValueOrDefault(p.Key) is {Player:true,OriginalEntityId:0} actor && (actor.Id==previous.LocalPlayer||actor.Party)).Take(64).ToArray()
+                : [];
+            fightMapChanged = false;
             var pets = previous.Pets;
             Fight = new() { Label = label, LocalPlayer = previous.LocalPlayer, Actors = actorCarryover.Select(previous), Specs = new(previous.Specs), Energy = previous.Energy, PartyProfiles = [..previous.PartyProfiles], LocalPing = previous.LocalPing, LocalStats = CharacterReadings.Copy(previous.LocalStats), LocalResources = previous.LocalResources,
                 Builds = previous.Builds.Where(p => previous.Actors.GetValueOrDefault(p.Key)?.OriginalEntityId == 0).ToDictionary(p => p.Key, p => FightMetadata.Copy(p.Value)), PartyKnown = previous.PartyKnown, PartySource = previous.PartySource, PartyLeaderName = previous.PartyLeaderName };
             lastDeaths.Clear(); lastCombat = null; lastPartyCombat = null; lastOverlayHealing=null; recoveryBlocked = false; resumable = null; recoveryCasts = null; recoveryLoot = null; resumeTargets.Clear(); phaseAnchors.Clear();
             Fight.Pets = pets;
             networkRetention.Reset();BossAlerts.ResetEncounter();
+            Fight.InitialHealth=healthCarry.Where(p=>Fight.Actors.ContainsKey(p.Key)).ToDictionary(p=>p.Key,p=>p.Value);
             Fight.LocalTarget = previous.LocalTarget;
             Fight.PartyBossTarget = previous.PartyBossTarget;
             Fight.LocalPosition = previous.LocalPosition;
@@ -796,7 +806,7 @@ public sealed partial class CombatEngine
                 completed.Enqueue(pending);
                 // NewFight clears these sets, so retain independent copies.
                 keptTargets = new(keptTargets); keptAnchors = new(keptAnchors);
-                NewFight(Fight.Label);
+                NewFight(Fight.Label, preserveOverlayBoss:true);
                 resumable = pending; recoveryCasts = pending.LiveCasts?.Copy() ?? new(); recoveryLoot = pending.LiveLoot?.Copy() ?? new(); resumeTargets = keptTargets; phaseAnchors = keptAnchors; resumeStoppedAt = stopped;
                 return;
             }
@@ -810,7 +820,7 @@ public sealed partial class CombatEngine
                 .Except(previous.Deaths.Select(d => d.EntityId)).ToHashSet();
             bool blocked = recoveryBlocked; long stoppedAt = lastCombat.Value;
             completed.Enqueue(previous);
-            NewFight(previous.Label);
+            NewFight(previous.Label, preserveOverlayBoss:true);
             if (blocked) return;
             resumable = previous; recoveryCasts = previous.LiveCasts?.Copy() ?? new(); recoveryLoot = previous.LiveLoot?.Copy() ?? new(); resumeTargets = targets; resumeStoppedAt = stoppedAt;
             // Cast records are NPC activity hints, not an authoritative boss flag.

@@ -14,6 +14,7 @@ public static class Program
         Directory.SetCurrentDirectory(AppContext.BaseDirectory);
         try {
             bool isolated = args.Contains("--check-cooldown-voice-ui") || args.Contains("--check-localization-startup") || args.Any(a => a is "--self-test" or "--smoke-test" or "--benchmark-ui" or "--benchmark-archive" or "--benchmark-session" or "--benchmark-window-session" or "--benchmark-overlay-lifetime" or "--check-native-alert" or "--demo" or "--check-npcap" or "--check-game-adapter" or "--live-probe" or "--replay-pcap" or "--audit-fight");
+            isolated |= args.Contains("--check-cooldown-sweep") || args.Contains("--check-encounter-log") || args.Contains("--check-gathering-setup") || args.Contains("--check-navigation");
             AppDataPaths.Initialize(isolated);
             Localization.Initialize(isolated,args.Contains("--check-localization-startup")||args.Contains("--check-cooldown-voice-ui")?"de":null);
             StartMenuShortcut.EnsureForCurrentProcess(isolated);
@@ -33,6 +34,10 @@ public static class Program
         if (args.Contains("--benchmark-ui")) return UiPerformance.Run(args);
         var app = new System.Windows.Application();
         Localization.InstallPresentation();
+        if(args.Contains("--check-cooldown-sweep"))return CooldownSweepCheck.Run(app);
+        if(args.Contains("--check-encounter-log"))return EncounterLogUiCheck.Run(app);
+        if(args.Contains("--check-gathering-setup"))return GatheringSetupCheck.Run(app);
+        if(args.Contains("--check-navigation"))return NavigationUiCheck.Run(app);
         if(args.Contains("--check-cooldown-voice-ui"))return CooldownVoiceUiCheck.Run(app);
         app.DispatcherUnhandledException += (_, e) => {
             LocalLog.Write("UI error: " + e.Exception);

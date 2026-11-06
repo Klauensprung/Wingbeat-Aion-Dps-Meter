@@ -8,6 +8,15 @@ internal static class OverlayBehaviorTests
 {
     public static void Run(Action<bool, string> check, string temp)
     {
+        var healthEngine=new CombatEngine();healthEngine.Apply(new("local-player",Actor:new(9161,"Self",true,true,0,"Cleric",1)));
+        healthEngine.Apply(new("network",Network:new("hp",1000,"test",JsonSerializer.SerializeToElement(new{EntityId=9161,CurrentHp=22111,MaximumHp=22111}))));
+        healthEngine.NewFight("Next fight");
+        healthEngine.Apply(new("network",Network:new("hp",2000,"test",JsonSerializer.SerializeToElement(new{EntityId=9161,CurrentHp=22015}))));
+        check(CapturedHealth.Build(healthEngine.Snapshot())[9161] is {Value:22015,Maximum:22111},"Fight reset retains confirmed local maximum HP when subsequent packets contain only current HP");
+        for(int i=0;i<10;i++)healthEngine.NewFight("Next fight");
+        check(healthEngine.Fight.Network.Count==0&&healthEngine.Fight.InitialHealth.Count==1,"HP carryover retains one compact state per actor rather than previous fight events");
+        healthEngine.NewFight("New identity",preserveHealth:false);
+        check(!CapturedHealth.Build(healthEngine.Snapshot()).ContainsKey(9161),"Identity-boundary reset discards previous character health");
         var healthFight = FeatureTests.Sample();
         void Hp(int id, long hp, long time) => healthFight.Network.Add(new("hp", time, "", JsonSerializer.SerializeToElement(new { EntityId = id, CurrentHp = hp })));
         Hp(1, 5000, 100); Hp(1, 6000, 90); Hp(2, 7000, 300);

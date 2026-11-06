@@ -1,4 +1,4 @@
-param([string]$Version = '0.5.50')
+param([string]$Version = '0.5.51')
 $ErrorActionPreference = 'Stop'
 if ($Version -notmatch '^\d+\.\d+\.\d+$') { throw 'Use a stable three-part release version.' }
 $project = Join-Path $PSScriptRoot 'AionDpsMeter'

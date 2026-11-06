@@ -35,13 +35,14 @@ internal sealed class GatheringMapOverlay : Window
         else if(!allowed&&IsVisible)Hide();
     }
     internal double PredictionSeconds {get;set;}
+    internal string ResourceLabel {get;set;}="";
     void RenderMovement(object? sender,EventArgs e){
         if(readMovement==null)return;
         long tick=Environment.TickCount64;
         if(tick-sampledAt>=32){sample=readMovement();sampledAt=tick;
             if(relocation.Observe(sample) is {} position){prediction.Clear();Relocated?.Invoke(position);}}
         plot.SetPlayer(prediction.Frame(sample,map,DateTimeOffset.UtcNow.ToUnixTimeMilliseconds(),PredictionSeconds));
-        movementStatus.Text=prediction.Status;
+        movementStatus.Text=(ResourceLabel.Length>0?ResourceLabel+" · ":"")+prediction.Status;
     }
     void SetRendering(bool enabled){if(rendering==enabled)return;rendering=enabled;if(enabled)CompositionTarget.Rendering+=RenderMovement;else CompositionTarget.Rendering-=RenderMovement;}
     internal bool RenderingActive=>rendering;

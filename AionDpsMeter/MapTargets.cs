@@ -20,6 +20,7 @@ internal sealed class MapTargets
             data.Select(t=>(t.Kind,t.Id)).Distinct().Count()!=data.Length)throw new InvalidDataException("Invalid farming targets.");
     }
     internal MapTarget[] Snapshot()=>targets.ToArray();
+    internal void SetItems(IEnumerable<int> ids)=>Commit(ids.Distinct().Order().Select(id=>new MapTarget("item",id)).ToArray());
     internal void AddGatherables(IEnumerable<int> ids) {
         var known=targets.Where(t=>t.Kind=="gatherable").Select(t=>t.Id).ToHashSet();
         var added=ids.Distinct().Where(id=>!known.Contains(id)).Select(id=>new MapTarget("gatherable",id)).ToArray();

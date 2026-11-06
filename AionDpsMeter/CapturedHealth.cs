@@ -2,7 +2,7 @@ using System.Text.Json;
 
 namespace AionDpsMeter.Local;
 
-internal sealed record HealthReading(long? Value, long Timestamp, long? Maximum = null)
+public sealed record HealthReading(long? Value, long Timestamp, long? Maximum = null)
 {
     internal string Label => Value == null ? "Revived (HP not captured)" : Value == 0 ? "Defeated (observed)" : Maximum is > 0 ? $"HP {Value:N0} / {Maximum:N0} (last seen)" : $"HP {Value:N0} (last seen)";
 }
@@ -22,6 +22,12 @@ internal static class CapturedHealth
             if (id <= 0 || timestamp < 0 || hp < 0) return;
             if (!result.TryGetValue(id, out var old) || timestamp > old.Timestamp || timestamp == old.Timestamp && hp == 0)
                 result[id] = new(hp, timestamp);
+        }
+        foreach(var pair in fight.InitialHealth.Take(64)){
+            var hp=pair.Value;
+            if(pair.Key<=0||reused.Contains(pair.Key)||hp==null||hp.Timestamp<0||hp.Value<0)continue;
+            result[pair.Key]=hp with {Maximum=null};
+            if(hp.Maximum is >0)maxima[pair.Key]=(hp.Maximum.Value,hp.Timestamp);
         }
         foreach (var e in fight.Network) {
             if (e.Kind != "hp" || Number(e.Fields, "EntityId") is not long id || id <= 0 || id > int.MaxValue ||

@@ -3,6 +3,8 @@ namespace AionDpsMeter.Local;
 // Only observed positions can refresh route stops; extrapolated movement never does.
 internal sealed class RouteRelocation
 {
+    internal static bool Fresh(RouteMovement sample,long now)=>sample.Active&&sample.Position is {} p&&p.MapId>0&&
+        double.IsFinite(p.X)&&double.IsFinite(p.Y)&&p.Timestamp<=now&&now-p.Timestamp<=30000;
     RouteMovement? previous;
     internal CapturedPosition? Observe(RouteMovement sample) {
         if(!sample.Active||sample.Position is not {} p||!double.IsFinite(p.X)||!double.IsFinite(p.Y))return null;

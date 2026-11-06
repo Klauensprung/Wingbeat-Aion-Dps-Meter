@@ -1,6 +1,9 @@
 namespace AionDpsMeter.Local;
 internal sealed record FarmingViewRow(MapTarget Target,string Name,FarmTargetProgress Progress,decimal? Nearby);
-internal sealed record FarmingViewSnapshot(FarmingViewRow[] Rows,FarmingSessionSummary Session,FarmingNotice[] Notices,bool SceneChanged);
+internal sealed record FarmingViewSnapshot(FarmingViewRow[] Rows,FarmingSessionSummary Session,FarmingNotice[] Notices,bool SceneChanged)
+{
+    internal FarmingViewRow[]? OverlayRows {get;init;}
+}
 internal sealed class FarmingTargetView
 {
     static readonly Lazy<MapTargetIndex> sharedIndex=new(()=>new(MapMarkers.Default.Groups));
@@ -32,8 +35,16 @@ internal sealed class FarmingTargetView
         }).ToArray();
         long? noticeSession=context.IdentityReady?session:null;
         var petNotices=petNotifications.Update(registrations,upgrades,collection,noticeSession,id=>pets.Find(id)?.Name??PetCatalogue.Default.Find(id)?.Name);
-        return new(rows,FarmingSession.Build(kills,souls,now),[..notifications.Update(notices,noticeSession,now),..petNotices],changedScene);
+        return new(rows,FarmingSession.Build(kills,souls,now),[..notifications.Update(notices,noticeSession,now),..petNotices],changedScene){OverlayRows=CombineGatherables(rows,index,gathers.Counts)};
     }
+    internal static FarmingViewRow[] CombineGatherables(FarmingViewRow[] rows,MapTargetIndex index,IReadOnlyDictionary<int,long> counts)=>
+        rows.GroupBy(r=>r.Target.Kind=="gatherable"?(Kind:r.Target.Kind,Key:r.Name):(Kind:r.Target.Kind,Key:r.Target.Id.ToString()))
+            .Select(group=>{
+                var first=group.MinBy(r=>r.Target.Id)!;
+                if(first.Target.Kind!="gatherable")return first;
+                decimal count=group.SelectMany(r=>index.ObjectIds(r.Target)).Distinct().Sum(id=>(decimal)counts.GetValueOrDefault(id));
+                return first with {Progress=first.Progress with {Count=count},Nearby=null};
+            }).ToArray();
     internal static string Notice(FarmingNotice n)=>n.Kind switch {"goal"=>$"Goal reached: {n.Name} ({n.Count:N0})","spawn"=>$"Nearby increase: {n.Name}",
         "registered"=>$"Pet registered: {n.Name}","levelup"=>$"Pet level up: {n.Name} (level {n.Count:N0})",
         "milestone"=>$"{n.Name} — collection reward: {(n.Count%50==0?"10 candy":"100 crystals")}",

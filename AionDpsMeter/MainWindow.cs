@@ -131,7 +131,7 @@ public sealed class Preferences
 
 public sealed partial class MainWindow : Window
 {
-    static readonly string[] MainViews = ["Encounter", "Cooldowns", "Party", "Skills", "Healing", "PvP", "Rotations", "Saved fights", "Trends", "Tools"];
+    static readonly string[] MainViews = ["Encounter", "Party", "Skills", "Healing", "PvP", "Rotations", "Encounter log", "Trends", "Saved fights", "Overlays", "Cooldowns", "Tools"];
     static readonly string[] MoreViews = ["Openers", "Boss analysis", "Boss catalogue", "Report card", "Top 5%", "Top cohort", "Network events"];
     readonly FightStore store = new(AppDataPaths.FilePath("fights"));
     readonly Dictionary<string, DataGrid> grids = new();
@@ -141,10 +141,12 @@ public sealed partial class MainWindow : Window
     readonly TextBlock sessionState = new() { FontSize = 11, Margin = new(12, 0, 0, 0), VerticalAlignment = VerticalAlignment.Center };
     readonly TextBlock footer = new() { FontSize = 11, Margin = new(22, 10, 22, 12) };
     readonly TextBlock damageValue = new(), dpsValue = new(), durationValue = new();
-    readonly TextBlock viewTitle = new() { FontSize = 18, FontWeight = FontWeights.SemiBold, VerticalAlignment = VerticalAlignment.Center, Margin = new(178, 0, 0, 0) };
+    readonly TextBlock viewTitle = new() { FontSize = 18, FontWeight = FontWeights.SemiBold, VerticalAlignment = VerticalAlignment.Center, Margin = new(202, 4, 0, 4) };
     readonly Expander renamePanel = new() { Header = "Encounter name", Visibility = Visibility.Collapsed, Margin = new(24, 0, 24, 10) };
     readonly Button showLive, clearFilter;
     readonly EncounterView encounterView;
+    readonly EncounterLogView encounterLog = new();
+    FrameworkElement? currentEncounterSummary;
     readonly BossAnalysisView bossView;
     readonly MeterView overview = new() { Margin = new(8, 8, 8, 12) };
     readonly MeterView pvpMeter = new() { Margin = new(8, 8, 8, 12) };
@@ -258,7 +260,11 @@ public sealed partial class MainWindow : Window
         start.SetResourceReference(Control.BackgroundProperty, "Accent"); start.Foreground = UiTheme.Brush("#10201C"); start.FontWeight = FontWeights.SemiBold;
         newFightButton = IconButton(UiIcon.NewFight, global::AionDpsMeter.Local.Localization.T("New fight"), NewFight); controls.Children.Add(newFightButton);
         var overlayControls = new WrapPanel { Margin = new(18, 0, 18, 10) };
-        header.Children.Add(overlayControls);
+        var shortcuts=new WrapPanel{Margin=new(20,0,20,14)};header.Children.Add(shortcuts);
+        shortcuts.Children.Add(IconButton(UiIcon.Meter,Localization.T("Overlays"),()=>NavigateTo("Overlays")));
+        shortcuts.Children.Add(IconButton(UiIcon.Cooldowns,Localization.T("Timer setup"),ShowReminderSettings));
+        shortcuts.Children.Add(IconButton(UiIcon.Chart,Localization.T("Gathering routes"),ShowGatheringRoutes));
+        shortcuts.Children.Add(IconButton(UiIcon.Meter,Localization.T("Hide / show overlays"),ToggleOverlayVisibility));
         overlayControls.Children.Add(IconButton(UiIcon.Cooldowns, global::AionDpsMeter.Local.Localization.T("Timer setup"), ShowReminderSettings));
         meterButton = IconButton(UiIcon.Meter, global::AionDpsMeter.Local.Localization.T("DPS1 overlay"), ToggleOverlay); overlayControls.Children.Add(meterButton);
         cooldownButton = IconButton(UiIcon.Cooldowns, global::AionDpsMeter.Local.Localization.T("Cooldown overlay"), ToggleCooldownOverlay); overlayControls.Children.Add(cooldownButton);
@@ -277,7 +283,7 @@ public sealed partial class MainWindow : Window
         OverlayAction(UiIcon.Network, global::AionDpsMeter.Local.Localization.T("Ping overlay"), TogglePingOverlay, () => pingOverlay != null);
         OverlayAction(UiIcon.Boss,global::AionDpsMeter.Local.Localization.T("Boss alerts"),()=>ConfigureBossAlerts(!preferences.BossAlertsEnabled,false),()=>preferences.BossAlertsEnabled);
         OverlayAction(UiIcon.Cooldowns, global::AionDpsMeter.Local.Localization.T("Control alerts"), () => ConfigureControlAlerts(!preferences.ControlAlertsEnabled, true), () => preferences.ControlAlertsEnabled);
-        moreButton = IconButton(UiIcon.Catalogue, global::AionDpsMeter.Local.Localization.T("Tools"), OpenTools); controls.Children.Add(moreButton);
+        moreButton = IconButton(UiIcon.Catalogue, global::AionDpsMeter.Local.Localization.T("Tools"), OpenTools);
         settingsButton = IconButton(UiIcon.Settings, global::AionDpsMeter.Local.Localization.T("Settings"), ToggleSettings); controls.Children.Add(settingsButton);
         var brand = new StackPanel { Orientation = Orientation.Horizontal, VerticalAlignment = VerticalAlignment.Center };
         var mark = new StackPanel { Orientation = Orientation.Horizontal, VerticalAlignment = VerticalAlignment.Center, Margin = new(0, 0, 10, 0) };
@@ -295,7 +301,7 @@ public sealed partial class MainWindow : Window
         current.Children.Add(fightActions); stats.Children.Add(current);
         InitializeUpdates(fightActions, demo);
         InitializeTraining(fightActions);
-        AddMetric(stats, 1, "DAMAGE DONE", damageValue); AddMetric(stats, 2, "DAMAGE / SEC", dpsValue); AddMetric(stats, 3, "FIGHT TIME", durationValue); header.Children.Add(stats);
+        AddMetric(stats, 1, "DAMAGE DONE", damageValue); AddMetric(stats, 2, "DAMAGE / SEC", dpsValue); AddMetric(stats, 3, "FIGHT TIME", durationValue); header.Children.Add(stats);currentEncounterSummary=stats;
         var search = new DockPanel { Margin = new(20, 0, 20, 6) };
         clearFilter = Button("×", () => character.Clear()); clearFilter.ToolTip = global::AionDpsMeter.Local.Localization.T("Show all players"); clearFilter.Width = 28; clearFilter.Padding = new(0); clearFilter.Visibility = Visibility.Hidden;
         DockPanel.SetDock(clearFilter, Dock.Right); search.Children.Add(clearFilter);
@@ -303,6 +309,10 @@ public sealed partial class MainWindow : Window
         var labelControls = new StackPanel { Orientation = Orientation.Horizontal };
         labelControls.Children.Add(encounter); labelControls.Children.Add(Button(global::AionDpsMeter.Local.Localization.T("Apply name"), () => { var label = EncounterLabel(); if (viewed != null) viewed.Label = label; else engine.SetLabel(label); renamePanel.Visibility = Visibility.Collapsed; Refresh(); }));
         renamePanel.Content = labelControls; header.Children.Add(renamePanel); header.Children.Add(search);
+        // Keep navigation anchored while only the page's contextual header changes.
+        var pageHeader=new StackPanel();
+        foreach(var element in new UIElement[]{stats,renamePanel,search}){header.Children.Remove(element);pageHeader.Children.Add(element);}
+        stats.Margin=new(8,8,8,14);search.Margin=new(8,0,8,12);viewTitle.Margin=new(0,4,0,4);tabs.Tag=pageHeader;
         settingsWindow = BuildSettings();
         PreviewKeyDown += (_, e) => {
             if (Keyboard.Modifiers == ModifierKeys.Control && e.Key == Key.OemComma) { ShowSettings(); e.Handled = true; }
@@ -317,6 +327,9 @@ public sealed partial class MainWindow : Window
         encounterPanel.Children.Remove(grids["Encounter"]);
         encounterView = new(code => skills.GetSkillName(code), skillIcons); encounterPanel.Children.Add(PageLayout.Fill(encounterView));
         encounterView.Selected += selected => { viewed = selected == null ? null : LoadArchiveDetails(selected); encounter.Text = Current.Label; Refresh(); };
+        var logPanel=AddTab("Encounter log", "Browse saved encounters by date or boss. Daily statistics use your recorded characters; open any entry for the complete fight breakdown.");
+        logPanel.Children.Clear();logPanel.Children.Add(PageLayout.Fill(encounterLog));
+        encounterLog.OpenFight+=OpenTrendFight;
         var party = AddTab("Party", "Bars show captured party members, or named players when no roster is available. Click a bar for skills. Player names arrive when entering a zone. The full table below includes every observed actor.");
         party.Children.Remove(grids["Party"]);
         party.Children.Add(PageLayout.Fill(new SplitView(SplitView.Scroll(overview), new Expander { Header = "Full breakdown · all actors", Content = grids["Party"], Margin = new(8, 2, 8, 4) }, .6)));
@@ -377,6 +390,8 @@ public sealed partial class MainWindow : Window
         cooldownPanel.Children.Insert(0, cooldownActions);
         cooldownPanel.Children.Insert(1, cooldownSummary);
         AddTab("Network events", "Supported diagnostic events from capture. Repeated state updates may be combined; saved fights retain only selected analysis evidence and summaries.");
+        var overlayPage=AddTab("Overlays","Choose what appears over your game. Each overlay can be moved, scaled and configured independently.");
+        overlayPage.Children.Clear();grids.Remove("Overlays");overlayPage.Children.Add(PageLayout.Fill(BuildOverlayHub(overlayControls)));
         var toolsPage = AddTab("Tools", "Your overlays, alerts, collections, analysis and local files.");
         toolsPage.Children.Remove(grids["Tools"]); grids.Remove("Tools");
         toolsPage.Children.Add(PageLayout.Fill(BuildTools()));
@@ -716,9 +731,9 @@ public sealed partial class MainWindow : Window
             }
         };
         grids[title] = grid; panel.Children.Add(PageLayout.Fill(grid));
-        double minimum = title switch { "Encounter" => 470, "Rotations" => 460, "Boss analysis" => 580, "Trends" => 380, "Party" or "PvP" or "Top cohort" => 370, _ => 260 };
+        double minimum = title switch { "Encounter log" => 760, "Encounter" => 300, "Rotations" => 460, "Boss analysis" => 580, "Trends" => 380, "Party" or "PvP" or "Top cohort" => 370, _ => 260 };
         var tab = new TabItem { Header = title, HeaderTemplate = UiIcons.NavigationHeader(title), ToolTip = title,
-            Tag = title switch { "Encounter" => "COMBAT", "Rotations" => "ANALYSIS", "Saved fights" => "LIBRARY", "Report card" => "INSIGHTS", "Network events" => "ADVANCED", "Tools" => "WORKSPACE", _ => null }, Content = new ViewportHost(panel, minimum) };
+            Tag = title switch { "Encounter" => "COMBAT", "Encounter log" => "HISTORY", "Overlays" => "SETUP", "Report card" => "INSIGHTS", "Network events" => "ADVANCED", _ => null }, Content = new ViewportHost(panel, minimum) };
         System.Windows.Automation.AutomationProperties.SetName(tab, title); tabs.Items.Add(tab);
         return panel;
     }
@@ -1124,14 +1139,16 @@ public sealed partial class MainWindow : Window
         dpsValue.Text = MeterPresentation.Number(meterData.Rate); dpsValue.ToolTip = global::AionDpsMeter.Local.Localization.F($"{meterData.Rate:N1} DPS · {meterData.Scope}");
         durationValue.Text = MeterPresentation.Duration(f);
         string tab = (tabs.SelectedItem as TabItem)?.Header?.ToString() ?? "Party";
+        if(currentEncounterSummary!=null)currentEncounterSummary.Visibility=tab is "Encounter log" or "Tools" or "Overlays" or "Cooldowns" or "Saved fights" or "Trends"?Visibility.Collapsed:Visibility.Visible;
         bool bossSearch = tab is "Boss analysis" or "Boss catalogue";
         character.Tag = bossSearch ? "Search bosses, IDs, instances..." : tab == "Encounter" ? "Search encounters or participants..." : tab == "Saved fights" ? "Search fights, bosses, players..." : "Filter characters...";
         character.ToolTip = bossSearch ? global::AionDpsMeter.Local.Localization.T("Search boss names, NPC template IDs or possible instances") : global::AionDpsMeter.Local.Localization.T("Filter details by character name; blank shows everyone");
         clearFilter.ToolTip = global::AionDpsMeter.Local.Localization.T("Clear search");
-        bool hasCharacterFilter = tab is not ("Cooldowns" or "Player stats" or "Tools");
+        bool hasCharacterFilter = tab is not ("Cooldowns" or "Player stats" or "Tools" or "Overlays" or "Encounter log");
         character.Visibility = hasCharacterFilter ? Visibility.Visible : Visibility.Hidden;
-        if (viewTitle.Text != tab) {
-            viewTitle.Text = tab;
+        string pageTitle=tab=="Encounter"?Localization.T("Fight overview"):Localization.T(tab);
+        if (viewTitle.Text != pageTitle) {
+            viewTitle.Text = pageTitle;
             viewTitle.ToolTip = new TextBlock { Text = viewHelp.GetValueOrDefault(tab), TextWrapping = TextWrapping.Wrap, MaxWidth = 420 };
         }
         clearFilter.Visibility = hasCharacterFilter && character.Text.Length > 0 ? Visibility.Visible : Visibility.Hidden;
@@ -1144,6 +1161,7 @@ public sealed partial class MainWindow : Window
         switch (tab)
         {
             case "Encounter": encounterView.Update(f, LiveSnapshot(), archive, capture != null, character.Text); break;
+            case "Encounter log": encounterLog.Update(archive,archiveChanged || !skipUnchanged); break;
             case "Party":
                 Set(tab, totals.Where(r => Matches(r.Character)).ToArray());
                 overview.Update(meterData.Rows.Where(r => Matches(r.Name)).ToArray(), compact: true, hasEvents: f.HasEvents, emptyText: character.Text.Length > 0 ? "No matching players" : null);
