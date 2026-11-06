@@ -10,7 +10,7 @@ public sealed partial class MainWindow
     void ShowPartyFinder() => ShowPartyFinder(() => { lock (engine.Gate) return engine.PartyFinder.Snapshot(DateTimeOffset.UtcNow.ToUnixTimeMilliseconds(), engine.Fight.Actors.GetValueOrDefault(engine.Fight.LocalPlayer)); });
     void ShowPartyFinder(Func<FinderGroup?> read)
     {
-        var window = new Window { Title = "Party finder", Owner = this, Width = 920, Height = 500, MinWidth = 850, MinHeight = 360, WindowStartupLocation = WindowStartupLocation.CenterOwner };
+        var window = new Window { Title = global::AionDpsMeter.Local.Localization.T("Party finder"), Owner = this, Width = 920, Height = 500, MinWidth = 850, MinHeight = 360, WindowStartupLocation = WindowStartupLocation.CenterOwner };
         UiTheme.Apply(window, preferences); var layout = new DockPanel { Margin = new(18) };
         var heading = UiSections.Heading("Party finder", "Group readiness", "Captured members of your current recruitment group. Readiness updates automatically while capture is running. A full group packet is required before individual joins can be shown. Once the formed party replaces this recruitment group, the finder view clears.");
         DockPanel.SetDock(heading, Dock.Top); layout.Children.Add(heading);
@@ -23,7 +23,7 @@ public sealed partial class MainWindow
             var group = read();
             table.SetRows((group?.Members ?? []).Select(m => new { m.Name, Server = m.Server == 0 ? "Unknown" : m.Server.ToString(), m.Class, m.Level, m.GearScore, m.CombatPower,
                 Ready = m.Ready ? "Ready" : "Not ready", Role = m.Id == group!.Leader ? "Leader" : "Member" }).ToArray());
-            status.Text = group == null ? "No active recruitment group captured." : $"{group.Members.Count(m => m.Ready)} / {group.Members.Length} members ready";
+            status.Text = group == null ? global::AionDpsMeter.Local.Localization.T("No active recruitment group captured.") : global::AionDpsMeter.Local.Localization.F($"{group.Members.Count(m => m.Ready)} / {group.Members.Length} members ready");
         }
         Refresh(); layout.Children.Add(table); window.Content = layout;
         var timer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(1) }; timer.Tick += (_, _) => Refresh(); window.Closed += (_, _) => timer.Stop(); window.Show(); timer.Start();

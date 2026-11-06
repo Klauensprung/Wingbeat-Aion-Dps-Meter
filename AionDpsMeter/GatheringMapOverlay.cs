@@ -15,7 +15,7 @@ internal sealed class GatheringMapOverlay : Window
     bool restoring;
     void QueueSave(){if(restoring||closed||map<=0)return;saveTimer.Stop();saveTimer.Start();}
     readonly PetSpawnPlot plot=new(){OverlayOnly=true,AlignmentGuide=true,FollowPlayer=true,ShowPointsOnOverlay=true};
-    readonly TextBlock heading=new(){Text="Align the center with your player | Wheel to match scale | Resize corner",Foreground=Brushes.White,Background=UiTheme.Brush("#D0101823"),Padding=new(8)};
+    readonly TextBlock heading=new(){Text=global::AionDpsMeter.Local.Localization.T("Align the center with your player | Wheel to match scale | Resize corner"),Foreground=Brushes.White,Background=UiTheme.Brush("#D0101823"),Padding=new(8)};
     readonly Thumb resize=new(){Width=24,Height=24,HorizontalAlignment=HorizontalAlignment.Right,VerticalAlignment=VerticalAlignment.Bottom,Cursor=System.Windows.Input.Cursors.SizeNWSE,Background=Brushes.Gold};
     readonly string? path;
     readonly Dictionary<int,Alignment> saved=new();
@@ -60,7 +60,7 @@ internal sealed class GatheringMapOverlay : Window
     internal GatheringMapOverlay(string? path,Func<RouteMovement>? readMovement=null) {
         this.readMovement=readMovement;
         this.path=path;
-        Title="Gathering map alignment";Width=700;Height=550;MinWidth=220;MinHeight=180;
+        Title=global::AionDpsMeter.Local.Localization.T("Gathering map alignment");Width=700;Height=550;MinWidth=220;MinHeight=180;
         WindowStyle=WindowStyle.None;AllowsTransparency=true;Background=Brushes.Transparent;Topmost=true;ShowInTaskbar=false;ShowActivated=false;
         var grid=new Grid();grid.Children.Add(plot);heading.VerticalAlignment=VerticalAlignment.Top;grid.Children.Add(heading);grid.Children.Add(resize);grid.Children.Add(movementStatus);Content=grid;
         heading.MouseLeftButtonDown+=(_,_)=>{if(!Locked)DragMove();};

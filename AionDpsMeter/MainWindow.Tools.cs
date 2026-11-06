@@ -19,7 +19,7 @@ public sealed partial class MainWindow
             foreach (var action in actions) {
                 var button = IconButton(action.Icon, action.Label, () => {
                     try { action.Open(); }
-                    catch (Exception ex) { LocalLog.Write(action.Label + " failed: " + ex); MessageBox.Show(this, ex.Message, "Wingbeat", MessageBoxButton.OK, MessageBoxImage.Error); }
+                    catch (Exception ex) { LocalLog.Write(action.Label + " failed: " + ex); MessageBox.Show(this, ex.Message, global::AionDpsMeter.Local.Localization.T("Wingbeat"), MessageBoxButton.OK, MessageBoxImage.Error); }
                 });
                 button.HorizontalContentAlignment = HorizontalAlignment.Left;
                 button.Margin = new(0, 0, 0, 6); content.Children.Add(button);

@@ -11,7 +11,7 @@ public sealed partial class MainWindow
     sealed record AppearanceSettingRow(string Group, string Field, string Setting, string Value, Brush Swatch, bool IsColor);
     void ShowAppearanceSettings(string label, string data, Window? owner = null, string? gender = null)
     {
-        var window = new Window { Title = "Appearance colors and settings", Owner = owner ?? this, Width = 820, Height = 600,
+        var window = new Window { Title = global::AionDpsMeter.Local.Localization.T("Appearance colors and settings"), Owner = owner ?? this, Width = 820, Height = 600,
             MinWidth = 650, MinHeight = 430, WindowStartupLocation = WindowStartupLocation.CenterOwner };
         UiTheme.Apply(window, preferences);
         var layout = new DockPanel { Margin = new(18) };
@@ -27,11 +27,11 @@ public sealed partial class MainWindow
                 return new AppearanceSettingRow(r.Group, r.Field, name, AppearanceDisplay.Value(r), swatch, r.Color != null);
             }).ToArray();
         } catch (InvalidDataException) { error = "This appearance data is incomplete or uses an unsupported format. Its original data is still available in the preset export."; }
-        var search = new TextBox { Tag = "Search color or setting...", ToolTip = "Search setting name, field or color value", Margin = new(0, 0, 0, 10) };
+        var search = new TextBox { Tag = "Search color or setting...", ToolTip = global::AionDpsMeter.Local.Localization.T("Search setting name, field or color value"), Margin = new(0, 0, 0, 10) };
         DockPanel.SetDock(search, Dock.Top); layout.Children.Add(search);
         var filters = new WrapPanel { Margin = new(0, 0, 0, 10) };
         var group = new ComboBox { ItemsSource = new[] { "Colors", "All settings", "Body", "Face", "Customize" }, SelectedIndex = 0, Width = 180, Margin = new(0, 0, 10, 0) };
-        var copy = new Button { Content = "Copy value", IsEnabled = false, Padding = new(12, 6, 12, 6) };
+        var copy = new Button { Content = global::AionDpsMeter.Local.Localization.T("Copy value"), IsEnabled = false, Padding = new(12, 6, 12, 6) };
         filters.Children.Add(group); filters.Children.Add(copy); DockPanel.SetDock(filters, Dock.Top); layout.Children.Add(filters);
         var status = new TextBlock { TextWrapping = TextWrapping.Wrap, Margin = new(0, 0, 0, 10) };
         DockPanel.SetDock(status, Dock.Top); layout.Children.Add(status);
@@ -50,12 +50,12 @@ public sealed partial class MainWindow
             var selected = rows.Where(r => (category == "All settings" || category == "Colors" && r.IsColor || category == r.Group) &&
                 (query.Length == 0 || r.Setting.Contains(query, StringComparison.OrdinalIgnoreCase) || r.Field.Contains(query, StringComparison.OrdinalIgnoreCase) || r.Value.Contains(query, StringComparison.OrdinalIgnoreCase))).ToArray();
             table.SetRows(selected);
-            status.Text = error ?? $"{selected.Length} settings / {rows.Count(r => r.IsColor)} captured colors";
+            status.Text = error ?? global::AionDpsMeter.Local.Localization.F($"{selected.Length} settings / {rows.Count(r => r.IsColor)} captured colors");
         }
         copy.Click += (_, _) => {
             if (table.SelectedItem is not AppearanceSettingRow row) return;
-            try { Clipboard.SetText(row.Value); status.Text = $"Copied {row.Value}"; }
-            catch (System.Runtime.InteropServices.ExternalException) { status.Text = "Clipboard is busy. Please try again."; }
+            try { Clipboard.SetText(row.Value); status.Text = global::AionDpsMeter.Local.Localization.F($"Copied {row.Value}"); }
+            catch (System.Runtime.InteropServices.ExternalException) { status.Text = global::AionDpsMeter.Local.Localization.T("Clipboard is busy. Please try again."); }
         };
         search.TextChanged += (_, _) => Refresh(); group.SelectionChanged += (_, _) => Refresh(); Refresh();
         layout.Children.Add(table); window.Content = layout; window.Show();

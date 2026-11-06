@@ -11,14 +11,14 @@ public sealed partial class MainWindow
         var fight = Current;
         var rows = EffectAnalysis.Build(fight, skills.GetSkillName);
         var shieldRows = ShieldAnalysis.Build(fight, skills.GetSkillName);
-        var window = new Window { Title = "Buffs and effects", Owner = this, Width = 1040, Height = 620, MinWidth = 720, MinHeight = 400,
+        var window = new Window { Title = global::AionDpsMeter.Local.Localization.T("Buffs and effects"), Owner = this, Width = 1040, Height = 620, MinWidth = 720, MinHeight = 400,
             WindowStartupLocation = WindowStartupLocation.CenterOwner };
         UiTheme.Apply(window, preferences);
         var layout = new DockPanel { Margin = new(18) };
         var heading = new StackPanel(); DockPanel.SetDock(heading, Dock.Top); layout.Children.Add(heading);
         heading.Children.Add(UiSections.Heading("Buffs and effects", fight.Label + " - " + MeterPresentation.Duration(fight),
             "Effect uptime covers this fight. Shields show observed capacity added and consumed; consumption is inferred from capacity decreases, not verified damage prevented. Removal does not count as consumption."));
-        var search = new TextBox { Tag = "Search character, effect or skill...", Margin = new(0, 0, 0, 10), ToolTip = "Search recipient, source, skill or effect ID" };
+        var search = new TextBox { Tag = "Search character, effect or skill...", Margin = new(0, 0, 0, 10), ToolTip = global::AionDpsMeter.Local.Localization.T("Search recipient, source, skill or effect ID") };
         heading.Children.Add(search);
         var status = new TextBlock { Margin = new(0, 0, 0, 8) }; heading.Children.Add(status);
         var table = new LiveTable { IsReadOnly = true, AutoGenerateColumns = false, CanUserAddRows = false, CanUserDeleteRows = false,
@@ -41,10 +41,10 @@ public sealed partial class MainWindow
             var filtered = rows.Where(r => r.Recipient.Contains(text, StringComparison.OrdinalIgnoreCase) || r.Source.Contains(text, StringComparison.OrdinalIgnoreCase) ||
                 r.SourceSkill.Contains(text, StringComparison.OrdinalIgnoreCase) || r.EffectName.Contains(text, StringComparison.OrdinalIgnoreCase) ||
                 r.EffectKind.Contains(text, StringComparison.OrdinalIgnoreCase) || r.EffectId.ToString().Contains(text)).ToArray();
-            table.SetRows(filtered); status.Text = rows.Length == 0 ? "No effect intervals were captured within this fight." : $"{filtered.Length:N0} effect/source combinations · snapshot";
+            table.SetRows(filtered); status.Text = rows.Length == 0 ? global::AionDpsMeter.Local.Localization.T("No effect intervals were captured within this fight.") : global::AionDpsMeter.Local.Localization.F($"{filtered.Length:N0} effect/source combinations · snapshot");
             shieldTable.SetRows(shieldRows.Where(r => r.Recipient.Contains(text, StringComparison.OrdinalIgnoreCase) ||
                 r.Source.Contains(text, StringComparison.OrdinalIgnoreCase) || r.Skill.Contains(text, StringComparison.OrdinalIgnoreCase)).ToArray());
-            if (tabs.SelectedIndex == 1) status.Text = shieldRows.Length == 0 ? "No shield capacity changes were captured within this fight." : $"{shieldRows.Length:N0} shield/source combinations";
+            if (tabs.SelectedIndex == 1) status.Text = shieldRows.Length == 0 ? global::AionDpsMeter.Local.Localization.T("No shield capacity changes were captured within this fight.") : global::AionDpsMeter.Local.Localization.F($"{shieldRows.Length:N0} shield/source combinations");
         }
         tabs.SelectionChanged += (_, e) => { if (ReferenceEquals(e.Source, tabs)) Filter(); };
         search.TextChanged += (_, _) => Filter(); layout.Children.Add(tabs); window.Content = layout; Filter(); window.Show();

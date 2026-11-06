@@ -12,17 +12,17 @@ internal sealed class RouteDeadReckoning
     internal double ExpectedIntervalSeconds {get;private set;}=3;
     internal bool Desynced {get;private set;}
     double Horizon(double requested)=>double.IsFinite(requested)&&requested>0?requested:ExpectedIntervalSeconds;
-    internal string Status {get;private set;}="Waiting for position";
+    internal string Status {get;private set;}=Localization.T("Waiting for position");
     static int World(int map)=>map switch {901=>1110,902=>1010,_=>map};
     internal void Clear(){anchor=held=null;vx=vy=offsetX=offsetY=0;scene=long.MinValue;active=false;intervals.Clear();ExpectedIntervalSeconds=3;Desynced=false;}
     internal CapturedPosition? Frame(RouteMovement sample,int map,long now,double horizonSeconds=0) {
         Desynced=false;
         if(sample.Scene!=scene){Clear();scene=sample.Scene;}
-        if(sample.Position is {} p&&World(p.MapId)!=World(map)){Clear();scene=sample.Scene;Status="Different map; route held";return null;}
+        if(sample.Position is {} p&&World(p.MapId)!=World(map)){Clear();scene=sample.Scene;Status=Localization.T("Different map; route held");return null;}
         if(!sample.Active){
             if(active)held=Project(now,Horizon(horizonSeconds));
             vx=vy=offsetX=offsetY=0;active=false;
-            Status="Capture stopped; route held";return held;
+            Status=Localization.T("Capture stopped; route held");return held;
         }
         var incoming=sample.Position;
         if(incoming!=null&&double.IsFinite(incoming.X)&&double.IsFinite(incoming.Y)&&incoming.Timestamp<=now&&(anchor==null||incoming.Timestamp>anchor.Timestamp)) {
@@ -42,10 +42,10 @@ internal sealed class RouteDeadReckoning
             correctedAt=now;
         }
         if(!active&&held!=null)return held;
-        if(anchor==null){Status="Waiting for position; route stays visible";return null;}
+        if(anchor==null){Status=Localization.T("Waiting for position; route stays visible");return null;}
         double age=Math.Max(0,now-anchor.Timestamp)/1000d;
         Desynced=age>=Horizon(horizonSeconds);
-        Status=Desynced?$"Desynced - position overdue ({age:0.0}s; expected {Horizon(horizonSeconds):0.0}s)":vx==0&&vy==0?"Last position; waiting for movement":$"Predicted from movement ({age:0.0}s since update)";
+        Status=Desynced?Localization.F($"Desynced - position overdue ({age:0.0}s; expected {Horizon(horizonSeconds):0.0}s)"):vx==0&&vy==0?Localization.T("Last position; waiting for movement"):Localization.F($"Predicted from movement ({age:0.0}s since update)");
         return Project(now,Horizon(horizonSeconds));
     }
     CapturedPosition? Project(long now,double horizon) {

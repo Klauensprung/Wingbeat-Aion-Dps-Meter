@@ -12,7 +12,7 @@ internal sealed class LiveEffectView : StackPanel
     internal LiveEffectView() { Children.Add(title); }
     internal void Update(LiveEffect[] effects, SkillNames names, SkillIcons icons)
     {
-        title.Text = effects.Length == 0 ? "No captured effects on your character" : "Effects on your character";
+        title.Text = effects.Length == 0 ? global::AionDpsMeter.Local.Localization.T("No captured effects on your character") : global::AionDpsMeter.Local.Localization.T("Effects on your character");
         var ids = effects.Select(e => e.Slot).ToHashSet();
         foreach (int slot in rows.Keys.Where(k => !ids.Contains(k)).ToArray()) { Children.Remove(rows[slot].Container); rows.Remove(slot); }
         for (int i = 0; i < effects.Length; i++) {
@@ -29,13 +29,13 @@ internal sealed class LiveEffectView : StackPanel
             if (Children.IndexOf(row.Container) != i + 1) { Children.Remove(row.Container); Children.Insert(i + 1, row.Container); }
             row.Icon.Source = effect.SourceSkill > 0 ? icons.Find(effect.SourceSkill) ?? SkillIcons.Placeholder : SkillIcons.Placeholder;
             var definition = EffectCatalogue.Default.Find(effect.EffectId);
-            row.Name.Text = definition?.Name ?? $"Effect {effect.EffectId}";
-            row.Time.Text = effect.UntilRemoved ? "∞" : effect.RemainingSeconds is double seconds ? Math.Ceiling(seconds) + "s" : "?";
-            row.Container.ToolTip = $"Effect {effect.EffectId} · slot {effect.Slot} · source entity {effect.CasterId}\n" +
-                (effect.UntilRemoved ? "No finite duration reported; shown until removal." : effect.RemainingSeconds == null ? "Duration not captured; shown until removal." : "Remaining captured duration, corrected for packet age.") +
-                $"\nType: {definition?.Kind ?? "Unknown"} (reference catalogue). Source skill: " +
-                (effect.SourceSkill > 0 ? names.GetSkillName(effect.SourceSkill) : "Unknown") +
-                "\nIcon identifies the source skill when captured. Stack count is not available.";
+            row.Name.Text = definition?.Name ?? global::AionDpsMeter.Local.Localization.F($"Effect {effect.EffectId}");
+            row.Time.Text = effect.UntilRemoved ? "∞" : effect.RemainingSeconds is double seconds ? Math.Ceiling(seconds) + global::AionDpsMeter.Local.Localization.T("s") : "?";
+            row.Container.ToolTip = global::AionDpsMeter.Local.Localization.F($"Effect {effect.EffectId} · slot {effect.Slot} · source entity {effect.CasterId}\n") +
+                (effect.UntilRemoved ? global::AionDpsMeter.Local.Localization.T("No finite duration reported; shown until removal.") : effect.RemainingSeconds == null ? global::AionDpsMeter.Local.Localization.T("Duration not captured; shown until removal.") : global::AionDpsMeter.Local.Localization.T("Remaining captured duration, corrected for packet age.")) +
+                global::AionDpsMeter.Local.Localization.F($"\nType: {definition?.Kind ?? "Unknown"} (reference catalogue). Source skill: ") +
+                (effect.SourceSkill > 0 ? names.GetSkillName(effect.SourceSkill) : global::AionDpsMeter.Local.Localization.T("Unknown")) +
+                global::AionDpsMeter.Local.Localization.T("\nIcon identifies the source skill when captured. Stack count is not available.");
         }
     }
 }

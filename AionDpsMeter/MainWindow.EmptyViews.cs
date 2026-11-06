@@ -19,7 +19,7 @@ public sealed partial class MainWindow
                 Render(this, "test-artifacts/Empty-" + name + ".png");
             }
             tabs.SelectedItem = tabs.Items.Cast<TabItem>().Single(t => t.Header?.ToString() == "Skills");
-            viewed = FeatureTests.Sample(); character.Text = "No matching character"; Refresh(); Layout();
+            viewed = FeatureTests.Sample(); character.Text = global::AionDpsMeter.Local.Localization.T("No matching character"); Refresh(); Layout();
             if (!((LiveTable)grids["Skills"]).EmptyStateVisible) throw new InvalidOperationException("Filtered table lost its empty state.");
             Render(this, "test-artifacts/Filtered-Skills.png");
             character.Clear(); Refresh(); Layout();

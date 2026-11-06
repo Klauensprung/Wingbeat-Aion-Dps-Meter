@@ -63,7 +63,7 @@ internal sealed class SplitView : Grid
         SetRow(upper, 0); Children.Add(upper); SetRow(lower, 2); Children.Add(lower);
         var divider = new GridSplitter { Height = 7, HorizontalAlignment = HorizontalAlignment.Stretch, VerticalAlignment = VerticalAlignment.Center,
             ResizeDirection = GridResizeDirection.Rows, ResizeBehavior = GridResizeBehavior.PreviousAndNext, Cursor = Cursors.SizeNS,
-            ShowsPreview = true, Focusable = true, KeyboardIncrement = 10, ToolTip = "Drag to resize panels. Arrow keys adjust; double-click to restore the default split." };
+            ShowsPreview = true, Focusable = true, KeyboardIncrement = 10, ToolTip = global::AionDpsMeter.Local.Localization.T("Drag to resize panels. Arrow keys adjust; double-click to restore the default split.") };
         divider.SetResourceReference(BackgroundProperty, "Edge");
         System.Windows.Automation.AutomationProperties.SetName(divider, "Resize upper and lower panels");
         divider.MouseDoubleClick += (_, e) => { Reset(); e.Handled = true; };

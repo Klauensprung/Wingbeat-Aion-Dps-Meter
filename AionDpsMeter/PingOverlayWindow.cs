@@ -10,7 +10,7 @@ internal sealed class PingOverlayWindow : Window
     readonly PingView view = new() { Margin = new(10, 8, 10, 8) };
     internal PingOverlayWindow(Preferences settings, Action save)
     {
-        Title = "Wingbeat ping"; SizeToContent = SizeToContent.WidthAndHeight; ResizeMode = ResizeMode.NoResize;
+        Title = global::AionDpsMeter.Local.Localization.T("Wingbeat ping"); SizeToContent = SizeToContent.WidthAndHeight; ResizeMode = ResizeMode.NoResize;
         WindowStyle = WindowStyle.None; AllowsTransparency = true; Background = Brushes.Transparent;
         Topmost = true; ShowInTaskbar = false; ShowActivated = false;
         UiTheme.Apply(this, settings); Background = Brushes.Transparent;

@@ -421,3 +421,16 @@ from the public map.getFarmItems catalogue. Source URL and SHA-256 are embedded;
 tools/import-item-farming.py reproduces the extraction. Identical source lists
 are stored once and shared by item entries. Names, artwork, descriptions and
 reference program code are not included in this lookup.
+
+German skill-name display metadata
+----------------------------------
+Names and numeric skill IDs from the German AION 2 client-data index published by MetaBot.GG:
+https://metabot.gg/de_DE/aion-2/skills
+Retrieved 2026-11-05. Only skill names and IDs are included; no icons or descriptions from that site are bundled. Game names remain the property of NCSOFT.
+
+Velopack
+--------
+Velopack 1.2.161 provides installation and GitHub update support.
+https://github.com/velopack/velopack
+Copyright 2021 Caelan Sayler; Copyright 2024 Velopack Ltd.
+MIT license: licenses/Velopack-MIT.txt.

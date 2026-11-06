@@ -27,7 +27,7 @@ internal static class NativeAlertProbe
             }
         }
         var app = new Application { ShutdownMode = ShutdownMode.OnExplicitShutdown };
-        var owner = new Window { Title = "Wingbeat notification test", ShowActivated = false, ShowInTaskbar = false, Width = 1, Height = 1 };
+        var owner = new Window { Title = global::AionDpsMeter.Local.Localization.T("Wingbeat notification test"), ShowActivated = false, ShowInTaskbar = false, Width = 1, Height = 1 };
         new WindowInteropHelper(owner).EnsureHandle();
         var player = new MediaPlayer { Volume = .15 };
         bool displayed = false, audioStarted = false, opened = false, ended = false, failed = false, fromNotification = false;

@@ -140,8 +140,8 @@ public static class SelfTest
             engine.SaveCompleted(store);
             Check(engine.Snapshot().Id == firstFightId && engine.Snapshot().Damage.Count == 3, "Damage-free boss phases preserve the active fight");
             var refs = typeof(CombatEngine).Assembly.GetReferencedAssemblies().Select(a => a.Name).ToArray();
-            var allowedRefs = new HashSet<string> { "WindowsBase", "PresentationCore", "PresentationFramework", "System.Xaml", "UIAutomationClient", "UIAutomationProvider", "UIAutomationTypes", "netstandard", "mscorlib", "SharpPcap", "PacketDotNet" };
-            Check(refs.All(n => n != null && (n.StartsWith("System.") || n.StartsWith("Microsoft.") || allowedRefs.Contains(n))), "Runtime references limited to .NET and declared capture libraries");
+            var allowedRefs = new HashSet<string> { "WindowsBase", "PresentationCore", "PresentationFramework", "System.Xaml", "UIAutomationClient", "UIAutomationProvider", "UIAutomationTypes", "netstandard", "mscorlib", "SharpPcap", "PacketDotNet", "Velopack" };
+            Check(refs.All(n => n != null && (n.StartsWith("System.") || n.StartsWith("Microsoft.") || allowedRefs.Contains(n))), "Runtime references limited to .NET and declared capture/update libraries");
             Check(engine.UnsupportedPayloads == 100, "Unsupported payloads reported explicitly");
             var eventFile = Path.Combine(temp, "events.jsonl");
             File.WriteAllLines(eventFile, new[] {
@@ -171,6 +171,8 @@ public static class SelfTest
             EffectCatalogueTests.Run(Check);
             ControlEffectTests.Run(Check);
             PartyDebuffTests.Run(Check);
+            LocalizationTests.Run(Check);
+            CooldownVoiceTests.Run(Check);
             PartyHealthTests.Run(Check);
             NearbyEnemiesTests.Run(Check);
             OverlayVisibilityTests.Run(Check);

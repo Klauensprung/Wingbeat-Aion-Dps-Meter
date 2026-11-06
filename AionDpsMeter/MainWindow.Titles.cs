@@ -16,7 +16,7 @@ public sealed partial class MainWindow
                 new TitleRow(a.Name, id, owned.Contains(id) ? "Owned" : "Not in owned list",
                     string.Join(", ", state.Equipped.Where(t => t.Id == id).Select(t => Titles.Slot(t.Slot)))));
         }).ToArray();
-        var window = new Window { Title = "Titles", Owner = this, Width = 850, Height = 580, MinWidth = 700, MinHeight = 400,
+        var window = new Window { Title = global::AionDpsMeter.Local.Localization.T("Titles"), Owner = this, Width = 850, Height = 580, MinWidth = 700, MinHeight = 400,
             WindowStartupLocation = WindowStartupLocation.CenterOwner };
         UiTheme.Apply(window, preferences);
         var layout = new DockPanel { Margin = new(18) }; var heading = new StackPanel(); DockPanel.SetDock(heading, Dock.Top); layout.Children.Add(heading);
@@ -30,8 +30,8 @@ public sealed partial class MainWindow
         void Filter() {
             string text = search.Text.Trim();
             var shown = rows.Where(r => r.Character.Contains(text, StringComparison.OrdinalIgnoreCase) || r.Id.ToString().Contains(text) || r.Slots.Contains(text, StringComparison.OrdinalIgnoreCase)).ToArray();
-            table.SetRows(shown); status.Text = captured.Length == 0 ? "No title snapshot captured. Enter the game while capture is running."
-                : $"{shown.Length:N0} titles shown; {captured.Length:N0} character snapshots captured";
+            table.SetRows(shown); status.Text = captured.Length == 0 ? global::AionDpsMeter.Local.Localization.T("No title snapshot captured. Enter the game while capture is running.")
+                : global::AionDpsMeter.Local.Localization.F($"{shown.Length:N0} titles shown; {captured.Length:N0} character snapshots captured");
         }
         search.TextChanged += (_, _) => Filter(); Filter(); layout.Children.Add(table); window.Content = layout; window.Show();
     }

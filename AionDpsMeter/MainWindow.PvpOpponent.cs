@@ -9,17 +9,17 @@ public sealed partial class MainWindow
     void ShowSelectedOpponent()
     {
         if (grids["PvP"].SelectedItem is not OpponentRow opponent) {
-            notice = "Select a PvP opponent to inspect their exchange."; Refresh(); return;
+            notice = global::AionDpsMeter.Local.Localization.T("Select a PvP opponent to inspect their exchange."); Refresh(); return;
         }
         var fight = Current;
-        var window = new Window { Title = "PvP exchange · " + opponent.Opponent, Owner = this,
+        var window = new Window { Title = global::AionDpsMeter.Local.Localization.T("PvP exchange · ") + opponent.Opponent, Owner = this,
             Width = 980, Height = 710, MinWidth = 680, MinHeight = 550, WindowStartupLocation = WindowStartupLocation.CenterOwner };
         UiTheme.Apply(window, preferences);
         var layout = new DockPanel { Margin = new(18) };
         var top = new StackPanel(); DockPanel.SetDock(top, Dock.Top); layout.Children.Add(top);
         top.Children.Add(UiSections.Heading(opponent.Opponent, "Damage exchanged with this opponent.",
             "Both timelines share the exchange duration. Each chart uses its own peak for the vertical scale."));
-        var party = new CheckBox { Content = "Include my captured party", IsChecked = true, Margin = new(0, 0, 0, 10) }; top.Children.Add(party);
+        var party = new CheckBox { Content = global::AionDpsMeter.Local.Localization.T("Include my captured party"), IsChecked = true, Margin = new(0, 0, 0, 10) }; top.Children.Add(party);
         var summary = new TextBlock { TextWrapping = TextWrapping.Wrap, Margin = new(0, 0, 0, 8) }; top.Children.Add(summary);
         var to = new EncounterTimelinePlot { Height = 90, Margin = new(0, 5, 0, 12) };
         var from = new EncounterTimelinePlot { Height = 90, Margin = new(0, 5, 0, 12) };
@@ -37,8 +37,8 @@ public sealed partial class MainWindow
             var data = PvpOpponentAnalysis.Build(fight, opponent.Id, party.IsChecked == true, skills.GetSkillName);
             to.Update(data.ToOpponent, data.ToOpponent.Damage.Select(h => h.ActorId));
             from.Update(data.FromOpponent, new[] { opponent.Id }); table.SetRows(data.Skills);
-            summary.Text = data.Skills.Length == 0 ? "No direct exchange with your character was captured." :
-                $"To opponent: {data.DamageToOpponent:N0} · {data.DamageToOpponent / data.ToOpponent.Seconds:N1} DPS     From opponent: {data.DamageFromOpponent:N0} · {data.DamageFromOpponent / data.FromOpponent.Seconds:N1} DPS     {MeterPresentation.Duration(data.ToOpponent.Seconds)}";
+            summary.Text = data.Skills.Length == 0 ? global::AionDpsMeter.Local.Localization.T("No direct exchange with your character was captured.") :
+                global::AionDpsMeter.Local.Localization.F($"To opponent: {data.DamageToOpponent:N0} · {data.DamageToOpponent / data.ToOpponent.Seconds:N1} DPS     From opponent: {data.DamageFromOpponent:N0} · {data.DamageFromOpponent / data.FromOpponent.Seconds:N1} DPS     {MeterPresentation.Duration(data.ToOpponent.Seconds)}");
         }
         party.Checked += (_, _) => Update(); party.Unchecked += (_, _) => Update();
         layout.Children.Add(table); window.Content = layout; Update(); window.Show();

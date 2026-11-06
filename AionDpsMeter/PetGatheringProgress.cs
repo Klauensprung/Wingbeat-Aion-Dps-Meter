@@ -1,6 +1,11 @@
 namespace AionDpsMeter.Local;
 
-internal sealed record PetGatheringRow(int Id, string Name, string Progress, long Gained);
+internal sealed record PetGatheringRow(int Id, string Name, string Progress, long Gained)
+{
+    internal int? Held { get; init; }
+    internal int? Required { get; init; }
+    internal bool MaxLevel { get; init; }
+}
 internal sealed class PetGatheringProgress
 {
     readonly List<(int Id, long Gained)> recent = new();
@@ -30,6 +35,6 @@ internal sealed class PetGatheringProgress
         string next = state?.Level >= 3 ? "Max level" : progress.SoulsNeeded is int need
             ? need == 0 ? $"Ready for level {goal}" : $"{need} more for {(goal == 1 ? "collection" : $"level {goal}")}"
             : "Re-enter your character to capture totals";
-        return new PetGatheringRow(entry.Id, pet?.Name ?? $"Pet {entry.Id}", $"{held} · {next}", entry.Gained);
+        return new PetGatheringRow(entry.Id, pet?.Name ?? $"Pet {entry.Id}", $"{held} · {next}", entry.Gained){Held=state?.Souls,Required=goal switch{1=>pet?.SummonSouls,2=>pet?.Level2Souls,_=>pet?.Level3Souls},MaxLevel=state?.Level>=3};
     }).ToArray();
 }

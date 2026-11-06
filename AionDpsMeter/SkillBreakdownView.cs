@@ -36,8 +36,8 @@ internal sealed class SkillBreakdownView(Func<int, string> name, SkillIcons? ico
     {
         if (rows.Length == 0) {
             Children.Clear(); bars.Clear();
-            empty.Text = !knownLocal ? "Waiting for your character identity. Enter a zone while capturing to identify your character."
-                : emptyText ?? (healing ? "Your healing skills will appear here when you heal." : "Your skills will appear here when you deal damage.");
+            empty.Text = !knownLocal ? global::AionDpsMeter.Local.Localization.T("Waiting for your character identity. Enter a zone while capturing to identify your character.")
+                : emptyText ?? (healing ? global::AionDpsMeter.Local.Localization.T("Your healing skills will appear here when you heal.") : global::AionDpsMeter.Local.Localization.T("Your skills will appear here when you deal damage."));
             Children.Add(empty); return;
         }
         Children.Remove(empty);
@@ -81,8 +81,8 @@ internal sealed class SkillBreakdownView(Func<int, string> name, SkillIcons? ico
             OverlayMotion.Column(gauge.ColumnDefinitions[1],1-fraction,IsVisible);
             if(previous==null||previous.Value.Accent!=accent)fill.Background=UiTheme.Brush(accent);
             Height=compact?34:38;
-            ToolTip=$"{name}\n{row.Amount:N0} total | {row.Rate:N1} {(healing?"HPS":"DPS")}\n{row.Hits:N0} hits | {row.Crit:0.0}% critical\n{row.Share:0.0}% of your {(healing?"healing":"damage")}";
-            if(row.SummonSources.Length>0)ToolTip+=$"\nSummons: {row.SummonSources}\n{row.SummonAmount:N0} from summons; {row.Amount-row.SummonAmount:N0} directly";
+            ToolTip=global::AionDpsMeter.Local.Localization.F($"{name}\n{row.Amount:N0} total | {row.Rate:N1} {(healing?Localization.T("HPS"):Localization.T("DPS"))}\n{row.Hits:N0} hits | {row.Crit:0.0}% critical\n{row.Share:0.0}% of your {(healing?Localization.T("healing"):Localization.T("damage"))}");
+            if(row.SummonSources.Length>0)ToolTip+=global::AionDpsMeter.Local.Localization.F($"\nSummons: {row.SummonSources}\n{row.SummonAmount:N0} from summons; {row.Amount-row.SummonAmount:N0} directly");
             System.Windows.Automation.AutomationProperties.SetName(this,$"{label}, {text}");
             previous=next;
         }

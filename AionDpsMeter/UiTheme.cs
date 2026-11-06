@@ -237,9 +237,7 @@ internal static class UiTheme
                   <Border x:Name="Box" Width="14" Height="14" CornerRadius="3" BorderBrush="{DynamicResource Muted}" BorderThickness="1" Background="{DynamicResource Panel}" VerticalAlignment="Center">
                     <Path x:Name="Mark" Data="M 2 6 L 5 9 L 10 3" Stroke="{DynamicResource Accent}" StrokeThickness="2" Visibility="Collapsed"/>
                   </Border>
-                  <ContentPresenter Grid.Column="1" VerticalAlignment="Center" Margin="4,0,0,0">
-                    <ContentPresenter.ContentTemplate><DataTemplate><TextBlock Text="{Binding}" TextWrapping="Wrap"/></DataTemplate></ContentPresenter.ContentTemplate>
-                  </ContentPresenter>
+                  <ContentPresenter Grid.Column="1" VerticalAlignment="Center" Margin="4,0,0,0" ContentTemplateSelector="{TemplateBinding ContentTemplateSelector}"/>
                 </Grid>
               </Border><ControlTemplate.Triggers>
                 <Trigger Property="IsChecked" Value="True"><Setter TargetName="Mark" Property="Visibility" Value="Visible"/><Setter TargetName="Box" Property="BorderBrush" Value="{DynamicResource Accent}"/></Trigger>
@@ -337,5 +335,12 @@ internal static class UiTheme
         var trendSelected = new Trigger { Property = DataGridCell.IsSelectedProperty, Value = true };
         trendSelected.Setters.Add(new Setter(Control.BackgroundProperty, Brush("#29495A")));
         trendCell.Triggers.Add(trendSelected); resources["TrendCell"] = trendCell;
+        foreach(var type in new[]{typeof(Button),typeof(CheckBox),typeof(Label),typeof(DataGridColumnHeader)}){
+            // Only string content is localized; icons and other controls keep their templates.
+            // Derive a fresh style because existing controls may have sealed the base style.
+            var localizedStyle=new Style(type,resources[type] as Style);
+            localizedStyle.Setters.Add(new Setter(ContentControl.ContentTemplateSelectorProperty,Localization.TextTemplates));
+            resources[type]=localizedStyle;
+        }
     }
 }

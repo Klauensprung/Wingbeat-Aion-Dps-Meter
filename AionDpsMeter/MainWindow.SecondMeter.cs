@@ -30,7 +30,7 @@ public sealed partial class MainWindow
             SavePreferences();
         }
         var window=new OverlayWindow(NewFight,id=>FocusActor(id,settings.OverlayHealing),Save,
-            id=>skills.GetSkillName(id),skillIcons,ShowTraining){Title="Wingbeat DPS2 overlay",MeterLabel="DPS2",ShowActivated=false};
+            id=>skills.GetSkillName(id),skillIcons,ShowTraining){Title=global::AionDpsMeter.Local.Localization.T("Wingbeat DPS2 overlay"),MeterLabel="DPS2",ShowActivated=false};
         secondMeter=window;
         window.SharedVisibilityChanged=value=>preferences.OverlaysGameOnly=value;
         window.PartyRanges=PartyRanges;

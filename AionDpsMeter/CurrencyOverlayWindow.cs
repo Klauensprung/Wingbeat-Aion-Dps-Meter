@@ -10,11 +10,11 @@ internal sealed class CurrencyOverlayWindow : Window
     CurrencyBalance[] previous = [];
     readonly Preferences preferences;
     readonly Action? save;
-    readonly Button choose = new() { Content = "Choose currencies", Padding = new(8, 4, 8, 4), Margin = new(0, 8, 0, 0), HorizontalAlignment = HorizontalAlignment.Left };
+    readonly Button choose = new() { Content = global::AionDpsMeter.Local.Localization.T("Choose currencies"), Padding = new(8, 4, 8, 4), Margin = new(0, 8, 0, 0), HorizontalAlignment = HorizontalAlignment.Left };
     internal CurrencyOverlayWindow(Preferences preferences, Action? save = null)
     {
         this.preferences = preferences; this.save = save;
-        Title = "Wingbeat currencies"; Width = 460; Height = 380; MinWidth = 420; MinHeight = 320;
+        Title = global::AionDpsMeter.Local.Localization.T("Wingbeat currencies"); Width = 460; Height = 380; MinWidth = 420; MinHeight = 320;
         if (double.IsFinite(preferences.CurrencyWidth)) Width = Math.Clamp(preferences.CurrencyWidth, MinWidth, Math.Max(MinWidth, SystemParameters.VirtualScreenWidth));
         if (double.IsFinite(preferences.CurrencyHeight)) Height = Math.Clamp(preferences.CurrencyHeight, MinHeight, Math.Max(MinHeight, SystemParameters.VirtualScreenHeight));
         if (preferences.CurrencyLeft is double left && preferences.CurrencyTop is double top && double.IsFinite(left) && double.IsFinite(top)) {
@@ -24,15 +24,15 @@ internal sealed class CurrencyOverlayWindow : Window
         Topmost = true; ShowInTaskbar = false; ShowActivated = false;
         UiTheme.Apply(this, preferences);
         var layout = new DockPanel { Margin = new(12) };
-        var heading = new TextBlock { Text = "CURRENT CURRENCIES", FontWeight = FontWeights.SemiBold, FontSize = 12 };
+        var heading = new TextBlock { Text = global::AionDpsMeter.Local.Localization.T("CURRENT CURRENCIES"), FontWeight = FontWeights.SemiBold, FontSize = 12 };
         DockPanel.SetDock(heading, Dock.Top); layout.Children.Add(heading);
         DockPanel.SetDock(choose, Dock.Bottom); layout.Children.Add(choose);
         choose.Click += OnChoose;
         DockPanel.SetDock(status, Dock.Top); layout.Children.Add(status);
         var headers = new DockPanel { Height = 28 };
-        var balanceHeader = new TextBlock { Text = "Balance", Width = 166, TextAlignment = TextAlignment.Right, Padding = new Thickness(0, 0, 8, 0), FontWeight = FontWeights.SemiBold };
+        var balanceHeader = new TextBlock { Text = global::AionDpsMeter.Local.Localization.T("Balance"), Width = 166, TextAlignment = TextAlignment.Right, Padding = new Thickness(0, 0, 8, 0), FontWeight = FontWeights.SemiBold };
         DockPanel.SetDock(balanceHeader, Dock.Right); headers.Children.Add(balanceHeader);
-        headers.Children.Add(new TextBlock { Text = "Currency", FontWeight = FontWeights.SemiBold });
+        headers.Children.Add(new TextBlock { Text = global::AionDpsMeter.Local.Localization.T("Currency"), FontWeight = FontWeights.SemiBold });
         DockPanel.SetDock(headers, Dock.Top); layout.Children.Add(headers);
         layout.Children.Add(new ScrollViewer { Content = table, VerticalScrollBarVisibility = ScrollBarVisibility.Auto, HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled });
         Content = layout;
@@ -83,21 +83,21 @@ internal sealed class CurrencyOverlayWindow : Window
         table.Children.Clear();
         foreach (var balance in rows) {
             var row = new DockPanel { Height = 32, Tag = balance.ItemId };
-            var count = new TextBlock { Text = balance.Count.ToString("N0"), Width = 150, TextAlignment = TextAlignment.Right,
+            var count = new TextBlock { Text = balance.Count.ToString(global::AionDpsMeter.Local.Localization.T("N0")), Width = 150, TextAlignment = TextAlignment.Right,
                 VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(8, 0, 8, 0) };
             DockPanel.SetDock(count, Dock.Right); row.Children.Add(count);
             string name = ItemNames.Default.Find(balance.ItemId);
             row.Children.Add(new TextBlock { Text = name, ToolTip = name, TextTrimming = TextTrimming.CharacterEllipsis, VerticalAlignment = VerticalAlignment.Center });
             table.Children.Add(row);
         }
-        choose.Content = selected == null ? "Choose currencies · All" : $"Choose currencies · {rows.Length} shown";
+        choose.Content = selected == null ? global::AionDpsMeter.Local.Localization.T("Choose currencies · All") : global::AionDpsMeter.Local.Localization.F($"Choose currencies · {rows.Length} shown");
     }
     internal void Update(CurrencyBalance[] balances, bool capturing, string? character)
     {
-        status.Text = (capturing ? "Live capture" : "Capture stopped — last captured balances") +
+        status.Text = (capturing ? global::AionDpsMeter.Local.Localization.T("Live capture") : global::AionDpsMeter.Local.Localization.T("Capture stopped — last captured balances")) +
             (string.IsNullOrEmpty(character) ? "" : " · " + character) + "\n" +
-            (balances.Length == 0 ? "No balances captured for the current character. Enter the game with capture running; unknown balances are not zero." :
-                "Current holdings, including spending. Loot history shows gains separately.");
+            (balances.Length == 0 ? global::AionDpsMeter.Local.Localization.T("No balances captured for the current character. Enter the game with capture running; unknown balances are not zero.") :
+                global::AionDpsMeter.Local.Localization.T("Current holdings, including spending. Loot history shows gains separately."));
         if (previous.SequenceEqual(balances)) return;
         previous = balances.ToArray();
         RenderRows();

@@ -24,7 +24,7 @@ internal sealed class CooldownOverlayWindow : Window
     readonly TrackedBuffView buffView = new();
     readonly LiveEffectTracker? effects;
     readonly Dictionary<int, Tile> rows = new();
-    readonly TextBlock empty = new() { Text = "Right-click to choose skills", Foreground = Brushes.White, TextWrapping = TextWrapping.Wrap, Margin = new(8) };
+    readonly TextBlock empty = new() { Text = global::AionDpsMeter.Local.Localization.T("Right-click to choose skills"), Foreground = Brushes.White, TextWrapping = TextWrapping.Wrap, Margin = new(8) };
     readonly Preferences settings;
     readonly CooldownTracker tracker;
     readonly SkillNames names;
@@ -37,7 +37,7 @@ internal sealed class CooldownOverlayWindow : Window
         this.effects = effects;
         readyGlow.Freeze();
         beginDrag = DragMove;
-        Title = "Wingbeat cooldowns"; WindowStyle = WindowStyle.None; AllowsTransparency = true; ShowInTaskbar = false; Topmost = true;
+        Title = global::AionDpsMeter.Local.Localization.T("Wingbeat cooldowns"); WindowStyle = WindowStyle.None; AllowsTransparency = true; ShowInTaskbar = false; Topmost = true;
         MinWidth = 64; MinHeight = 64;
         Width = double.IsFinite(settings.CooldownWidth) ? Math.Clamp(settings.CooldownWidth, 64, 700) : 300;
         Height = double.IsFinite(settings.CooldownHeight) ? Math.Clamp(settings.CooldownHeight, 64, 1000) : 120;
@@ -212,14 +212,14 @@ internal sealed class CooldownOverlayWindow : Window
             row.Container.Effect = ready && settings.CooldownReadyGlow ? readyGlow : null;
             row.Icon.Source = ready ? row.Color : row.Gray; row.Icon.Opacity = ready ? 1 : .45;
             row.Time.Text = remaining == null ? "?" : ready ? "" : (reading.Estimated ? "~" : "") + Math.Ceiling(remaining.Value).ToString();
-            if (style == "Bars" && ready) row.Time.Text = "Ready";
+            if (style == "Bars" && ready) row.Time.Text = global::AionDpsMeter.Local.Localization.T("Ready");
             if (charge != null) row.Time.Text = remaining > 0 ? Math.Ceiling(remaining.Value).ToString() : charge.Count == 0 ? "?" : "";
-            row.Container.ToolTip = names.GetSkillName(id) + "\n" + (!live ? "Start capture for cooldown tracking." : remaining == null ? "No matching cooldown yet. Configure fallback seconds to estimate from local casts." : reading.Estimated ? "Estimated from a local cast; reductions, charges and cancelled casts may differ." : ready ? "Ready" : "Server-reported cooldown") +
-                (remaining != null && settings.CooldownOneSecondEarly ? "\nDisplay shown 1 second earlier (cooldown settings)." : "") +
-                (reduction is double reduced ? $"\n↓ Latest server report shortened the previous countdown by {reduced:0.##}s. Cause not identified." : "") +
-                (style == "Bars" ? "\nBar is relative to the longest countdown observed since this timer became active." : "") +
-                (settings.CooldownLocked ? "\nPosition locked. Right-click to unlock." : "\nDrag to move. Right-click for settings.");
-            if (charge != null) row.Container.ToolTip = names.GetSkillName(id) + $"\n{(charge.Estimated ? "Estimated" : "Reported")} charges: {charge.Count} / {charge.Capacity}\nRecharge: {charge.RemainingSeconds:0.0}s\nLast reported charges: {tracker.Charges(id, now)!.Count}\nRecovered charges are estimated from elapsed recharge intervals.";
+            row.Container.ToolTip = names.GetSkillName(id) + "\n" + (!live ? global::AionDpsMeter.Local.Localization.T("Start capture for cooldown tracking.") : remaining == null ? global::AionDpsMeter.Local.Localization.T("No matching cooldown yet. Configure fallback seconds to estimate from local casts.") : reading.Estimated ? global::AionDpsMeter.Local.Localization.T("Estimated from a local cast; reductions, charges and cancelled casts may differ.") : ready ? global::AionDpsMeter.Local.Localization.T("Ready") : global::AionDpsMeter.Local.Localization.T("Server-reported cooldown")) +
+                (remaining != null && settings.CooldownOneSecondEarly ? global::AionDpsMeter.Local.Localization.T("\nDisplay shown 1 second earlier (cooldown settings).") : "") +
+                (reduction is double reduced ? global::AionDpsMeter.Local.Localization.F($"\n↓ Latest server report shortened the previous countdown by {reduced:0.##}s. Cause not identified.") : "") +
+                (style == global::AionDpsMeter.Local.Localization.T("Bars") ? global::AionDpsMeter.Local.Localization.T("\nBar is relative to the longest countdown observed since this timer became active.") : "") +
+                (settings.CooldownLocked ? global::AionDpsMeter.Local.Localization.T("\nPosition locked. Right-click to unlock.") : global::AionDpsMeter.Local.Localization.T("\nDrag to move. Right-click for settings."));
+            if (charge != null) row.Container.ToolTip = names.GetSkillName(id) + global::AionDpsMeter.Local.Localization.F($"\n{(charge.Estimated ? Localization.T("Estimated") : Localization.T("Reported"))} charges: {charge.Count} / {charge.Capacity}\nRecharge: {charge.RemainingSeconds:0.0}s\nLast reported charges: {tracker.Charges(id, now)!.Count}\nRecovered charges are estimated from elapsed recharge intervals.");
             row.Container.Visibility = ready && !settings.CooldownShowReady && !(charge?.RemainingSeconds > 0) ? Visibility.Collapsed : Visibility.Visible;
         }
     }

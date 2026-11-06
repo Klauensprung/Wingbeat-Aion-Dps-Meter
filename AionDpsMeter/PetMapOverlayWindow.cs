@@ -14,16 +14,16 @@ internal sealed class PetMapOverlayWindow : Window
     string? previousMap;
     internal PetMapOverlayWindow(Preferences settings, Action save)
     {
-        Title = "Wingbeat pet map"; Width = 410; SizeToContent = SizeToContent.Height; ResizeMode = ResizeMode.NoResize;
+        Title = global::AionDpsMeter.Local.Localization.T("Wingbeat pet map"); Width = 410; SizeToContent = SizeToContent.Height; ResizeMode = ResizeMode.NoResize;
         WindowStyle = WindowStyle.None; AllowsTransparency = true; Topmost = true; ShowInTaskbar = false; ShowActivated = false;
         UiTheme.Apply(this, settings); Background = Brushes.Transparent;
         var body = new StackPanel { Margin = new(12) };
-        var title = new TextBlock { Text = "PET MAP", FontSize = 11, FontWeight = FontWeights.SemiBold,
-            Foreground = UiTheme.Brush(settings.Accent), Padding = new(0, 2, 0, 6), ToolTip = "Drag heading to move. Scroll map to zoom; drag map to pan." };
+        var title = new TextBlock { Text = global::AionDpsMeter.Local.Localization.T("PET MAP"), FontSize = 11, FontWeight = FontWeights.SemiBold,
+            Foreground = UiTheme.Brush(settings.Accent), Padding = new(0, 2, 0, 6), ToolTip = global::AionDpsMeter.Local.Localization.T("Drag heading to move. Scroll map to zoom; drag map to pan.") };
         title.MouseLeftButtonDown += (_, e) => { if (!settings.PetMapLocked) { DragMove(); e.Handled = true; } };
         body.Children.Add(title); body.Children.Add(status); body.Children.Add(plot); body.Children.Add(detail);
-        var prediction = new CheckBox { Content = "Estimate my position", IsChecked = settings.PetMapPredictPosition,
-            Foreground = UiTheme.Brush("#E7EDF7"), Margin = new(0, 2, 0, 6), ToolTip = "Use nearby entities and movement to estimate position. The blue area shows uncertainty in world units." };
+        var prediction = new CheckBox { Content = global::AionDpsMeter.Local.Localization.T("Estimate my position"), IsChecked = settings.PetMapPredictPosition,
+            Foreground = UiTheme.Brush("#E7EDF7"), Margin = new(0, 2, 0, 6), ToolTip = global::AionDpsMeter.Local.Localization.T("Use nearby entities and movement to estimate position. The blue area shows uncertainty in world units.") };
         prediction.Click += (_, _) => { settings.PetMapPredictPosition = prediction.IsChecked == true; save(); };
         body.Children.Insert(1, prediction);
         Content = new Border { Child = body, Background = UiTheme.Brush("#ED10151F"), BorderBrush = UiTheme.Brush("#293443"), BorderThickness = new(1), CornerRadius = new(8) };
@@ -33,8 +33,8 @@ internal sealed class PetMapOverlayWindow : Window
         }
         plot.Selected += point => {
             var pets = point == null ? [] : previousRows?.Where(p => p.Point == point).ToArray() ?? [];
-            detail.Text = pets.Length == 0 ? "Select a dot for pet and soul details. Blue cross: your position." :
-                string.Join("\n", pets.Select(p => $"{p.Name} · {p.Needed} souls · {p.DistanceText} world units"));
+            detail.Text = pets.Length == 0 ? global::AionDpsMeter.Local.Localization.T("Select a dot for pet and soul details. Blue cross: your position.") :
+                string.Join("\n", pets.Select(p => global::AionDpsMeter.Local.Localization.F($"{p.Name} · {p.Needed} souls · {p.DistanceText} world units")));
         };
         var menu = UiTheme.Menu(this);
         var locked = new MenuItem { Header = "Lock position", IsCheckable = true, IsChecked = settings.PetMapLocked };
@@ -55,9 +55,9 @@ internal sealed class PetMapOverlayWindow : Window
     internal void Update(IReadOnlyList<NearbyPet> pets, CapturedPosition? position, long now, bool capturing, int goal, MapPositionPresentation? presentation = null)
     {
         string? map = LocalPositionTracker.MapKey(position?.MapId ?? 0);
-        status.Text = $"Phase {Math.Clamp(goal, 1, 3)} · {(capturing ? "Live capture" : "Capture stopped")}\n" +
-            (map == null ? "No position mapped for this area." : $"Position captured {Math.Max(0, now - position!.Timestamp) / 1000:N0}s ago · updates on loading / effects you cast\nReference spawns; creature availability is unknown.");
-        if (presentation != null) status.Text = $"Phase {Math.Clamp(goal, 1, 3)} · {(capturing ? "Live capture" : "Capture stopped")}\n{(map == null ? "No map available for this position." : presentation.Status)}\nReference spawns; creature availability is unknown.";
+        status.Text = global::AionDpsMeter.Local.Localization.F($"Phase {Math.Clamp(goal, 1, 3)} · {(capturing ? Localization.T("Live capture") : Localization.T("Capture stopped"))}\n") +
+            (map == null ? global::AionDpsMeter.Local.Localization.T("No position mapped for this area.") : global::AionDpsMeter.Local.Localization.F($"Position captured {Math.Max(0, now - position!.Timestamp) / 1000:N0}s ago · updates on loading / effects you cast\nReference spawns; creature availability is unknown."));
+        if (presentation != null) status.Text = global::AionDpsMeter.Local.Localization.F($"Phase {Math.Clamp(goal, 1, 3)} · {(capturing ? Localization.T("Live capture") : Localization.T("Capture stopped"))}\n{(map == null ? Localization.T("No map available for this position.") : presentation.Status)}\nReference spawns; creature availability is unknown.");
         bool changedSite = map != previousMap || previousRows == null || !pets.Select(p => p.Point).ToHashSet().SetEquals(previousRows.Select(p => p.Point));
         previousRows = pets;
         if (changedSite) {
@@ -66,6 +66,6 @@ internal sealed class PetMapOverlayWindow : Window
             plot.SetPlayer(map == null ? null : position, presentation?.Estimate?.Accuracy ?? 0); plot.FitWithPlayer(20000);
         } else plot.SetPlayer(map == null ? null : position, presentation?.Estimate?.Accuracy ?? 0);
         previousPosition = position;
-        if (pets.Count == 0) detail.Text = "No known farming needs in this area for the selected phase.";
+        if (pets.Count == 0) detail.Text = global::AionDpsMeter.Local.Localization.T("No known farming needs in this area for the selected phase.");
     }
 }

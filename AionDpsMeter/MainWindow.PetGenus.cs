@@ -19,7 +19,7 @@ public sealed partial class MainWindow
         GenusRow[] Rows() => (genera ?? []).SelectMany(g => g.Effects.Length == 0
             ? new[] { new GenusRow(GenusName(g.Type), g.Level, g.Panel, "", "", "", "", "", "") }
             : g.Effects.Select(e => new GenusRow(GenusName(g.Type), g.Level, g.Panel, e.Slot.ToString(), e.Grade.ToString(), $"{StatNames.Default.Find(e.Stat)} ({e.Stat})", StatNames.Default.Value(e.Stat, e.Value), e.Locked ? "Yes" : "No", e.Activated ? "Yes" : "No", $"Raw value: {e.Value}"))).ToArray();
-        var window = new Window { Title = "Pet genus bonuses", Owner = this, Width = 1000, Height = 580, MinWidth = 780, MinHeight = 400,
+        var window = new Window { Title = global::AionDpsMeter.Local.Localization.T("Pet genus bonuses"), Owner = this, Width = 1000, Height = 580, MinWidth = 780, MinHeight = 400,
             WindowStartupLocation = WindowStartupLocation.CenterOwner };
         UiTheme.Apply(window, preferences);
         ClosedWindowAutomation.Attach(window);

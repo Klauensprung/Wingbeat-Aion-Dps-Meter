@@ -15,10 +15,10 @@ internal static class CooldownPresentation
             var reading = capturing ? tracker.Reading(skill.Id, now, names, settings.CooldownFallbackSeconds) : ((double? Seconds, bool Estimated))(null, false);
             double? seconds = DisplaySeconds(reading.Seconds, settings);
             if (capturing && tracker.ChargeDisplay(skill.Id, now) is { } charge)
-                return new TrackedCooldownRow(skill.Id, skill.Name,
+                return new TrackedCooldownRow(skill.Id, skill.DisplayName,
                     seconds > 0 ? Math.Ceiling(seconds.Value) + "s recharge" : "Recharged",
                     charge.Estimated ? $"Estimated: {charge.Count} charge(s)" : $"Last reported: {charge.Count} charge(s)");
-            return new TrackedCooldownRow(skill.Id, skill.Name, seconds == null ? "--" : seconds == 0 ? "Ready" :
+            return new TrackedCooldownRow(skill.Id, skill.DisplayName, seconds == null ? "--" : seconds == 0 ? "Ready" :
                 (reading.Estimated ? "~" : "") + Math.Ceiling(seconds.Value).ToString() + "s",
                 !capturing ? "Start capture" : seconds == null ? "Waiting for a cast or cooldown" : reading.Estimated ? "Cast estimate" : "Server report");
         }).ToArray();

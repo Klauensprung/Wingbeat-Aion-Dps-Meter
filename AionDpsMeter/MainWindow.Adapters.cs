@@ -7,7 +7,7 @@ namespace AionDpsMeter.Local;
 public sealed partial class MainWindow
 {
     readonly bool demoMode;
-    readonly CheckBox autoDetectAdapter = new() { Content = "Detect adapter from Aion automatically", Margin = new(8) };
+    readonly CheckBox autoDetectAdapter = new() { Content = global::AionDpsMeter.Local.Localization.T("Detect adapter from Aion automatically"), Margin = new(8) };
     readonly TextBlock adapterStatus = new() { Margin = new(8), TextWrapping = TextWrapping.Wrap, FontSize = 12 };
     Button? detectAdapterButton;
     bool adapterBusy;
@@ -27,7 +27,7 @@ public sealed partial class MainWindow
     async Task<bool> DetectGameAdapterAsync()
     {
         adapters.SelectedItem = null; adapterDetection = null;
-        adapterStatus.Text = "Looking for Aion's active connection...";
+        adapterStatus.Text = global::AionDpsMeter.Local.Localization.T("Looking for Aion's active connection...");
         var names = adapters.Items.Cast<LibPcapLiveDevice>().Select(d => d.Name).ToArray();
         AdapterDetection result;
         try {

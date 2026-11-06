@@ -74,7 +74,7 @@ internal static class UiIcons
         path.SetValue(Shape.StrokeEndLineCapProperty, PenLineCap.Round); path.SetValue(Shape.StrokeLineJoinProperty, PenLineJoin.Round);
         path.SetBinding(Shape.StrokeProperty, new Binding("Foreground") { RelativeSource = new RelativeSource(RelativeSourceMode.FindAncestor, typeof(TabItem), 1) });
         canvas.AppendChild(path); icon.AppendChild(canvas); row.AppendChild(icon);
-        var label = new FrameworkElementFactory(typeof(TextBlock)); label.SetBinding(TextBlock.TextProperty, new Binding());
+        var label = new FrameworkElementFactory(typeof(TextBlock)); label.SetBinding(TextBlock.TextProperty, new Binding{Converter=Localization.Converter});
         label.SetValue(FrameworkElement.VerticalAlignmentProperty, VerticalAlignment.Center); label.SetValue(TextBlock.TextTrimmingProperty, TextTrimming.CharacterEllipsis);
         row.AppendChild(label); return new DataTemplate { VisualTree = row };
     }
@@ -82,12 +82,12 @@ internal static class UiIcons
     {
         var row = new StackPanel { Orientation = Orientation.Horizontal, VerticalAlignment = VerticalAlignment.Center };
         row.Children.Add(Create(icon));
-        row.Children.Add(new TextBlock { Text = text, Margin = new(8, 0, 0, 0), VerticalAlignment = VerticalAlignment.Center });
+        row.Children.Add(new TextBlock { Text = Localization.T(text), Margin = new(8, 0, 0, 0), VerticalAlignment = VerticalAlignment.Center });
         return row;
     }
     internal static void SetLabel(Button button, UiIcon icon, string label, string? tip = null)
     {
-        button.Content = Label(icon, label); button.ToolTip = tip ?? label;
-        AutomationProperties.SetName(button, label);
+        button.Content = Label(icon, label); button.ToolTip = Localization.T(tip ?? label);
+        AutomationProperties.SetName(button, Localization.T(label));
     }
 }

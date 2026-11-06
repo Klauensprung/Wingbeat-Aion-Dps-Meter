@@ -14,7 +14,7 @@ public sealed partial class MainWindow
         PetCollectionSnapshot? ReadCollection() { if (savedFight != null) return savedFight.Pets; lock (engine.Gate) return engine.CurrentPets(); }
         var snapshot = ReadCollection();
         var allRows = PetCollectionView.Build(catalog, snapshot);
-        var window = new Window { Title = "Pets and souls", Owner = this, Width = 1180, Height = 680, MinWidth = 700, MinHeight = 400,
+        var window = new Window { Title = global::AionDpsMeter.Local.Localization.T("Pets and souls"), Owner = this, Width = 1180, Height = 680, MinWidth = 700, MinHeight = 400,
             WindowStartupLocation = WindowStartupLocation.CenterOwner };
         UiTheme.Apply(window, preferences);
         var layout = new DockPanel { Margin = new(18) };
@@ -26,24 +26,24 @@ public sealed partial class MainWindow
             $"Offline reference, game data {catalog.GameVersion}. Soul sources are farming references. Captured levels and souls are experimental; ? means unknown. Gains count since the latest roster or capture start. After a level change, remaining souls stay unknown until reported again."));
         var primaryFilters = new WrapPanel(); heading.Children.Add(primaryFilters);
         var family = new ComboBox { ItemsSource = new[] { "All families" }.Concat(catalog.Pets.Select(p => p.Family).Distinct().Order()).ToArray(), SelectedIndex = 0, Margin = new(0, 0, 0, 8) };
-        var search = new TextBox { Tag = "Pet name or soul source...", Margin = new(0, 0, 0, 8), ToolTip = "Search pet name, ID or soul source" };
+        var search = new TextBox { Tag = "Pet name or soul source...", Margin = new(0, 0, 0, 8), ToolTip = global::AionDpsMeter.Local.Localization.T("Search pet name, ID or soul source") };
         primaryFilters.Children.Add(UiSections.Field("Find a pet", search, 270));
         primaryFilters.Children.Add(UiSections.Field("Family", family, 190));
         var phase = new ComboBox { ItemsSource = new[] { "All pets", "Phase 1: collect", "Phase 2: level 2", "Phase 3: level 3" }, SelectedIndex = 0, Margin = new(0, 0, 0, 8) };
-        phase.ToolTip = "Completed goals are hidden. Unknown capture entries remain visible; an absent pet is not assumed unowned. Souls to goal sums remaining level costs and subtracts captured souls.";
+        phase.ToolTip = global::AionDpsMeter.Local.Localization.T("Completed goals are hidden. Unknown capture entries remain visible; an absent pet is not assumed unowned. Souls to goal sums remaining level costs and subtracts captured souls.");
         primaryFilters.Children.Add(UiSections.Field("Farming goal", phase, 210));
         var areaFilters = new WrapPanel();
         var side = new ComboBox { ItemsSource = new[] { "All sides / areas", "Elyos", "Asmodian", "Abyss" }, SelectedIndex = 0, MinWidth = 160, Margin = new(0, 0, 8, 8) };
         var region = new ComboBox { ItemsSource = new[] { "All regions" }.Concat(catalog.Pets.SelectMany(p => p.Locations).Select(l => l.Region).Distinct().Order()).ToArray(),
             SelectedIndex = 0, MinWidth = 180, Margin = new(0, 0, 0, 8) };
         areaFilters.Children.Add(UiSections.Field("Side / area", side, 190)); areaFilters.Children.Add(UiSections.Field("Region", region, 270)); heading.Children.Add(areaFilters);
-        var capturedOnly = new CheckBox { Content = "Only pets seen in capture", Margin = new(0, 0, 0, 8) }; heading.Children.Add(capturedOnly);
+        var capturedOnly = new CheckBox { Content = global::AionDpsMeter.Local.Localization.T("Only pets seen in capture"), Margin = new(0, 0, 0, 8) }; heading.Children.Add(capturedOnly);
         var status = new TextBlock { Margin = new(0, 0, 0, 8), TextWrapping = TextWrapping.Wrap }; heading.Children.Add(status);
         var table = new LiveTable { IsReadOnly = true, AutoGenerateColumns = false, CanUserAddRows = false, CanUserDeleteRows = false,
             EnableRowVirtualization = true, EnableColumnVirtualization = true, RowHeight = 36, HeadersVisibility = DataGridHeadersVisibility.Column };
-        var spawns = new Button { Content = "Show spawn map", IsEnabled = false, HorizontalAlignment = HorizontalAlignment.Left, Margin = new(0, 0, 0, 10) };
+        var spawns = new Button { Content = global::AionDpsMeter.Local.Localization.T("Show spawn map"), IsEnabled = false, HorizontalAlignment = HorizontalAlignment.Left, Margin = new(0, 0, 0, 10) };
         var actions = new WrapPanel(); heading.Children.Add(actions); spawns.Margin = new(0, 0, 8, 8); actions.Children.Add(spawns);
-        var nearby = new Button { Content = "Find nearby pets", HorizontalAlignment = HorizontalAlignment.Left, Margin = new(0, 0, 0, 10) };
+        var nearby = new Button { Content = global::AionDpsMeter.Local.Localization.T("Find nearby pets"), HorizontalAlignment = HorizontalAlignment.Left, Margin = new(0, 0, 0, 10) };
         nearby.Click += (_, _) => ShowNearbyPets(window, savedFight, Math.Max(1, phase.SelectedIndex)); actions.Children.Add(nearby);
         table.SelectionChanged += (_, _) => spawns.IsEnabled = table.SelectedItem is PetCollectionRow;
         spawns.Click += (_, _) => { if (table.SelectedItem is PetCollectionRow selected) ShowPetSpawns(selected.Id, window, savedFight); };
@@ -62,7 +62,7 @@ public sealed partial class MainWindow
             string context = savedFight == null ? "Live collection" : "Saved fight: " + savedFight.Label;
             string coverage = snapshot == null ? "No pet events captured" : snapshot.HasRoster ? "Roster received" : "Partial capture; roster not received";
             if (phase.SelectedIndex > 0) coverage += $" · {allRows.Count(p => p.GoalComplete):N0} at goal; unknown entries retained";
-            status.Text = $"{context} · {coverage} · {rows.Length:N0} pets · " + (catalog.LoadError ?? "reference: aion2data.com/pets");
+            status.Text = global::AionDpsMeter.Local.Localization.F($"{context} · {coverage} · {rows.Length:N0} pets · ") + (catalog.LoadError ?? global::AionDpsMeter.Local.Localization.T("reference: aion2data.com/pets"));
         }
         family.SelectionChanged += (_, _) => Filter(); search.TextChanged += (_, _) => Filter();
         phase.SelectionChanged += (_, _) => { allRows = PetCollectionView.Build(catalog, snapshot, phase.SelectedIndex); Filter(); };

@@ -75,8 +75,8 @@ internal static class OverlayHideControls
         if (content == null) return;
         window.Content = null;
         var shell = new DockPanel();
-        var hide = new Button { Content="Hide 60s", FontSize=10, Padding=new(5,1,5,1), Margin=new(2),
-            HorizontalAlignment=HorizontalAlignment.Right, Focusable=false, ToolTip="Hide this overlay for 60 seconds. Its position and tracking are preserved." };
+        var hide = new Button { Content=global::AionDpsMeter.Local.Localization.T("Hide 60s"), FontSize=10, Padding=new(5,1,5,1), Margin=new(2),
+            HorizontalAlignment=HorizontalAlignment.Right, Focusable=false, ToolTip=global::AionDpsMeter.Local.Localization.T("Hide this overlay for 60 seconds. Its position and tracking are preserved.") };
         hide.Click += (_,_) => { state.HideForMinute(Environment.TickCount64); window.Hide(); };
         var controls=new StackPanel{Orientation=Orientation.Horizontal,HorizontalAlignment=HorizontalAlignment.Right,Visibility=Visibility.Hidden};
         state.Controls=controls;

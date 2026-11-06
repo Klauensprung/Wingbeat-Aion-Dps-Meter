@@ -17,7 +17,7 @@ public sealed partial class MainWindow
         if(trackedTargetsWindow!=null){trackedTargetsWindow.Activate();return;}
         trackedTargets??=new(demoMode?null:AppDataPaths.FilePath("farming-targets.json"));var store=trackedTargets;
         var index=new MapTargetIndex(MapMarkers.Default.Groups);var pets=PetFarmLinks.Default;
-        var window=new Window {Title="Tracked farming targets",Owner=this,Width=940,Height=600,MinWidth=780,MinHeight=540,WindowStartupLocation=WindowStartupLocation.CenterOwner};
+        var window=new Window {Title=global::AionDpsMeter.Local.Localization.T("Tracked farming targets"),Owner=this,Width=940,Height=600,MinWidth=780,MinHeight=540,WindowStartupLocation=WindowStartupLocation.CenterOwner};
         trackedTargetsWindow=window;window.Closed+=(_,_)=>{trackedTargetsWindow=null;refreshTrackedTargets=null;};UiTheme.Apply(window,preferences);
         var layout=new DockPanel {Margin=new(18)};var heading=new StackPanel();DockPanel.SetDock(heading,Dock.Top);layout.Children.Add(heading);
         heading.Children.Add(UiSections.Heading("Tracked farming targets","Saved on this PC",
@@ -26,14 +26,14 @@ public sealed partial class MainWindow
         var kind=new ComboBox {ItemsSource=new[]{"NPC","Gathering","Pet","Item","Traces"},SelectedIndex=0,Width=120,Tag="Target kind",Margin=new(0,0,8,0)};
         var search=new TextBox {Width=240,Tag="Find target by name or ID...",MaxLength=100,Margin=new(0,0,8,0)};
         var choices=new ComboBox {Width=300,DisplayMemberPath="Display",Tag="Target choices",Margin=new(0,0,8,0)};
-        var add=new Button {Content="Track",IsEnabled=false};addRow.Children.Add(kind);addRow.Children.Add(search);addRow.Children.Add(choices);addRow.Children.Add(add);heading.Children.Add(addRow);
+        var add=new Button {Content=global::AionDpsMeter.Local.Localization.T("Track"),IsEnabled=false};addRow.Children.Add(kind);addRow.Children.Add(search);addRow.Children.Add(choices);addRow.Children.Add(add);heading.Children.Add(addRow);
         var actions=new WrapPanel {Margin=new(0,0,0,8)};
-        var refresh=new Button {Content="Refresh",Margin=new(0,0,8,0)};
+        var refresh=new Button {Content=global::AionDpsMeter.Local.Localization.T("Refresh"),Margin=new(0,0,8,0)};
         var phase=new ComboBox {ItemsSource=new[]{"Pet level 1","Pet level 2","Pet level 3"},SelectedIndex=Math.Clamp(preferences.FarmingTargetGoal,1,3)-1,Width=125,Margin=new(0,0,8,0),Tag="Tracked pet phase"};
-        var goal=new TextBox {Width=90,Tag="Goal",ToolTip="Numeric target; leave empty to clear",Margin=new(0,0,8,0)};
-        var setGoal=new Button {Content="Set goal",IsEnabled=false,Margin=new(0,0,8,0)};
-        var remove=new Button {Content="Remove target",IsEnabled=false,Margin=new(0,0,8,0)};
-        var map=new Button {Content="Show on map",IsEnabled=false,ToolTip="Open known NPC, gathering, pet or item source locations. Trace maps show locations not captured as collected."};
+        var goal=new TextBox {Width=90,Tag="Goal",ToolTip=global::AionDpsMeter.Local.Localization.T("Numeric target; leave empty to clear"),Margin=new(0,0,8,0)};
+        var setGoal=new Button {Content=global::AionDpsMeter.Local.Localization.T("Set goal"),IsEnabled=false,Margin=new(0,0,8,0)};
+        var remove=new Button {Content=global::AionDpsMeter.Local.Localization.T("Remove target"),IsEnabled=false,Margin=new(0,0,8,0)};
+        var map=new Button {Content=global::AionDpsMeter.Local.Localization.T("Show on map"),IsEnabled=false,ToolTip=global::AionDpsMeter.Local.Localization.T("Open known NPC, gathering, pet or item source locations. Trace maps show locations not captured as collected.")};
         foreach(var control in new Control[]{refresh,phase,goal,setGoal,remove,map})actions.Children.Add(control);heading.Children.Add(actions);
         var status=new TextBlock {Tag="Farming session summary",TextWrapping=TextWrapping.Wrap,Margin=new(0,0,0,8)};heading.Children.Add(status);
         var table=new LiveTable {IsReadOnly=true,AutoGenerateColumns=false,CanUserAddRows=false,EnableRowVirtualization=true,RowHeight=34};
@@ -44,8 +44,8 @@ public sealed partial class MainWindow
         Column("Target","Name",190);Column("Count","Count",80);Column("Nearby","Nearby",85);Column("Goal","Goal",75);Column("Souls","Souls",65);Column("Progress","Status",210);
         var monitor=new FarmingTargetView();var noticeRows=new List<string>();
         var noticesPanel=new StackPanel {Margin=new(0,8,0,0),Visibility=Visibility.Collapsed};DockPanel.SetDock(noticesPanel,Dock.Bottom);layout.Children.Add(noticesPanel);
-        var noticeHeader=new DockPanel();var clearNotices=new Button {Content="Clear notices",HorizontalAlignment=HorizontalAlignment.Right};DockPanel.SetDock(clearNotices,Dock.Right);noticeHeader.Children.Add(clearNotices);
-        noticeHeader.Children.Add(new TextBlock {Text="Recent farming notices",VerticalAlignment=VerticalAlignment.Center});noticesPanel.Children.Add(noticeHeader);
+        var noticeHeader=new DockPanel();var clearNotices=new Button {Content=global::AionDpsMeter.Local.Localization.T("Clear notices"),HorizontalAlignment=HorizontalAlignment.Right};DockPanel.SetDock(clearNotices,Dock.Right);noticeHeader.Children.Add(clearNotices);
+        noticeHeader.Children.Add(new TextBlock {Text=global::AionDpsMeter.Local.Localization.T("Recent farming notices"),VerticalAlignment=VerticalAlignment.Center});noticesPanel.Children.Add(noticeHeader);
         var noticeList=new ListBox {Tag="Farming notices",MaxHeight=84,Margin=new(0,4,0,0)};noticesPanel.Children.Add(noticeList);
         clearNotices.Click+=(_,_)=>{noticeRows.Clear();noticeList.ItemsSource=Array.Empty<string>();noticesPanel.Visibility=Visibility.Collapsed;};
         string Kind()=>kind.SelectedIndex switch {1=>"gatherable",2=>"pet",3=>"item",4=>"collectable",_=>"npc"};
@@ -64,9 +64,9 @@ public sealed partial class MainWindow
             noticeList.ItemsSource=noticeRows.ToArray();noticesPanel.Visibility=noticeRows.Count>0?Visibility.Visible:Visibility.Collapsed;
             string Since(long? at)=>at.HasValue?DateTimeOffset.FromUnixTimeMilliseconds(at.Value).ToLocalTime().ToString("g"):"unknown";
             status.DataContext=session;
-            status.Text=$"{rows.Length} targets. Kills: {session.Kills:N0} ({session.KillsPerHour:N0}/h). Souls: {session.Souls:N0}. Auto-refresh: 1s.\nKills since {Since(session.KillsSince)}; souls since {Since(session.SoulsSince)}.";
-            status.ToolTip="Totals include all farming activity since each reset, not just selected targets. Kills/hour uses elapsed time with a one-minute minimum.";
-            if(session.HasOmissions)status.Text+=" Some quantities were omitted.";
+            status.Text=global::AionDpsMeter.Local.Localization.F($"{rows.Length} targets. Kills: {session.Kills:N0} ({session.KillsPerHour:N0}/h). Souls: {session.Souls:N0}. Auto-refresh: 1s.\nKills since {Since(session.KillsSince)}; souls since {Since(session.SoulsSince)}.");
+            status.ToolTip=global::AionDpsMeter.Local.Localization.T("Totals include all farming activity since each reset, not just selected targets. Kills/hour uses elapsed time with a one-minute minimum.");
+            if(session.HasOmissions)status.Text+=global::AionDpsMeter.Local.Localization.T(" Some quantities were omitted.");
             if(store.LoadError!=null)status.Text+=" "+store.LoadError;if(pets.LoadError!=null)status.Text+=" "+pets.LoadError;
             if(view.Rows.Any(r=>r.Target.Kind=="item")&&ItemFarmLinks.Default.LoadError is {} itemSourceError)status.Text+=" "+itemSourceError;
             UpdateAdd();
@@ -80,12 +80,12 @@ public sealed partial class MainWindow
             else available=MapMarkers.Default.Groups.Where(g=>MapTargetIndex.Identity(g)?.Kind==type).GroupBy(g=>g.DatabaseId).Select(g=>new TargetChoice(type,g.Key,g.First().Name));
             choices.ItemsSource=available.Where(p=>p.Name.Contains(query,StringComparison.OrdinalIgnoreCase)||p.Id.ToString()==query).OrderBy(p=>p.Name).Take(50).ToArray();choices.SelectedIndex=choices.Items.Count>0?0:-1;UpdateAdd();
         }
-        void Change(Action action){try{action();RefreshRows();}catch(Exception ex)when(ex is IOException or UnauthorizedAccessException or InvalidOperationException){status.Text="Target change could not be saved: "+ex.Message;}}
+        void Change(Action action){try{action();RefreshRows();}catch(Exception ex)when(ex is IOException or UnauthorizedAccessException or InvalidOperationException){status.Text=global::AionDpsMeter.Local.Localization.T("Target change could not be saved: ")+ex.Message;}}
         kind.SelectionChanged+=(_,_)=>Find();search.TextChanged+=(_,_)=>Find();choices.SelectionChanged+=(_,_)=>UpdateAdd();
         add.Click+=(_,_)=>{if(choices.SelectedItem is TargetChoice c&&add.IsEnabled)Change(()=>store.Toggle(c.Kind,c.Id));};
         remove.Click+=(_,_)=>{if(table.SelectedItem is TargetRow row)Change(()=>store.Remove(row.Kind,row.Id));};
         table.SelectionChanged+=(_,_)=>{var row=table.SelectedItem as TargetRow;remove.IsEnabled=row!=null;map.IsEnabled=row!=null&&(row.Kind=="collectable"||MapTargetLocations.Worlds(MapTargetLocations.Resolve(new(row.Kind,row.Id),index,pets),MapWorlds.Names).Any(w=>w.CanOpen));setGoal.IsEnabled=row!=null&&row.Kind is not ("pet" or "collectable");goal.Text=row==null?"":store.Snapshot().FirstOrDefault(t=>t.Kind==row.Kind&&t.Id==row.Id)?.Goal?.ToString()??"";};
-        setGoal.Click+=(_,_)=>{if(table.SelectedItem is not TargetRow row)return;long? value=null;if(goal.Text.Trim().Length>0){if(!long.TryParse(goal.Text,out long n)||n<0||n>1000000000){status.Text="Enter a goal from 0 to 1,000,000,000, or leave it empty.";return;}value=n;}Change(()=>store.SetGoal(row.Kind,row.Id,value));};
+        setGoal.Click+=(_,_)=>{if(table.SelectedItem is not TargetRow row)return;long? value=null;if(goal.Text.Trim().Length>0){if(!long.TryParse(goal.Text,out long n)||n<0||n>1000000000){status.Text=global::AionDpsMeter.Local.Localization.T("Enter a goal from 0 to 1,000,000,000, or leave it empty.");return;}value=n;}Change(()=>store.SetGoal(row.Kind,row.Id,value));};
         map.Click+=(_,_)=>{if(table.SelectedItem is TargetRow row)ShowTargetMap(new(row.Kind,row.Id));};
         var timer=new DispatcherTimer(DispatcherPriority.Background) {Interval=TimeSpan.FromSeconds(1)};trackedTargetsTimer=timer;
         void Tick(object? sender,EventArgs args)=>RefreshRows();timer.Tick+=Tick;

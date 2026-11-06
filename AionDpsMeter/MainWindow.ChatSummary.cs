@@ -9,7 +9,7 @@ public sealed partial class MainWindow
     void ShowChatSummary()
     {
         var fight = Current;
-        var window = new Window { Title = "Copy fight summary", Owner = this, Width = 700, Height = 480,
+        var window = new Window { Title = global::AionDpsMeter.Local.Localization.T("Copy fight summary"), Owner = this, Width = 700, Height = 480,
             MinWidth = 520, MinHeight = 340, WindowStartupLocation = WindowStartupLocation.CenterOwner };
         UiTheme.Apply(window, preferences);
         var layout = new DockPanel { Margin = new(18) };
@@ -25,15 +25,15 @@ public sealed partial class MainWindow
         var buttons = new WrapPanel(); footer.Children.Add(buttons); footer.Children.Add(status);
         string[] text = [];
         void RefreshSummary() {
-            text = FightChatSummary.Build(fight, metric.SelectedIndex == 1, scope.SelectedItem?.ToString() ?? "Party");
-            lines.ItemsSource = text; lines.SelectedIndex = 0; status.Text = "Snapshot of " + fight.Label;
+            text = FightChatSummary.Build(fight, metric.SelectedIndex == 1, scope.SelectedItem?.ToString() ?? global::AionDpsMeter.Local.Localization.T("Party"));
+            lines.ItemsSource = text; lines.SelectedIndex = 0; status.Text = global::AionDpsMeter.Local.Localization.T("Snapshot of ") + fight.Label;
         }
         void Copy(string value) {
-            try { Clipboard.SetText(value); status.Text = "Copied to clipboard."; }
-            catch (ExternalException) { status.Text = "Clipboard is busy. Please try again."; }
+            try { Clipboard.SetText(value); status.Text = global::AionDpsMeter.Local.Localization.T("Copied to clipboard."); }
+            catch (ExternalException) { status.Text = global::AionDpsMeter.Local.Localization.T("Clipboard is busy. Please try again."); }
         }
-        buttons.Children.Add(Button("Copy selected line", () => { if (lines.SelectedItem is string line) Copy(line); }));
-        buttons.Children.Add(Button("Copy all", () => Copy(string.Join(Environment.NewLine, text))));
+        buttons.Children.Add(Button(global::AionDpsMeter.Local.Localization.T("Copy selected line"), () => { if (lines.SelectedItem is string line) Copy(line); }));
+        buttons.Children.Add(Button(global::AionDpsMeter.Local.Localization.T("Copy all"), () => Copy(string.Join(Environment.NewLine, text))));
         metric.SelectionChanged += (_, _) => RefreshSummary(); scope.SelectionChanged += (_, _) => RefreshSummary();
         layout.Children.Add(lines); window.Content = layout; RefreshSummary(); window.Show();
     }

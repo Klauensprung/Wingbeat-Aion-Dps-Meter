@@ -20,7 +20,7 @@ public sealed partial class MainWindow
             Directory.CreateDirectory(Path.GetDirectoryName(Path.GetFullPath(output))!);
             timer.Stop(); FinishAutosave(); viewed = null; archive.Clear(); engine = new CombatEngine();
             preferences = new() { ReminderWindowsNotifications = false };
-            Title = "Wingbeat - isolated session memory benchmark";
+            Title = global::AionDpsMeter.Local.Localization.T("Wingbeat - isolated session memory benchmark");
             var samples = new List<object>(); var watch = Stopwatch.StartNew();
             long allocated = GC.GetTotalAllocatedBytes(true), origin = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
             int refreshes = 0;

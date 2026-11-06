@@ -45,7 +45,7 @@ public sealed partial class MainWindow
         if (petTrackerOverlay != null) {
             petTrackerOverlay.UpdateCollected(collected);
             petTrackerOverlay.Update(rows, position, now, capture != null, preferences.PetTrackerGoal);
-            bool trackerAllowed=allowed&&OverlayHideControls.Allows(petTrackerOverlay);
+            bool trackerAllowed=allowed&&petTrackerOverlay.HasPets&&OverlayHideControls.Allows(petTrackerOverlay);
             if (trackerAllowed && !petTrackerOverlay.IsVisible) petTrackerOverlay.Show();
             else if (!trackerAllowed && petTrackerOverlay.IsVisible) petTrackerOverlay.Hide();
         }

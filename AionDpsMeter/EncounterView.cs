@@ -27,10 +27,10 @@ internal sealed class EncounterView : Grid
     readonly TextBlock historyCount = new() { FontSize = 11, Foreground = UiTheme.Brush("#93A2B8"), Margin = new(0, 0, 0, 10) };
     readonly TextBlock heading = new() { FontSize = 18, FontWeight = FontWeights.SemiBold, TextTrimming = TextTrimming.CharacterEllipsis };
     readonly TextBlock subtitle = new() { FontSize = 11, Margin = new(0, 5, 0, 10), Foreground = UiTheme.Brush("#93A2B8") };
-    readonly TextBlock skillHeading = new() { Text = "Skill damage - all participants", FontSize = 14, FontWeight = FontWeights.SemiBold, VerticalAlignment = VerticalAlignment.Center };
-    readonly TextBlock empty = new() { Text = "Start capture to record an encounter, or select one from your saved history.", TextWrapping = TextWrapping.Wrap, Margin = new(8), Foreground = UiTheme.Brush("#93A2B8") };
+    readonly TextBlock skillHeading = new() { Text = global::AionDpsMeter.Local.Localization.T("Skill damage - all participants"), FontSize = 14, FontWeight = FontWeights.SemiBold, VerticalAlignment = VerticalAlignment.Center };
+    readonly TextBlock empty = new() { Text = global::AionDpsMeter.Local.Localization.T("Start capture to record an encounter, or select one from your saved history."), TextWrapping = TextWrapping.Wrap, Margin = new(8), Foreground = UiTheme.Brush("#93A2B8") };
     readonly EncounterTimelinePlot timeline = new();
-    readonly TextBlock timelineLabel = new() { Text = "DAMAGE OVER TIME", FontSize = 10, FontWeight = FontWeights.SemiBold, Margin = new(0, 0, 0, 8) };
+    readonly TextBlock timelineLabel = new() { Text = global::AionDpsMeter.Local.Localization.T("DAMAGE OVER TIME"), FontSize = 10, FontWeight = FontWeights.SemiBold, Margin = new(0, 0, 0, 8) };
     readonly Func<int, string> skillName;
     Dictionary<string, Fight> choices = new();
     Fight? selected;
@@ -46,9 +46,9 @@ internal sealed class EncounterView : Grid
         Margin = new(8, 0, 8, 8);
         ColumnDefinitions.Add(new() { Width = new GridLength(1, GridUnitType.Star), MinWidth = 170, MaxWidth = 300 }); ColumnDefinitions.Add(new() { Width = new GridLength(3, GridUnitType.Star) });
         var browser = new DockPanel();
-        var listTitle = new TextBlock { Text = "Fight history", FontSize = 15, FontWeight = FontWeights.SemiBold, Margin = new(0, 0, 0, 4) };
+        var listTitle = new TextBlock { Text = global::AionDpsMeter.Local.Localization.T("Fight history"), FontSize = 15, FontWeight = FontWeights.SemiBold, Margin = new(0, 0, 0, 4) };
         DockPanel.SetDock(listTitle, Dock.Top); browser.Children.Add(listTitle);
-        historyCount.ToolTip = "All encounters with damage dealt by your character. Current first, then newest saved. Scroll for older encounters.";
+        historyCount.ToolTip = global::AionDpsMeter.Local.Localization.T("All encounters with damage dealt by your character. Current first, then newest saved. Scroll for older encounters.");
         DockPanel.SetDock(historyCount, Dock.Top); browser.Children.Add(historyCount);
         encounters.HeadersVisibility = DataGridHeadersVisibility.None; encounters.RowHeight = 46;
         ScrollViewer.SetVerticalScrollBarVisibility(encounters, ScrollBarVisibility.Visible);
@@ -65,7 +65,7 @@ internal sealed class EncounterView : Grid
         body.RowDefinitions.Add(new() { Height = GridLength.Auto }); body.RowDefinitions.Add(new() { Height = GridLength.Auto }); body.RowDefinitions.Add(new() { Height = new GridLength(1, GridUnitType.Star) });
         var title = new StackPanel(); title.Children.Add(heading); title.Children.Add(subtitle); title.Children.Add(empty); body.Children.Add(title);
         var participantPanel = new DockPanel();
-        var participantTitle = new TextBlock { Text = "Party performance", ToolTip = "Ranked by DPS. Select a player to inspect their skills and timeline.", FontSize = 14, FontWeight = FontWeights.SemiBold, Margin = new(0, 0, 0, 10) };
+        var participantTitle = new TextBlock { Text = global::AionDpsMeter.Local.Localization.T("Party performance"), ToolTip = global::AionDpsMeter.Local.Localization.T("Ranked by DPS. Select a player to inspect their skills and timeline."), FontSize = 14, FontWeight = FontWeights.SemiBold, Margin = new(0, 0, 0, 10) };
         DockPanel.SetDock(participantTitle, Dock.Top); participantPanel.Children.Add(participantTitle); participantPanel.Children.Add(participants);
         var player = new FrameworkElementFactory(typeof(DockPanel));
         var classIcon = new FrameworkElementFactory(typeof(Image));
@@ -87,7 +87,7 @@ internal sealed class EncounterView : Grid
         TextColumn(participants, "Damage", "Damage", 85, "N0"); TextColumn(participants, "DPS", "DPS", 75, "N1");
         TextColumn(participants, "Healing", "Healing", 85, "N0"); TextColumn(participants, "HPS", "HPS", 75, "N1"); TextColumn(participants, "Deaths", "Deaths", 70, "N0");
         var skillTitle = new DockPanel { Margin = new(0, 4, 0, 7) };
-        var all = new Button { Content = "All participants", Padding = new(9, 4, 9, 4), Margin = new(8, 0, 0, 0) };
+        var all = new Button { Content = global::AionDpsMeter.Local.Localization.T("All participants"), Padding = new(9, 4, 9, 4), Margin = new(8, 0, 0, 0) };
         DockPanel.SetDock(all, Dock.Right); skillTitle.Children.Add(all); skillTitle.Children.Add(skillHeading);
         all.Click += (_, _) => { participantId = null; updating = true; participants.SelectedItem = null; updating = false; RefreshSkills(); };
         var skillPanel = new DockPanel(); DockPanel.SetDock(skillTitle, Dock.Top); skillPanel.Children.Add(skillTitle); skillPanel.Children.Add(skills);
@@ -131,7 +131,7 @@ internal sealed class EncounterView : Grid
             encounters.SetRows(entries); encounters.SelectedItem = encounters.Items.Cast<Entry>().FirstOrDefault(e => e.Id == current.Id);
             heading.Text = EncounterOverview.Title(current); heading.ToolTip = heading.Text;
             var people = currentPeople = EncounterOverview.Participants(current);
-            subtitle.Text = $"{people.Length} players  |  {MeterPresentation.Duration(current)}  |  {people.Sum(p => p.Damage):N0} damage  |  {people.Sum(p => p.Healing):N0} healing";
+            subtitle.Text = global::AionDpsMeter.Local.Localization.F($"{people.Length} players  |  {MeterPresentation.Duration(current)}  |  {people.Sum(p => p.Damage):N0} damage  |  {people.Sum(p => p.Healing):N0} healing");
             empty.Visibility = current.HasEvents ? Visibility.Collapsed : Visibility.Visible;
             participants.SetRows(people);
             if (participantId != null && people.All(p => p.Id != participantId)) participantId = null;
@@ -144,8 +144,8 @@ internal sealed class EncounterView : Grid
         if (selected == null) return;
         var people = currentPeople.Where(p => participantId == null || p.Id == participantId).ToArray();
         skills.SetRows(EncounterOverview.Skills(selected, people.Select(p => p.Id), skillName));
-        skillHeading.Text = participantId == null ? "Skill damage - all participants" : "Skill damage - " + selected.Name(participantId.Value);
-        timelineLabel.Text = participantId == null ? "PARTY DAMAGE OVER TIME" : selected.Name(participantId.Value).ToUpperInvariant() + " · DAMAGE OVER TIME";
+        skillHeading.Text = participantId == null ? global::AionDpsMeter.Local.Localization.T("Skill damage - all participants") : global::AionDpsMeter.Local.Localization.T("Skill damage - ") + selected.Name(participantId.Value);
+        timelineLabel.Text = participantId == null ? global::AionDpsMeter.Local.Localization.T("PARTY DAMAGE OVER TIME") : selected.Name(participantId.Value).ToUpperInvariant() + global::AionDpsMeter.Local.Localization.T(" · DAMAGE OVER TIME");
         timeline.Update(selected, people.Select(p => p.Id));
     }
     internal void CheckPresentation(Fight fight)

@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.5.50 - 2026-11-06
+
+Changes since 0.5.49:
+
+- Added German interface translation, automatic detection of the Windows language, and separate interface/game language settings. German skill names are matched by skill ID, with English fallback where a verified translation is unavailable.
+- Fixed German startup failures caused by sealed theme styles and translated internal tab keys.
+- Added optional cooldown voice warnings, preview playback, volume control, and per-character skill selection. All 715 recordings are embedded in the executable and work offline without Voicebox. Announcements speak the skill name only; duplicate skill IDs share recordings.
+- Added GitHub updates for installed builds: download and verify the update, then save the current session and restart when requested. Existing portable builds retain the browser download option.
+- Added a per-user installer and update packages alongside the self-contained single-file portable ZIP. Settings, fights, and caches remain in the existing user-data directory.
+- Made the pet farming overlay transparent with compact rounded progress bars showing collected versus required souls.
+- Moved cached boss timers to the persistent cache directory and migrate existing timer data so replacing the application folder does not lose it.
+
+Use Setup.exe for in-app updates, or extract the portable ZIP and run Wingbeat.exe. Both include the cooldown audio and the .NET runtime. Npcap is still required for packet capture. The release is unsigned; Windows may show a reputation warning.
+
 ## 0.5.49 - 2026-11-05
 
 Changes since 0.5.48:

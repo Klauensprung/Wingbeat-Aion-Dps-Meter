@@ -9,6 +9,17 @@ internal static class AppDataPaths
     internal static string Root { get; private set; } = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Wingbeat");
     internal static string FilePath(string name) => Path.Combine(Root, name);
 
+    internal static string CacheFilePath(string name,string? root=null)
+    {
+        root??=Root;
+        string directory=Path.Combine(root,"cache");Directory.CreateDirectory(directory);
+        string target=Path.Combine(directory,name),legacy=Path.Combine(root,name);
+        if(!File.Exists(target)&&File.Exists(legacy)){
+            try{File.Copy(legacy,target,false);}
+            catch(Exception ex)when(ex is IOException or UnauthorizedAccessException){LocalLog.Write("Cache migration failed: "+ex.Message);return legacy;}
+        }
+        return target;
+    }
     internal static void Initialize(bool isolated)
     {
         if (isolated) Root = Path.Combine(AppContext.BaseDirectory, "test-artifacts", "user-data");

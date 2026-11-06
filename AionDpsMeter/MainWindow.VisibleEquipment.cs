@@ -9,7 +9,7 @@ public sealed partial class MainWindow
     void ShowVisibleEquipment()
     {
         var fight = Current; var rows = VisibleEquipment.Rows(fight);
-        var window = new Window { Title = "Visible equipment", Owner = this, Width = 1050, Height = 580, MinWidth = 700, MinHeight = 400,
+        var window = new Window { Title = global::AionDpsMeter.Local.Localization.T("Visible equipment"), Owner = this, Width = 1050, Height = 580, MinWidth = 700, MinHeight = 400,
             WindowStartupLocation = WindowStartupLocation.CenterOwner };
         UiTheme.Apply(window, preferences);
         var layout = new DockPanel { Margin = new(18) }; var heading = new StackPanel(); DockPanel.SetDock(heading, Dock.Top); layout.Children.Add(heading);
@@ -26,8 +26,8 @@ public sealed partial class MainWindow
             string text = search.Text.Trim();
             var shown = rows.Where(r => r.Character.Contains(text, StringComparison.OrdinalIgnoreCase) ||
                 r.Item.Contains(text, StringComparison.OrdinalIgnoreCase) || r.Skin.Contains(text, StringComparison.OrdinalIgnoreCase)).ToArray();
-            table.SetRows(shown); status.Text = rows.Length == 0 ? "No appearance equipment captured. Enter a zone while capturing, or open a saved fight with equipment data."
-                : $"{shown.Length:N0} items · last captured snapshot";
+            table.SetRows(shown); status.Text = rows.Length == 0 ? global::AionDpsMeter.Local.Localization.T("No appearance equipment captured. Enter a zone while capturing, or open a saved fight with equipment data.")
+                : global::AionDpsMeter.Local.Localization.F($"{shown.Length:N0} items · last captured snapshot");
         }
         search.TextChanged += (_, _) => Filter(); layout.Children.Add(table); window.Content = layout; Filter(); window.Show();
     }

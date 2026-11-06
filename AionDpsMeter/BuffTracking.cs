@@ -43,7 +43,7 @@ internal sealed class TrackedBuffView : StackPanel
             lastStyle = style;
             var previous = rows.ToDictionary();
             Children.Clear(); rows.Clear();
-            Children.Add(new TextBlock { Text = compact ? "BUFFS" : "BUFF UPTIME", Foreground = UiTheme.Brush("#93A2B8"), FontSize = 10, FontWeight = FontWeights.SemiBold, Margin = new(8, 9, 8, 6) });
+            Children.Add(new TextBlock { Text = compact ? global::AionDpsMeter.Local.Localization.T("BUFFS") : global::AionDpsMeter.Local.Localization.T("BUFF UPTIME"), Foreground = UiTheme.Brush("#93A2B8"), FontSize = 10, FontWeight = FontWeights.SemiBold, Margin = new(8, 9, 8, 6) });
             Panel tiles = compact ? new WrapPanel() : new StackPanel();
             Children.Add(tiles);
             foreach (var buff in buffs) {
@@ -81,18 +81,18 @@ internal sealed class TrackedBuffView : StackPanel
             bool expiring = buff.Seconds is > 0 and <= 5;
             var accent = UiTheme.Brush(buff.Missing || expiring ? "#F0BA62" : "#55D6BE");
             row.Time.Foreground = accent; row.Status.Foreground = UiTheme.Brush("#93A2B8"); row.Bar.Foreground = accent;
-            row.Status.Text = buff.Missing ? "Not observed on you" : buff.Seconds != null ? "Remaining uptime" : buff.Time == "Start capture" ? "Capture stopped" : "Buff active";
+            row.Status.Text = buff.Missing ? global::AionDpsMeter.Local.Localization.T("Not observed on you") : buff.Seconds != null ? global::AionDpsMeter.Local.Localization.T("Remaining uptime") : buff.Time == global::AionDpsMeter.Local.Localization.T("Start capture") ? global::AionDpsMeter.Local.Localization.T("Capture stopped") : global::AionDpsMeter.Local.Localization.T("Buff active");
             row.Time.FontSize = buff.Seconds != null ? 15 : 12;
-            row.Time.Text = buff.Seconds is double seconds ? seconds >= 60 ? $"{(int)Math.Ceiling(seconds)/60}:{(int)Math.Ceiling(seconds)%60:00}" : $"{Math.Ceiling(seconds)}s" : buff.Time;
+            row.Time.Text = buff.Seconds is double seconds ? seconds >= 60 ? $"{(int)Math.Ceiling(seconds)/60}:{(int)Math.Ceiling(seconds)%60:00}" : global::AionDpsMeter.Local.Localization.F($"{Math.Ceiling(seconds)}s") : buff.Time;
             if (compact) {
                 row.Time.FontSize = buff.Seconds != null ? 16 : 20;
-                if (buff.Seconds == null) row.Time.Text = buff.Missing ? "!" : buff.Time == "Active" ? "✓" : "?";
+                if (buff.Seconds == null) row.Time.Text = buff.Missing ? "!" : buff.Time == global::AionDpsMeter.Local.Localization.T("Active") ? "✓" : "?";
                 row.Card.BorderBrush = accent;
             }
             row.Maximum = buff.Seconds is double remaining ? Math.Max(row.Maximum,remaining) : 0;
             row.Bar.Visibility = buff.Seconds != null ? Visibility.Visible : Visibility.Collapsed;
             CountdownBar.Update(row.Bar,CooldownPresentation.RemainingFraction(buff.Seconds,row.Maximum),buff.Seconds ?? 0);
-            row.Card.ToolTip = buff.Name + "\nRemaining effect duration on your character, separate from skill cooldown.\nCheck buff: no active matching effect captured; it may have expired, been removed, or not been captured yet.\nIcon identifies the source skill where available.";
+            row.Card.ToolTip = buff.Name + global::AionDpsMeter.Local.Localization.T("\nRemaining effect duration on your character, separate from skill cooldown.\nCheck buff: no active matching effect captured; it may have expired, been removed, or not been captured yet.\nIcon identifies the source skill where available.");
         }
     }
 }
@@ -101,17 +101,17 @@ internal sealed class BuffTrackingSettings : Window
 {
     internal BuffTrackingSettings(Preferences settings, int[] selected, LiveEffect[] active, Action<int[]> save)
     {
-        Title = "Track buff uptime"; Width = 540; Height = 600; WindowStartupLocation = WindowStartupLocation.CenterOwner; UiTheme.Apply(this, settings);
+        Title = global::AionDpsMeter.Local.Localization.T("Track buff uptime"); Width = 540; Height = 600; WindowStartupLocation = WindowStartupLocation.CenterOwner; UiTheme.Apply(this, settings);
         var chosen = BuffChoice.Group(selected).Take(24).Select(b => b.Id).ToList();
         var panel = new DockPanel { Margin = new(16) }; Content = panel;
         var header = new StackPanel(); DockPanel.SetDock(header, Dock.Top); panel.Children.Add(header);
-        header.Children.Add(new TextBlock { Text = "Track up to 24 buffs on yourself. Cast your buffs first to find them at the top, or search by name. Timers use captured effect duration.", TextWrapping = TextWrapping.Wrap, Margin = new(0, 0, 0, 10) });
-        var search = new TextBox { ToolTip = "Search buffs", Margin = new(0, 0, 0, 10) }; header.Children.Add(search);
+        header.Children.Add(new TextBlock { Text = global::AionDpsMeter.Local.Localization.T("Track up to 24 buffs on yourself. Cast your buffs first to find them at the top, or search by name. Timers use captured effect duration."), TextWrapping = TextWrapping.Wrap, Margin = new(0, 0, 0, 10) });
+        var search = new TextBox { ToolTip = global::AionDpsMeter.Local.Localization.T("Search buffs"), Margin = new(0, 0, 0, 10) }; header.Children.Add(search);
         var footer = new StackPanel(); DockPanel.SetDock(footer, Dock.Bottom); panel.Children.Add(footer);
         var tracked = new ListBox { Height = 140, Margin = new(0, 8, 0, 8) }; footer.Children.Add(tracked);
-        var remove = new Button { Content = "Remove selected buff" }; footer.Children.Add(remove);
-        var done = new Button { Content = "Use selected buffs", Margin = new(0, 8, 0, 0) }; footer.Children.Add(done);
-        var add = new Button { Content = "Track selected buff", Margin = new(0, 8, 0, 0) }; DockPanel.SetDock(add, Dock.Bottom); panel.Children.Add(add);
+        var remove = new Button { Content = global::AionDpsMeter.Local.Localization.T("Remove selected buff") }; footer.Children.Add(remove);
+        var done = new Button { Content = global::AionDpsMeter.Local.Localization.T("Use selected buffs"), Margin = new(0, 8, 0, 0) }; footer.Children.Add(done);
+        var add = new Button { Content = global::AionDpsMeter.Local.Localization.T("Track selected buff"), Margin = new(0, 8, 0, 0) }; DockPanel.SetDock(add, Dock.Bottom); panel.Children.Add(add);
         var available = new ListBox(); panel.Children.Add(available);
         BuffChoice Describe(int id) => BuffChoice.Resolve(id);
         void Reload() { tracked.ItemsSource = chosen.Select(Describe).ToArray(); add.IsEnabled = chosen.Count < 24; }

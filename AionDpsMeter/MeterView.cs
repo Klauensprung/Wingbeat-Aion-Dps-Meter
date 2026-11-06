@@ -110,7 +110,7 @@ public static class MeterPresentation
 public sealed class MeterView : AnimatedStackPanel
 {
     readonly Dictionary<int, MeterBar> bars = new();
-    readonly TextBlock empty = new() { Text = "Ready for your next fight", FontSize = 15, Foreground = UiTheme.Brush("#95A3B7"),
+    readonly TextBlock empty = new() { Text = global::AionDpsMeter.Local.Localization.T("Ready for your next fight"), FontSize = 15, Foreground = UiTheme.Brush("#95A3B7"),
         TextAlignment = TextAlignment.Center, Margin = new(16, 42, 16, 42), TextWrapping = TextWrapping.Wrap };
     public event Action<int>? ActorSelected;
     public int RowCount => bars.Count;
@@ -120,7 +120,7 @@ public sealed class MeterView : AnimatedStackPanel
         if (rows.Count == 0)
         {
             bars.Clear(); Children.Clear();
-            empty.Text = emptyText ?? (hasEvents ? healing ? "No healing recorded" : "Waiting for player names\nCapture while entering a zone to refresh names." : "Ready for your next fight");
+            empty.Text = emptyText ?? (hasEvents ? healing ? global::AionDpsMeter.Local.Localization.T("No healing recorded") : global::AionDpsMeter.Local.Localization.T("Waiting for player names\nCapture while entering a zone to refresh names.") : global::AionDpsMeter.Local.Localization.T("Ready for your next fight"));
             Children.Add(empty); return;
         }
         Children.Remove(empty);
@@ -199,13 +199,13 @@ sealed class MeterBar : Border
         presentation=nextPresentation;
         if (current?.Job != row.Job) {
             classSymbol.Data = ClassSymbols.For(row.Job);
-            classSymbol.ToolTip = row.Job == "Unknown" ? "Class not known yet" : row.Job;
+            classSymbol.ToolTip = row.Job == global::AionDpsMeter.Local.Localization.T("Unknown") ? global::AionDpsMeter.Local.Localization.T("Class not known yet") : row.Job;
             System.Windows.Automation.AutomationProperties.SetName(classSymbol, classSymbol.ToolTip.ToString());
         }
         classSymbol.Stroke = UiTheme.Brush(row.Color);
         deaths.Visibility = showClassSymbols ? Visibility.Visible : Visibility.Collapsed;
         deaths.Text = "\u2620 " + row.Deaths; deaths.Foreground = UiTheme.Brush(row.Deaths > 0 ? "#EF8792" : "#93A2B8");
-        deaths.ToolTip = $"{row.Deaths} observed deaths in this fight";
+        deaths.ToolTip = global::AionDpsMeter.Local.Localization.F($"{row.Deaths} observed deaths in this fight");
         classSymbol.Visibility = showClassSymbols ? Visibility.Visible : Visibility.Collapsed;
         if (current?.Color != row.Color)
         {
@@ -217,20 +217,20 @@ sealed class MeterBar : Border
         bool showMetadata = showCp;
         current = row; Height = (compact ? 35 : 48) + (showMetadata ? 12 : 0) + (row.Health.Length > 0 ? 13 : 0);
         healthStatus.Text = row.Health; healthStatus.Visibility = row.Health.Length > 0 ? Visibility.Visible : Visibility.Collapsed;
-        healthStatus.ToolTip = row.Health + ". Last captured health or revival state, not a live estimate.";
+        healthStatus.ToolTip = row.Health + global::AionDpsMeter.Local.Localization.T(". Last captured health or revival state, not a live estimate.");
         metadata.Visibility = showMetadata ? Visibility.Visible : Visibility.Collapsed;
-        metadata.Text = showCp ? "CP " + row.CombatPower.ToString("N0") : "";
+        metadata.Text = showCp ? global::AionDpsMeter.Local.Localization.T("CP ") + row.CombatPower.ToString(global::AionDpsMeter.Local.Localization.T("N0")) : "";
         metadata.Foreground = UiTheme.Brush(MeterPresentation.CombatPowerColor(row.CombatPower, row.LocalCombatPower, row.Local));
-        metadata.ToolTip = (row.CombatPower > 0 ? $"Combat power: {row.CombatPower:N0} ({row.CombatPowerSource})" : "Combat power not captured. Party profile packets can supply it; character details also allow manual entry.") +
+        metadata.ToolTip = (row.CombatPower > 0 ? global::AionDpsMeter.Local.Localization.F($"Combat power: {row.CombatPower:N0} ({row.CombatPowerSource})") : global::AionDpsMeter.Local.Localization.T("Combat power not captured. Party profile packets can supply it; character details also allow manual entry.")) +
             MeterPresentation.CombatPowerComparison(row.CombatPower, row.LocalCombatPower, row.Local) +
-            (row.Health.Length > 0 ? "\n" + row.Health + ". Last captured health or revival state, not a live estimate." : "");
+            (row.Health.Length > 0 ? "\n" + row.Health + global::AionDpsMeter.Local.Localization.T(". Last captured health or revival state, not a live estimate.") : "");
         BorderBrush = row.Local ? UiTheme.Brush(row.Color) : Brushes.Transparent;
         rank.Text = position.ToString(); rank.Foreground = UiTheme.Brush("#CED5E1");
-        name.Text = row.Name + (row.Local ? "  ·  you" : ""); name.FontSize = compact ? 12 : 14; name.Foreground = Brushes.White;
-        job.Text = row.Job == "Unknown" ? row.Player ? "Player" : "Unclassified actor" : row.Job; job.Foreground = UiTheme.Brush("#CAD4E3"); job.Visibility = compact ? Visibility.Collapsed : Visibility.Visible;
-        rate.Text = MeterPresentation.Number(row.Rate) + (healing ? " HPS" : " DPS"); rate.FontSize = compact ? 12 : 15; rate.Foreground = Brushes.White;
+        name.Text = row.Name + (row.Local ? global::AionDpsMeter.Local.Localization.T("  ·  you") : ""); name.FontSize = compact ? 12 : 14; name.Foreground = Brushes.White;
+        job.Text = row.Job == global::AionDpsMeter.Local.Localization.T("Unknown") ? row.Player ? global::AionDpsMeter.Local.Localization.T("Player") : global::AionDpsMeter.Local.Localization.T("Unclassified actor") : row.Job; job.Foreground = UiTheme.Brush("#CAD4E3"); job.Visibility = compact ? Visibility.Collapsed : Visibility.Visible;
+        rate.Text = MeterPresentation.Number(row.Rate) + (healing ? global::AionDpsMeter.Local.Localization.T(" HPS") : global::AionDpsMeter.Local.Localization.T(" DPS")); rate.FontSize = compact ? 12 : 15; rate.Foreground = Brushes.White;
         amount.Text = $"{MeterPresentation.Number(row.Amount)}  ·  {row.Share:0.0}%"; amount.Foreground = UiTheme.Brush("#CED5E1");
-        ToolTip = $"{row.Name}\n{(row.Job == "Unknown" ? row.Player ? "Class not captured; consistent player colour" : "Unclassified actor" : row.Job)}\n{(row.Detail.Length == 0 ? "" : row.Detail + "\n")}{row.Amount:N0} {(healing ? "healing" : "damage")} · {row.Rate:N1} {(healing ? "HPS" : "DPS")}\n{row.Share:0.0}% of { (healing ? "healing" : "damage") } in this view\nClick for skill details";
+        ToolTip = global::AionDpsMeter.Local.Localization.F($"{row.Name}\n{(row.Job == "Unknown" ? row.Player ? Localization.T("Class not captured; consistent player colour") : Localization.T("Unclassified actor") : row.Job)}\n{(row.Detail.Length == 0 ? "" : row.Detail + "\n")}{row.Amount:N0} {(healing ? Localization.T("healing") : Localization.T("damage"))} · {row.Rate:N1} {(healing ? Localization.T("HPS") : Localization.T("DPS"))}\n{row.Share:0.0}% of { (healing ? Localization.T("healing") : Localization.T("damage")) } in this view\nClick for skill details");
         SetWidth();
     }
 }

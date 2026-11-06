@@ -12,11 +12,11 @@ internal sealed class LootOverlayWindow : Window
     internal static LootItemRow[] Recent(LootLedger.OverlayView view,long now)=>view.Rows.Where(r=>r.Last<=now&&now-r.Last<10000).ToArray();
     internal LootOverlayWindow(Preferences settings, Action save, Action showLoot)
     {
-        Title = "Wingbeat loot"; Width = 330; SizeToContent = SizeToContent.Height; ResizeMode = ResizeMode.NoResize;
+        Title = global::AionDpsMeter.Local.Localization.T("Wingbeat loot"); Width = 330; SizeToContent = SizeToContent.Height; ResizeMode = ResizeMode.NoResize;
         WindowStyle = WindowStyle.None; AllowsTransparency = true; Topmost = true; ShowInTaskbar = false; ShowActivated = false;
         UiTheme.Apply(this, settings); Background = Brushes.Transparent;
         var body = new StackPanel { Margin = new(12) };
-        body.Children.Add(new TextBlock { Text = "LOOT", FontSize = 11, FontWeight = FontWeights.SemiBold, Foreground = UiTheme.Brush(settings.Accent) });
+        body.Children.Add(new TextBlock { Text = global::AionDpsMeter.Local.Localization.T("LOOT"), FontSize = 11, FontWeight = FontWeights.SemiBold, Foreground = UiTheme.Brush(settings.Accent) });
         body.Children.Add(rows);
         Content = new Border { Child = body, Background = Brushes.Transparent, BorderBrush = Brushes.Transparent, BorderThickness = new(0), CornerRadius = new(8) };
         if (settings.LootLeft is double left && settings.LootTop is double top && double.IsFinite(left) && double.IsFinite(top)) {
@@ -43,7 +43,7 @@ internal sealed class LootOverlayWindow : Window
         displayed=recent;
         rows.Children.Clear();
         foreach (var item in recent) {
-            var grid = new Grid { Margin = new(0, 4, 0, 4), ToolTip = $"{item.Item}\n{item.Map} ({item.MapId}) · {item.Pickups:N0} pickups\nLast: {item.LastTime}" };
+            var grid = new Grid { Margin = new(0, 4, 0, 4), ToolTip = global::AionDpsMeter.Local.Localization.F($"{item.Item}\n{item.Map} ({item.MapId}) · {item.Pickups:N0} pickups\nLast: {item.LastTime}") };
             grid.ColumnDefinitions.Add(new() { Width = new(1, GridUnitType.Star) }); grid.ColumnDefinitions.Add(new() { Width = GridLength.Auto });
             var labels = new StackPanel();
             labels.Children.Add(new TextBlock { Text = item.Item, TextTrimming = TextTrimming.CharacterEllipsis, FontSize = 12 });

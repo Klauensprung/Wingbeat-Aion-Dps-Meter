@@ -11,6 +11,10 @@ internal static class ReleaseUpdates
     static readonly HttpClient client = new() { Timeout = TimeSpan.FromSeconds(10), MaxResponseContentBufferSize = 512 * 1024 };
     internal static Version Current => typeof(Program).Assembly.GetName().Version ?? new Version(0, 0, 0);
     internal static string CurrentLabel => $"{Current.Major}.{Current.Minor}.{Math.Max(0, Current.Build)}";
+    internal const string PackageId = "Klauensprung.Wingbeat";
+    internal static bool ValidPackage(Velopack.VelopackAsset asset, string version) =>
+        asset.PackageId == PackageId && asset.Version.ToString() == version &&
+        asset.SHA256 is { Length: 64 } hash && hash.All(Uri.IsHexDigit) && asset.Size > 0;
     static ReleaseUpdates() {
         client.DefaultRequestHeaders.UserAgent.ParseAdd("Wingbeat/" + CurrentLabel);
         client.DefaultRequestHeaders.Accept.ParseAdd("application/vnd.github+json");

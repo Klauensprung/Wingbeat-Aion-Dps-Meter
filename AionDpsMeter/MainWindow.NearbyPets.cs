@@ -9,7 +9,7 @@ public sealed partial class MainWindow
 {
     void ShowNearbyPets(Window owner, Fight? savedFight, int goal = 1)
     {
-        var window = new Window { Title = "Nearby pet farming", Owner = owner, Width = 880, Height = 600,
+        var window = new Window { Title = global::AionDpsMeter.Local.Localization.T("Nearby pet farming"), Owner = owner, Width = 880, Height = 600,
             MinWidth = 650, MinHeight = 440, WindowStartupLocation = WindowStartupLocation.CenterOwner };
         UiTheme.Apply(window, preferences);
         var layout = new DockPanel { Margin = new(20) };
@@ -20,10 +20,10 @@ public sealed partial class MainWindow
         heading.Children.Add(UiSections.Heading("Nearby pet farming", "Find the nearest spawn for pets you still need.",
             "Distances use straight-line world units from your last captured position. Terrain, elevation and creature availability are not considered."));
         var phase = new ComboBox { ItemsSource = new[] { "Phase 1: collect", "Phase 2: level 2", "Phase 3: level 3" }, SelectedIndex = Math.Clamp(goal, 1, 3) - 1, Margin = new(0, 0, 0, 8) };
-        var unknown = new CheckBox { Content = "Include pets with unknown progress", Margin = new(0, 0, 0, 8) };
+        var unknown = new CheckBox { Content = global::AionDpsMeter.Local.Localization.T("Include pets with unknown progress"), Margin = new(0, 0, 0, 8) };
         heading.Children.Add(phase); heading.Children.Add(unknown);
         var status = new TextBlock { TextWrapping = TextWrapping.Wrap, Margin = new(0, 0, 0, 8) }; heading.Children.Add(status);
-        var open = new Button { Content = "Show selected pet on map", IsEnabled = false, HorizontalAlignment = HorizontalAlignment.Left, Margin = new(0, 0, 0, 12) }; heading.Children.Add(open);
+        var open = new Button { Content = global::AionDpsMeter.Local.Localization.T("Show selected pet on map"), IsEnabled = false, HorizontalAlignment = HorizontalAlignment.Left, Margin = new(0, 0, 0, 12) }; heading.Children.Add(open);
         var table = new LiveTable { IsReadOnly = true, AutoGenerateColumns = false, CanUserAddRows = false,
             CanUserDeleteRows = false, RowHeight = 36, EnableRowVirtualization = true };
         void Column(string title, string binding, int width) => table.Columns.Add(new DataGridTextColumn { Header = title, Binding = new Binding(binding), Width = width });
@@ -46,10 +46,10 @@ public sealed partial class MainWindow
                 table.SetRows(rows); table.SelectedItem = rows.FirstOrDefault(r => r.Id == selected);
                 previousPosition = position; previousCollection = collection; previousGoal = selectedGoal; previousUnknown = includeUnknown;
             }
-            status.Text = position == null ? "No position captured. Updates on loading and effects you cast." :
-                LocalPositionTracker.MapKey(position.MapId) == null ? "No spawn mapping for the captured area." :
-                $"{(savedFight == null ? $"Position captured {age / 1000:N0}s ago" : "Saved position from this fight")} · {table.Items.Count} nearest pets (up to 30)" +
-                (table.Items.Count == 0 ? " · No matching farming needs known; unknown progress can be included above." : "");
+            status.Text = position == null ? global::AionDpsMeter.Local.Localization.T("No position captured. Updates on loading and effects you cast.") :
+                LocalPositionTracker.MapKey(position.MapId) == null ? global::AionDpsMeter.Local.Localization.T("No spawn mapping for the captured area.") :
+                global::AionDpsMeter.Local.Localization.F($"{(savedFight == null ? $"Position captured {age / 1000:N0}s ago" : Localization.T("Saved position from this fight"))} · {table.Items.Count} nearest pets (up to 30)") +
+                (table.Items.Count == 0 ? global::AionDpsMeter.Local.Localization.T(" · No matching farming needs known; unknown progress can be included above.") : "");
         }
         table.SelectionChanged += (_, _) => open.IsEnabled = table.SelectedItem is NearbyPet;
         open.Click += (_, _) => { if (table.SelectedItem is NearbyPet selected)

@@ -46,8 +46,8 @@ internal sealed class BossTrendPlot : FrameworkElement
         Bars("Damage to boss", 10, b => b.ToBoss, BossDrawing.Cast);
         Bars("Damage from boss", 10 + rowHeight, b => b.FromBoss, BossDrawing.Hit);
         double hpTop = 10 + 2 * rowHeight;
-        BossDrawing.Label(dc, "Recorded HP", 10, hpTop, BossDrawing.Gold, Left - 20);
-        if (data.Hp.Length == 0) BossDrawing.Label(dc, "No HP packets captured", Left, hpTop + 22, BossDrawing.Muted, width);
+        BossDrawing.Label(dc, global::AionDpsMeter.Local.Localization.T("Recorded HP"), 10, hpTop, BossDrawing.Gold, Left - 20);
+        if (data.Hp.Length == 0) BossDrawing.Label(dc, global::AionDpsMeter.Local.Localization.T("No HP packets captured"), Left, hpTop + 22, BossDrawing.Muted, width);
         else {
             double max = Math.Max(1, data.Hp.Max(p => p.Value));
             BossDrawing.Label(dc, "Max seen " + MeterPresentation.Number(max), 10, hpTop + 20, BossDrawing.Muted, Left - 20);
@@ -68,11 +68,11 @@ internal sealed class BossTrendPlot : FrameworkElement
     {
         base.OnMouseMove(e); if (data == null) return;
         var p = e.GetPosition(this); double t = Math.Clamp((p.X - Left) / Math.Max(1, ActualWidth - Left - 12), 0, 1) * data.Seconds;
-        if (p.X < Left) { ToolTip = "Damage charts use separate vertical scales. HP is an absolute reading, not a percentage."; return; }
+        if (p.X < Left) { ToolTip = global::AionDpsMeter.Local.Localization.T("Damage charts use separate vertical scales. HP is an absolute reading, not a percentage."); return; }
         var bin = data.Bins.LastOrDefault(b => b.Seconds <= t) ?? data.Bins[0];
         var hp = data.Hp.LastOrDefault(h => (h.Timestamp - data.Start) / 1000d <= t);
-        ToolTip = $"{BossDrawing.Time(bin.Seconds)} - {BossDrawing.Time(bin.Seconds + bin.Width)}\nTo boss: {bin.ToBoss:N0} ({bin.ToBoss / bin.Width:N1}/s)\nFrom boss: {bin.FromBoss:N0} ({bin.FromBoss / bin.Width:N1}/s)\n" +
-            (hp == null ? "No earlier HP reading" : $"Last HP: {hp.Value:N0} at {BossDrawing.Time((hp.Timestamp - data.Start) / 1000d)}");
+        ToolTip = global::AionDpsMeter.Local.Localization.F($"{BossDrawing.Time(bin.Seconds)} - {BossDrawing.Time(bin.Seconds + bin.Width)}\nTo boss: {bin.ToBoss:N0} ({bin.ToBoss / bin.Width:N1}/s)\nFrom boss: {bin.FromBoss:N0} ({bin.FromBoss / bin.Width:N1}/s)\n") +
+            (hp == null ? global::AionDpsMeter.Local.Localization.T("No earlier HP reading") : global::AionDpsMeter.Local.Localization.F($"Last HP: {hp.Value:N0} at {BossDrawing.Time((hp.Timestamp - data.Start) / 1000d)}"));
     }
 }
 
@@ -162,7 +162,7 @@ internal sealed class BossTimelinePlot : FrameworkElement
             dc.DrawLine(new Pen(BossDrawing.Muted, .25), new(x, Axis), new(x, ActualHeight));
             BossDrawing.Label(dc, BossDrawing.Time(start + i * span / 4), Math.Min(x, ActualWidth - 62), 5, BossDrawing.Muted, 62);
         }
-        if (lanes.Length == 0) BossDrawing.Label(dc, "No boss attacks recorded yet", 12, 43, BossDrawing.Muted, 400);
+        if (lanes.Length == 0) BossDrawing.Label(dc, global::AionDpsMeter.Local.Localization.T("No boss attacks recorded yet"), 12, 43, BossDrawing.Muted, 400);
     }
 }
 
@@ -245,12 +245,12 @@ internal sealed class BossTimelineView : Grid
     }
     void State()
     {
-        state.Text = (pinned ? "Pinned / Resume for live updates" : hover ? "Held while inspecting" : "Observed sequence") + "  |  Circle: cast / Green: telegraph / Red: hit / Blue: defense / Gold: enrage / stagger";
+        state.Text = (pinned ? global::AionDpsMeter.Local.Localization.T("Pinned / Resume for live updates") : hover ? global::AionDpsMeter.Local.Localization.T("Held while inspecting") : global::AionDpsMeter.Local.Localization.T("Observed sequence")) + global::AionDpsMeter.Local.Localization.T("  |  Circle: cast / Green: telegraph / Red: hit / Blue: defense / Gold: enrage / stagger");
         int at = selected == null ? -1 : indices.GetValueOrDefault(selected, -1);
         previous.IsEnabled = at > 0; next.IsEnabled = events.Length > 0 && at < events.Length - 1;
-        detail.Text = selected == null || source == null ? "Point at a skill lane to inspect. Click to pin; Previous / Next steps through simultaneous hits. Ctrl + wheel zooms. Cast signals do not confirm completed casts." :
+        detail.Text = selected == null || source == null ? global::AionDpsMeter.Local.Localization.T("Point at a skill lane to inspect. Click to pin; Previous / Next steps through simultaneous hits. Ctrl + wheel zooms. Cast signals do not confirm completed casts.") :
             $"{BossDrawing.Time((selected.Timestamp - source.Start) / 1000d)}  /  {selected.Kind}  /  {(selected.SkillCode > 0 ? names(selected.SkillCode) + " [" + selected.SkillCode + "]" : selected.Detail)}\n" +
-            (selected.TargetId > 0 ? $"Target: {targetName(selected.TargetId)} [Entity {selected.TargetId}]  /  " : "") +
-            (selected.Kind == "Hit" ? $"{selected.Amount:N0} damage / " : "") + selected.Detail;
+            (selected.TargetId > 0 ? global::AionDpsMeter.Local.Localization.F($"Target: {targetName(selected.TargetId)} [Entity {selected.TargetId}]  /  ") : "") +
+            (selected.Kind == global::AionDpsMeter.Local.Localization.T("Hit") ? global::AionDpsMeter.Local.Localization.F($"{selected.Amount:N0} damage / ") : "") + selected.Detail;
     }
 }

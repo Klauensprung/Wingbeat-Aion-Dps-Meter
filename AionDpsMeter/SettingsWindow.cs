@@ -12,7 +12,7 @@ internal sealed class SettingsWindow : Window
     readonly StackPanel navigation = new();
     readonly TextBlock heading = new() { FontSize = 21, FontWeight = FontWeights.SemiBold, Margin = new(0, 0, 0, 6) };
     readonly TextBlock description = new() { TextWrapping = TextWrapping.Wrap, Margin = new(0, 0, 0, 18), FontSize = 12 };
-    readonly TextBlock feedback = new() { Text = "Switches save immediately. Use Apply for text and colour changes.", TextWrapping = TextWrapping.Wrap, VerticalAlignment = VerticalAlignment.Center, Margin = new(4, 0, 20, 0) };
+    readonly TextBlock feedback = new() { Text = global::AionDpsMeter.Local.Localization.T("Switches save immediately. Use Apply for text and colour changes."), TextWrapping = TextWrapping.Wrap, VerticalAlignment = VerticalAlignment.Center, Margin = new(4, 0, 20, 0) };
     readonly ContentControl body = new() { HorizontalContentAlignment = HorizontalAlignment.Stretch };
     readonly ScrollViewer scroll;
     bool closing;
@@ -20,18 +20,18 @@ internal sealed class SettingsWindow : Window
 
     internal SettingsWindow(Preferences settings)
     {
-        Title = "Wingbeat settings"; Width = 830; Height = 690; MinWidth = 730; MinHeight = 520;
+        Title = global::AionDpsMeter.Local.Localization.T("Wingbeat settings"); Width = 830; Height = 690; MinWidth = 730; MinHeight = 520;
         ShowInTaskbar = false; WindowStartupLocation = WindowStartupLocation.CenterOwner;
         FontFamily = new("Segoe UI"); FontSize = 12; UseLayoutRounding = true; ApplyTheme(settings);
         var root = new DockPanel { Margin = new(20) }; Content = root;
         var header = new StackPanel { Margin = new(4, 0, 0, 18) };
-        header.Children.Add(new TextBlock { Text = "Make Wingbeat yours", FontSize = 23, FontWeight = FontWeights.SemiBold });
-        var hint = new TextBlock { Text = "Your setup, overlays and appearance. Saved on this PC.", Margin = new(0, 6, 0, 0) };
+        header.Children.Add(new TextBlock { Text = global::AionDpsMeter.Local.Localization.T("Make Wingbeat yours"), FontSize = 23, FontWeight = FontWeights.SemiBold });
+        var hint = new TextBlock { Text = global::AionDpsMeter.Local.Localization.T("Your setup, overlays and appearance. Saved on this PC."), Margin = new(0, 6, 0, 0) };
         hint.SetResourceReference(TextBlock.ForegroundProperty, "Muted"); header.Children.Add(hint);
         DockPanel.SetDock(header, Dock.Top); root.Children.Add(header);
         var footer = new DockPanel { Margin = new(0, 16, 0, 0) };
         var done = new Button { Padding = new(15, 8, 15, 8), HorizontalAlignment = HorizontalAlignment.Right };
-        UiIcons.SetLabel(done, UiIcon.Close, "Done"); done.Click += (_, _) => Hide(); DockPanel.SetDock(done, Dock.Right); footer.Children.Add(done);
+        UiIcons.SetLabel(done, UiIcon.Close, global::AionDpsMeter.Local.Localization.T("Done")); done.Click += (_, _) => Hide(); DockPanel.SetDock(done, Dock.Right); footer.Children.Add(done);
         feedback.SetResourceReference(TextBlock.ForegroundProperty, "Muted"); footer.Children.Add(feedback);
         DockPanel.SetDock(footer, Dock.Bottom); root.Children.Add(footer);
         var layout = new Grid(); layout.ColumnDefinitions.Add(new() { Width = new GridLength(165) }); layout.ColumnDefinitions.Add(new()); root.Children.Add(layout);
@@ -53,8 +53,8 @@ internal sealed class SettingsWindow : Window
     internal void SelectPage(string title)
     {
         if (!pages.TryGetValue(title, out var page)) return;
-        SelectedPage = title; heading.Text = title; description.Text = page.Description; body.Content = page.Content;
-        feedback.Text = "Switches save immediately. Use Apply for text and colour changes.";
+        SelectedPage = title; heading.Text = Localization.T(title); description.Text = Localization.T(page.Description); body.Content = page.Content;
+        feedback.Text = global::AionDpsMeter.Local.Localization.T("Switches save immediately. Use Apply for text and colour changes.");
         foreach (var entry in pages) {
             bool selected = entry.Key == title;
             entry.Value.Button.SetResourceReference(Control.ForegroundProperty, selected ? "Accent" : "Muted");
@@ -64,7 +64,7 @@ internal sealed class SettingsWindow : Window
         scroll.ScrollToTop();
     }
     internal void Shutdown() { closing = true; Close(); }
-    internal void ShowStatus(string text) => feedback.Text = text;
+    internal void ShowStatus(string text) => feedback.Text = Localization.T(text);
     internal void ApplyTheme(Preferences settings)
     {
         UiTheme.Apply(this, settings);
@@ -75,9 +75,7 @@ internal sealed class SettingsWindow : Window
             <Setter Property="Template"><Setter.Value><ControlTemplate TargetType="CheckBox">
               <Border x:Name="Focus" BorderBrush="Transparent" BorderThickness="1" CornerRadius="5" Padding="0,5" Background="Transparent">
                 <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
-                  <ContentPresenter VerticalAlignment="Center" Margin="0,0,14,0">
-                    <ContentPresenter.ContentTemplate><DataTemplate><TextBlock Text="{Binding}" TextWrapping="Wrap"/></DataTemplate></ContentPresenter.ContentTemplate>
-                  </ContentPresenter>
+                  <ContentPresenter VerticalAlignment="Center" Margin="0,0,14,0" ContentTemplateSelector="{TemplateBinding ContentTemplateSelector}"/>
                   <Border x:Name="Track" Grid.Column="1" Width="34" Height="20" CornerRadius="10" Background="{DynamicResource Edge}" VerticalAlignment="Center">
                     <Ellipse x:Name="Knob" Width="14" Height="14" Fill="{DynamicResource Muted}" Margin="3" HorizontalAlignment="Left"/>
                   </Border>
@@ -91,5 +89,8 @@ internal sealed class SettingsWindow : Window
             </ControlTemplate></Setter.Value></Setter>
           </Style>
           """);
+        var localizedCheckBox=new Style(typeof(CheckBox),(Style)Resources[typeof(CheckBox)]);
+        localizedCheckBox.Setters.Add(new Setter(ContentControl.ContentTemplateSelectorProperty,Localization.TextTemplates));
+        Resources[typeof(CheckBox)]=localizedCheckBox;
     }
 }

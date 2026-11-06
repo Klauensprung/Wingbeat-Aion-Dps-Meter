@@ -23,7 +23,7 @@ public sealed partial class MainWindow
             }
             Add("Skins", "Count", state.Skins); Add("Guild decorations", "Equipped slot", state.Decorations); Add("Monoliths", "Tokens", state.Monoliths);
         }
-        var window = new Window { Title = "Character collections", Owner = this, Width = 950, Height = 580, MinWidth = 750, MinHeight = 400,
+        var window = new Window { Title = global::AionDpsMeter.Local.Localization.T("Character collections"), Owner = this, Width = 950, Height = 580, MinWidth = 750, MinHeight = 400,
             WindowStartupLocation = WindowStartupLocation.CenterOwner };
         UiTheme.Apply(window, preferences);
         var layout = new DockPanel { Margin = new(18) }; var heading = new StackPanel(); DockPanel.SetDock(heading, Dock.Top); layout.Children.Add(heading);
@@ -37,7 +37,7 @@ public sealed partial class MainWindow
         void Filter() {
             string text = search.Text.Trim();
             var shown = rows.Where(r => r.Character.Contains(text, StringComparison.OrdinalIgnoreCase) || r.Collection.Contains(text, StringComparison.OrdinalIgnoreCase) || r.Id.ToString().Contains(text)).ToArray();
-            table.SetRows(shown); status.Text = snapshots == 0 ? "No collection snapshots captured. Enter the game while capture is running." : $"{shown.Length:N0} entries shown; {snapshots:N0} collection snapshots captured";
+            table.SetRows(shown); status.Text = snapshots == 0 ? global::AionDpsMeter.Local.Localization.T("No collection snapshots captured. Enter the game while capture is running.") : global::AionDpsMeter.Local.Localization.F($"{shown.Length:N0} entries shown; {snapshots:N0} collection snapshots captured");
         }
         search.TextChanged += (_, _) => Filter(); Filter(); layout.Children.Add(table); window.Content = layout; window.Show();
     }

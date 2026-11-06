@@ -81,16 +81,16 @@ internal sealed class BossAnalysisView : Grid
         detailChoice.SelectionChanged += (_, _) => {
             detailContent.Content = detailChoice.SelectedIndex switch { 1 => targetViewport, 2 => participants, 3 => chartViewport, _ => abilities };
             detailHint.Text = detailChoice.SelectedIndex switch {
-                1 => "Damage from the selected boss skill, broken down by target.",
-                2 => "Boss-only DPS. Deaths occurred within the boss window; they are not confirmed boss kills.",
-                3 => "Hover the chart for exact time-bin totals and the latest earlier HP reading.",
-                _ => "Select a skill to focus its timeline. Cast gap is an observed interval, not a cooldown." };
+                1 => global::AionDpsMeter.Local.Localization.T("Damage from the selected boss skill, broken down by target."),
+                2 => global::AionDpsMeter.Local.Localization.T("Boss-only DPS. Deaths occurred within the boss window; they are not confirmed boss kills."),
+                3 => global::AionDpsMeter.Local.Localization.T("Hover the chart for exact time-bin totals and the latest earlier HP reading."),
+                _ => global::AionDpsMeter.Local.Localization.T("Select a skill to focus its timeline. Cast gap is an observed interval, not a cooldown.") };
         };
         body.Children.Add(PageLayout.Fill(new SplitView(timeline, lower, .55, 210, 145)));
         bosses.SelectionChanged += (_, _) => { if (!updating) { selectedId = (bosses.SelectedItem as BossEncounterData)?.EntityId; ShowBoss(); } };
         abilities.SelectionChanged += (_, _) => { if (!updating) { timeline.Filter((abilities.SelectedItem as BossAbility)?.SkillCode); UpdateTargets(); } };
     }
-    static TextBlock Hint(string text) => new() { Text = text, TextWrapping = TextWrapping.Wrap, Foreground = BossDrawing.Muted, FontSize = 11, Margin = new(0, 0, 0, 10) };
+    static TextBlock Hint(string text) => new() { Text = Localization.T(text), TextWrapping = TextWrapping.Wrap, Foreground = BossDrawing.Muted, FontSize = 11, Margin = new(0, 0, 0, 10) };
     static Button Action(UiIcon icon, string text, Action action) { var b = new Button { Padding = new(10, 7, 10, 7), Margin = new(0, 0, 6, 0) }; UiIcons.SetLabel(b, icon, text); b.Click += (_, _) => action(); return b; }
     static LiveTable Table() => new() { AutoGenerateColumns = false, IsReadOnly = true, CanUserAddRows = false, CanUserDeleteRows = false,
         SelectionMode = DataGridSelectionMode.Single, EnableRowVirtualization = true, EnableColumnVirtualization = true, RowHeight = 35,
@@ -104,7 +104,7 @@ internal sealed class BossAnalysisView : Grid
     }
     static void Metric(Grid grid, int index, string label, TextBlock value)
     {
-        var panel = new StackPanel(); panel.Children.Add(new TextBlock { Text = label, Foreground = BossDrawing.Muted, FontSize = 10 });
+        var panel = new StackPanel(); panel.Children.Add(new TextBlock { Text = Localization.T(label), Foreground = BossDrawing.Muted, FontSize = 10 });
         value.FontSize = 19; value.FontWeight = FontWeights.SemiBold; value.Margin = new(0, 3, 0, 0); panel.Children.Add(value);
         var card = new Border { Child = panel, Background = BossDrawing.Alternate, CornerRadius = new(7), Padding = new(10, 7, 10, 7), Margin = new(0, 0, 7, 0) };
         Grid.SetColumn(card, index); grid.Children.Add(card);
@@ -118,29 +118,29 @@ internal sealed class BossAnalysisView : Grid
         var choices = data.Where(b => search.Length == 0 || new[] { b.Name, b.DisplayEntityId.ToString(), b.NpcId.ToString(), b.Location }.Any(s => s.Contains(search, StringComparison.OrdinalIgnoreCase))).ToArray();
         if (changed || choices.All(b => b.EntityId != selectedId)) selectedId = choices.FirstOrDefault()?.EntityId;
         updating = true; bosses.ItemsSource = choices; bosses.SelectedItem = choices.FirstOrDefault(b => b.EntityId == selectedId); updating = false;
-        empty.Text = data.Length == 0 ? "No boss identified in this encounter yet. Select a saved boss fight, or capture an encounter with an NPC template or boss-cast signal." : "No bosses match this search.";
+        empty.Text = data.Length == 0 ? global::AionDpsMeter.Local.Localization.T("No boss identified in this encounter yet. Select a saved boss fight, or capture an encounter with an NPC template or boss-cast signal.") : global::AionDpsMeter.Local.Localization.T("No bosses match this search.");
         empty.Visibility = choices.Length == 0 ? Visibility.Visible : Visibility.Collapsed; body.Visibility = choices.Length > 0 ? Visibility.Visible : Visibility.Collapsed;
         ShowBoss();
     }
     void ShowBoss()
     {
         var boss = SelectedBoss; catalogue.IsEnabled = boss?.NpcId > 0; if (boss == null || source == null) { identity.Text = ""; return; }
-        identity.Text = $"Entity {boss.DisplayEntityId}{(boss.OriginalEntityId > 0 ? " (earlier identity)" : "")} / NPC {(boss.NpcId > 0 ? boss.NpcId.ToString() : "unknown")} / {(boss.DeathObserved ? "Death observed" : "No boss death recorded")}\n{boss.Identification}. {boss.Location}";
-        duration.Text = BossDrawing.Time(boss.Seconds); dealt.Text = MeterPresentation.Number(boss.DamageToBoss); received.Text = MeterPresentation.Number(boss.DamageFromBoss); casts.Text = boss.Casts.ToString("N0");
-        coverage.Text = $"{boss.Abilities.Length} observed skills / {boss.Participants.Length} participants / {boss.Hp.Length} HP readings. " +
-            (boss.AmbiguousNetworkIdentity ? "Entity ID was reused: ambiguous cast, HP and enrage packets are omitted; attributed hits remain available." :
-             boss.Casts == 0 ? "No cast signals captured; warnings, impacts and outcomes are shown when available." : "Rotation shows captured signals and impacts; missing actions and unconfirmed casts remain unknown.");
-        if (source.OmittedTelegraphs > 0) coverage.Text += $" {source.OmittedTelegraphs:N0} additional area notices omitted from this fight.";
+        identity.Text = global::AionDpsMeter.Local.Localization.F($"Entity {boss.DisplayEntityId}{(boss.OriginalEntityId > 0 ? Localization.T(" (earlier identity)") : "")} / NPC {(boss.NpcId > 0 ? boss.NpcId.ToString() : Localization.T("unknown"))} / {(boss.DeathObserved ? Localization.T("Death observed") : Localization.T("No boss death recorded"))}\n{boss.Identification}. {boss.Location}");
+        duration.Text = BossDrawing.Time(boss.Seconds); dealt.Text = MeterPresentation.Number(boss.DamageToBoss); received.Text = MeterPresentation.Number(boss.DamageFromBoss); casts.Text = boss.Casts.ToString(global::AionDpsMeter.Local.Localization.T("N0"));
+        coverage.Text = global::AionDpsMeter.Local.Localization.F($"{boss.Abilities.Length} observed skills / {boss.Participants.Length} participants / {boss.Hp.Length} HP readings. ") +
+            (boss.AmbiguousNetworkIdentity ? global::AionDpsMeter.Local.Localization.T("Entity ID was reused: ambiguous cast, HP and enrage packets are omitted; attributed hits remain available.") :
+             boss.Casts == 0 ? global::AionDpsMeter.Local.Localization.T("No cast signals captured; warnings, impacts and outcomes are shown when available.") : global::AionDpsMeter.Local.Localization.T("Rotation shows captured signals and impacts; missing actions and unconfirmed casts remain unknown."));
+        if (source.OmittedTelegraphs > 0) coverage.Text += global::AionDpsMeter.Local.Localization.F($" {source.OmittedTelegraphs:N0} additional area notices omitted from this fight.");
         bool switched = shownEntity != boss.EntityId || shownFight != source.Id; shownEntity = boss.EntityId; shownFight = source.Id;
         updating = true; if (switched) abilities.SelectedItem = null; abilities.SetRows(boss.Abilities); participants.SetRows(boss.Participants); updating = false;
         timeline.Update(boss, source.Name); trend.Update(boss); UpdateTargets();
     }
     void UpdateTargets()
     {
-        if (abilities.SelectedItem is not BossAbility ability || SelectedBoss is not { } boss) { skillDetail.Text = "Select an ability in Boss skills to inspect its targets."; targets.SetRows(Array.Empty<BossAbilityTarget>()); return; }
-        skillDetail.Text = $"{ability.Skill} [{ability.SkillCode}] / {ability.Casts} cast signals / {ability.Hits} hits / {ability.BiggestHit:N0} largest hit\n" +
-            (ability.CastGap is double gap ? $"Median observed cast gap: {gap:N1}s. " : "Not enough cast signals for an interval. ") +
-            $"{ability.Blocks} blocks / {ability.Parries} parries / {ability.Avoids} avoids.";
+        if (abilities.SelectedItem is not BossAbility ability || SelectedBoss is not { } boss) { skillDetail.Text = global::AionDpsMeter.Local.Localization.T("Select an ability in Boss skills to inspect its targets."); targets.SetRows(Array.Empty<BossAbilityTarget>()); return; }
+        skillDetail.Text = global::AionDpsMeter.Local.Localization.F($"{ability.Skill} [{ability.SkillCode}] / {ability.Casts} cast signals / {ability.Hits} hits / {ability.BiggestHit:N0} largest hit\n") +
+            (ability.CastGap is double gap ? global::AionDpsMeter.Local.Localization.F($"Median observed cast gap: {gap:N1}s. ") : global::AionDpsMeter.Local.Localization.T("Not enough cast signals for an interval. ")) +
+            global::AionDpsMeter.Local.Localization.F($"{ability.Blocks} blocks / {ability.Parries} parries / {ability.Avoids} avoids.");
         targets.SetRows(boss.Targets.Where(t => t.SkillCode == ability.SkillCode));
     }
     int? shownEntity;

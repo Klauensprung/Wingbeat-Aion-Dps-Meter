@@ -59,7 +59,7 @@ internal sealed class NearbyEnemiesOverlayWindow : Window
     string previousEmpty="";
     internal NearbyEnemiesOverlayWindow(Preferences settings,Action save)
     {
-        Title="Wingbeat nearby enemies";MinWidth=240;MinHeight=130;
+        Title=global::AionDpsMeter.Local.Localization.T("Wingbeat nearby enemies");MinWidth=240;MinHeight=130;
         Width=double.IsFinite(settings.NearbyEnemiesWidth)?Math.Clamp(settings.NearbyEnemiesWidth,240,1200):330;
         Height=double.IsFinite(settings.NearbyEnemiesHeight)?Math.Clamp(settings.NearbyEnemiesHeight,130,1200):400;
         ResizeMode=settings.NearbyEnemiesLocked?ResizeMode.NoResize:ResizeMode.CanResizeWithGrip;
@@ -67,7 +67,7 @@ internal sealed class NearbyEnemiesOverlayWindow : Window
         UiTheme.Apply(this,settings);Background=Brushes.Transparent;
         var content=new DockPanel{Margin=new(6)};
         var header=new StackPanel{Background=Brushes.Transparent};DockPanel.SetDock(header,Dock.Top);content.Children.Add(header);
-        header.Children.Add(new TextBlock{Text="Nearby enemies",FontWeight=FontWeights.Bold,Foreground=UiTheme.Brush("#FFADB6"),Margin=new(0,0,0,6)});
+        header.Children.Add(new TextBlock{Text=global::AionDpsMeter.Local.Localization.T("Nearby enemies"),FontWeight=FontWeights.Bold,Foreground=UiTheme.Brush("#FFADB6"),Margin=new(0,0,0,6)});
         var resizeGrip=new ResizeGrip{Width=14,Height=14,HorizontalAlignment=HorizontalAlignment.Right,Opacity=.5,
             Visibility=settings.NearbyEnemiesLocked?Visibility.Collapsed:Visibility.Visible};
         DockPanel.SetDock(resizeGrip,Dock.Bottom);content.Children.Add(resizeGrip);
@@ -99,7 +99,7 @@ internal sealed class NearbyEnemiesOverlayWindow : Window
             if(list.Children.IndexOf(row)!=index){list.Children.Remove(row);list.Children.Insert(index,row);}
             index++;
         }
-        ToolTip="Opposing-faction players currently in captured view. Distance is in game-world units and requires positions updated within five seconds. Faction does not establish attackability in safe zones or arena teams.";
+        ToolTip=global::AionDpsMeter.Local.Localization.T("Opposing-faction players currently in captured view. Distance is in game-world units and requires positions updated within five seconds. Faction does not establish attackability in safe zones or arena teams.");
     }
     sealed class EnemyVisual : Border
     {
@@ -107,7 +107,7 @@ internal sealed class NearbyEnemiesOverlayWindow : Window
         readonly Border fill=new(){Opacity=.55,CornerRadius=new(6)};
         readonly TextBlock name=new(){Foreground=Brushes.White,FontSize=12,FontWeight=FontWeights.SemiBold,Margin=new(0,0,8,0),TextTrimming=TextTrimming.CharacterEllipsis,VerticalAlignment=VerticalAlignment.Center};
         readonly TextBlock hp=new(){Foreground=Brushes.White,FontSize=12,FontWeight=FontWeights.Bold,VerticalAlignment=VerticalAlignment.Center};
-        readonly TextBlock tagged=new(){Text="Tagged",Foreground=Brushes.White,FontSize=10,FontWeight=FontWeights.Bold,Margin=new(0,0,8,0),VerticalAlignment=VerticalAlignment.Center};
+        readonly TextBlock tagged=new(){Text=global::AionDpsMeter.Local.Localization.T("Tagged"),Foreground=Brushes.White,FontSize=10,FontWeight=FontWeights.Bold,Margin=new(0,0,8,0),VerticalAlignment=VerticalAlignment.Center};
         readonly Image icon=new(){Width=16,Height=16,Margin=new(0,0,5,0),VerticalAlignment=VerticalAlignment.Center};
         readonly TextBlock details=new(){Foreground=Brushes.White,FontSize=10,TextTrimming=TextTrimming.CharacterEllipsis,VerticalAlignment=VerticalAlignment.Center};
         readonly System.Windows.Shapes.Path directionIcon=new(){
@@ -156,14 +156,14 @@ internal sealed class NearbyEnemiesOverlayWindow : Window
             if(previous==null||previous.HeightArrow!=enemy.HeightArrow){
                 directionBadge.Visibility=enemy.HeightArrow.Length>0?Visibility.Visible:Visibility.Collapsed;
                 directionIcon.RenderTransform=new RotateTransform(enemy.HeightDifference<0?180:0);
-                directionBadge.ToolTip=enemy.HeightDifference<0?"Below you":"Above you";
+                directionBadge.ToolTip=enemy.HeightDifference<0?global::AionDpsMeter.Local.Localization.T("Below you"):global::AionDpsMeter.Local.Localization.T("Above you");
             }
             if(cp.Text!=cpText)cp.Text=cpText;
             if(distance.Text!="  |  "+distanceText)distance.Text="  |  "+distanceText;
             string tip=cpText+"  |  "+distanceText+(enemy.HeightDifference is double dz?$"\nHeight difference: {dz:+0;-0;0} world units. Arrows appear beyond 200 units above/below; positions must be fresh.":"");
             if(!Equals(details.ToolTip,tip))details.ToolTip=tip;
             if(previous==null||previous.Targeted!=enemy.Targeted||previous.Cp!=enemy.Cp||previous.LocalCp!=enemy.LocalCp)
-                ToolTip=(enemy.Targeted?"Your current target.\n":"")+"Tagged means your damage was captured in this fight since the last observed death or revival; it does not confirm server assist credit. Last captured HP."+MeterPresentation.CombatPowerComparison(enemy.Cp,enemy.LocalCp);
+                ToolTip=(enemy.Targeted?global::AionDpsMeter.Local.Localization.T("Your current target.\n"):"")+global::AionDpsMeter.Local.Localization.T("Tagged means your damage was captured in this fight since the last observed death or revival; it does not confirm server assist credit. Last captured HP.")+MeterPresentation.CombatPowerComparison(enemy.Cp,enemy.LocalCp);
             previous=enemy;
         }
     }

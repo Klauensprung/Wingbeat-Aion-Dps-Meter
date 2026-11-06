@@ -9,9 +9,9 @@ internal sealed class TicketOverlayWindow : Window
     readonly Action? save;
     readonly TextBlock status = new() { TextWrapping = TextWrapping.Wrap, Margin = new(0, 8, 0, 8) };
     readonly StackPanel rows = new() { Name = "TicketRows" };
-    readonly CheckBox membership = new() { Content = "Membership benefits", Margin = new(0, 4, 0, 8), ToolTip = "Use membership capacity and refill amounts for estimates." };
-    readonly TextBox search = new() { Margin = new(0, 0, 0, 8), ToolTip = "Filter tickets by name or ID" };
-    readonly Button choose = new() { Content = "Choose tickets", Margin = new(0, 8, 0, 0), Padding = new(8, 4, 8, 4), HorizontalAlignment = HorizontalAlignment.Left };
+    readonly CheckBox membership = new() { Content = global::AionDpsMeter.Local.Localization.T("Membership benefits"), Margin = new(0, 4, 0, 8), ToolTip = global::AionDpsMeter.Local.Localization.T("Use membership capacity and refill amounts for estimates.") };
+    readonly TextBox search = new() { Margin = new(0, 0, 0, 8), ToolTip = global::AionDpsMeter.Local.Localization.T("Filter tickets by name or ID") };
+    readonly Button choose = new() { Content = global::AionDpsMeter.Local.Localization.T("Choose tickets"), Margin = new(0, 8, 0, 0), Padding = new(8, 4, 8, 4), HorizontalAlignment = HorizontalAlignment.Left };
     readonly TextBlock empty = new() { TextWrapping = TextWrapping.Wrap };
     CapturedContentTicket[] tickets = [];
     TicketRow[] previous = [];
@@ -22,7 +22,7 @@ internal sealed class TicketOverlayWindow : Window
     internal TicketOverlayWindow(Preferences preferences, Action? save = null)
     {
         this.preferences = preferences; this.save = save;
-        Title = "Wingbeat tickets"; MinWidth = 440; MinHeight = 340;
+        Title = global::AionDpsMeter.Local.Localization.T("Wingbeat tickets"); MinWidth = 440; MinHeight = 340;
         Width = double.IsFinite(preferences.TicketWidth) ? Math.Clamp(preferences.TicketWidth, MinWidth, Math.Max(MinWidth, SystemParameters.VirtualScreenWidth)) : 540;
         Height = double.IsFinite(preferences.TicketHeight) ? Math.Clamp(preferences.TicketHeight, MinHeight, Math.Max(MinHeight, SystemParameters.VirtualScreenHeight)) : 480;
         if (preferences.TicketLeft is double left && preferences.TicketTop is double top && double.IsFinite(left) && double.IsFinite(top)) {
@@ -33,9 +33,9 @@ internal sealed class TicketOverlayWindow : Window
         var layout = new DockPanel { Margin = new(12) };
         DockPanel.SetDock(choose, Dock.Bottom); layout.Children.Add(choose); choose.Click += Choose;
         void AddTop(UIElement control) { DockPanel.SetDock(control, Dock.Top); layout.Children.Add(control); }
-        AddTop(new TextBlock { Text = "TICKETS & REFILLS", FontWeight = FontWeights.SemiBold }); AddTop(status);
+        AddTop(new TextBlock { Text = global::AionDpsMeter.Local.Localization.T("TICKETS & REFILLS"), FontWeight = FontWeights.SemiBold }); AddTop(status);
         membership.IsChecked = preferences.TicketMember; membership.Click += MembershipChanged; AddTop(membership);
-        AddTop(new TextBlock { Text = "Find a ticket", Margin = new(0, 0, 0, 4) }); AddTop(search); search.TextChanged += SearchChanged;
+        AddTop(new TextBlock { Text = global::AionDpsMeter.Local.Localization.T("Find a ticket"), Margin = new(0, 0, 0, 4) }); AddTop(search); search.TextChanged += SearchChanged;
         AddTop(empty);
         layout.Children.Add(new ScrollViewer { Content = rows, VerticalScrollBarVisibility = ScrollBarVisibility.Auto, HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled });
         Content = layout;
@@ -85,14 +85,14 @@ internal sealed class TicketOverlayWindow : Window
         var displayed = captured.Concat(missing).OrderBy(t => t.Id)
             .Select(t => t with { Detail = t.Detail + TicketPresentation.Bag(t.Id, bagCounts, holdings?.Complete == true) })
             .Where(t => t.Name.Contains(search.Text.Trim(), StringComparison.OrdinalIgnoreCase) || t.Id.ToString().Contains(search.Text.Trim())).ToArray();
-        choose.Content = selected == null ? "Choose tickets - All captured" : $"Choose tickets - {selected.Count} selected";
-        empty.Text = displayed.Length > 0 ? "" : selected?.Count == 0 ? "No tickets selected. Use Choose tickets to add entries." :
-            search.Text.Trim().Length > 0 ? "No tickets match this search." : "";
+        choose.Content = selected == null ? global::AionDpsMeter.Local.Localization.T("Choose tickets - All captured") : global::AionDpsMeter.Local.Localization.F($"Choose tickets - {selected.Count} selected");
+        empty.Text = displayed.Length > 0 ? "" : selected?.Count == 0 ? global::AionDpsMeter.Local.Localization.T("No tickets selected. Use Choose tickets to add entries.") :
+            search.Text.Trim().Length > 0 ? global::AionDpsMeter.Local.Localization.T("No tickets match this search.") : "";
         if (previous.SequenceEqual(displayed)) return;
         previous = displayed; rows.Children.Clear();
         foreach (var ticket in displayed) {
             var block = new StackPanel { Margin = new(0, 0, 0, 12), Tag = ticket.Id };
-            block.Children.Add(new TextBlock { Text = ticket.Name, TextWrapping = TextWrapping.Wrap, FontWeight = FontWeights.SemiBold, ToolTip = $"Ticket {ticket.Id}" });
+            block.Children.Add(new TextBlock { Text = ticket.Name, TextWrapping = TextWrapping.Wrap, FontWeight = FontWeights.SemiBold, ToolTip = global::AionDpsMeter.Local.Localization.F($"Ticket {ticket.Id}") });
             block.Children.Add(new TextBlock { Text = ticket.Balance, Margin = new(0, 3, 0, 3) });
             block.Children.Add(new TextBlock { Text = ticket.Detail, TextWrapping = TextWrapping.Wrap, FontSize = 11 });
             rows.Children.Add(block);
@@ -101,9 +101,9 @@ internal sealed class TicketOverlayWindow : Window
     internal void Update(CapturedContentTicket[] values, bool complete, bool capturing, string? character, int server, long now, InventoryHoldingSnapshot? holdings = null)
     {
         this.complete = complete; this.holdings = holdings; this.server = server; this.now = now; tickets = values.ToArray();
-        status.Text = (capturing ? "Live capture" : "Capture stopped — last captured state") + (character == null ? "" : " · " + character) + "\n" +
-            (values.Length == 0 ? complete ? "No tickets in the captured list." : "No tickets captured for the current character. Enter the game with capture running." :
-            (complete ? "Complete captured list." : "Partial captured list.") + " Refills are estimates; bonus counts stay separate.");
+        status.Text = (capturing ? global::AionDpsMeter.Local.Localization.T("Live capture") : global::AionDpsMeter.Local.Localization.T("Capture stopped — last captured state")) + (character == null ? "" : " · " + character) + "\n" +
+            (values.Length == 0 ? complete ? global::AionDpsMeter.Local.Localization.T("No tickets in the captured list.") : global::AionDpsMeter.Local.Localization.T("No tickets captured for the current character. Enter the game with capture running.") :
+            (complete ? global::AionDpsMeter.Local.Localization.T("Complete captured list.") : global::AionDpsMeter.Local.Localization.T("Partial captured list.")) + global::AionDpsMeter.Local.Localization.T(" Refills are estimates; bonus counts stay separate."));
         RenderRows();
     }
 }

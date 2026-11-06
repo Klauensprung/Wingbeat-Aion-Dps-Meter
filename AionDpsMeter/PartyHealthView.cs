@@ -22,7 +22,7 @@ internal sealed class PartyHealthView : AnimatedStackPanel
     readonly EncounterView.ClassIconConverter classIcons=new();
     readonly Dictionary<int, Row> rows = new();
     readonly Dictionary<int,(PartyHealthRow Row,bool Compact)> presented=new();
-    readonly TextBlock empty = new() { Text="Waiting for your character and party…", Margin=new(12), TextWrapping=TextWrapping.Wrap };
+    readonly TextBlock empty = new() { Text=global::AionDpsMeter.Local.Localization.T("Waiting for your character and party…"), Margin=new(12), TextWrapping=TextWrapping.Wrap };
     internal int RowCount => rows.Count;
     internal static Color HealthColor(double? percent) {
         if (percent is not double hp || !double.IsFinite(hp)) return Color.FromRgb(131,146,165);
@@ -103,7 +103,7 @@ internal sealed class PartyHealthView : AnimatedStackPanel
             if(row.Distance.Text!=distanceText)row.Distance.Text=distanceText;
             row.Distance.Visibility=distanceText.Length>0?Visibility.Visible:Visibility.Collapsed;
             row.Debuffs.Text=item.Debuffs;row.Debuffs.Visibility=item.Debuffs.Length>0?Visibility.Visible:Visibility.Collapsed;
-            row.Card.ToolTip=(item.Proximity.Length>0?item.Proximity+"\n":"")+"Last captured health. Gray means the member left captured visibility or fresh positions exceed 4,000 world units; this is not a verified game UI flag or a guarantee of healing range/line of sight. Light green shows remaining regeneration reported by the server (up to missing HP), not guaranteed future healing. Hidden after five seconds without an update or when the buff ends. Distance uses 3D captured map coordinates, in game-world units, shows the age after 5 seconds and expires after 30 seconds. It does not confirm line of sight or skill range. Debuffs appear only when observed.";
+            row.Card.ToolTip=(item.Proximity.Length>0?item.Proximity+"\n":"")+global::AionDpsMeter.Local.Localization.T("Last captured health. Gray means the member left captured visibility or fresh positions exceed 4,000 world units; this is not a verified game UI flag or a guarantee of healing range/line of sight. Light green shows remaining regeneration reported by the server (up to missing HP), not guaranteed future healing. Hidden after five seconds without an update or when the buff ends. Distance uses 3D captured map coordinates, in game-world units, shows the age after 5 seconds and expires after 30 seconds. It does not confirm line of sight or skill range. Debuffs appear only when observed.");
         }
         if(data.Length==0)Children.Add(empty);
     }

@@ -10,10 +10,12 @@ public static class Program
     public static int Main(string[] args)
     {
         StartedAt=Environment.TickCount64;
+        Velopack.VelopackApp.Build().SetAutoApplyOnStartup(false).Run();
         Directory.SetCurrentDirectory(AppContext.BaseDirectory);
         try {
-            bool isolated = args.Any(a => a is "--self-test" or "--smoke-test" or "--benchmark-ui" or "--benchmark-archive" or "--benchmark-session" or "--benchmark-window-session" or "--benchmark-overlay-lifetime" or "--check-native-alert" or "--demo" or "--check-npcap" or "--check-game-adapter" or "--live-probe" or "--replay-pcap" or "--audit-fight");
+            bool isolated = args.Contains("--check-cooldown-voice-ui") || args.Contains("--check-localization-startup") || args.Any(a => a is "--self-test" or "--smoke-test" or "--benchmark-ui" or "--benchmark-archive" or "--benchmark-session" or "--benchmark-window-session" or "--benchmark-overlay-lifetime" or "--check-native-alert" or "--demo" or "--check-npcap" or "--check-game-adapter" or "--live-probe" or "--replay-pcap" or "--audit-fight");
             AppDataPaths.Initialize(isolated);
+            Localization.Initialize(isolated,args.Contains("--check-localization-startup")||args.Contains("--check-cooldown-voice-ui")?"de":null);
             StartMenuShortcut.EnsureForCurrentProcess(isolated);
         } catch (Exception ex) {
             MessageBox.Show("Could not prepare Wingbeat user data. Original files have been retained.\n" + ex.Message, "Wingbeat storage error");
@@ -30,6 +32,8 @@ public static class Program
         if (args.Contains("--audit-fight")) return SkillAudit.Run(args);
         if (args.Contains("--benchmark-ui")) return UiPerformance.Run(args);
         var app = new System.Windows.Application();
+        Localization.InstallPresentation();
+        if(args.Contains("--check-cooldown-voice-ui"))return CooldownVoiceUiCheck.Run(app);
         app.DispatcherUnhandledException += (_, e) => {
             LocalLog.Write("UI error: " + e.Exception);
             MessageBox.Show(e.Exception.Message, "Wingbeat Local", MessageBoxButton.OK, MessageBoxImage.Error);
@@ -39,7 +43,13 @@ public static class Program
             bool smoke = args.Contains("--smoke-test");
             bool windowBenchmark = args.Contains("--benchmark-window-session");
             bool overlayBenchmark = args.Contains("--benchmark-overlay-lifetime");
-            var window = new MainWindow(smoke || windowBenchmark || overlayBenchmark || args.Contains("--demo"));
+            var window = new MainWindow(args.Contains("--check-localization-startup") || smoke || windowBenchmark || overlayBenchmark || args.Contains("--demo"));
+            if(args.Contains("--check-localization-startup")){
+                app.ShutdownMode=ShutdownMode.OnExplicitShutdown;
+                window.Measure(new Size(1280,800));window.Arrange(new Rect(0,0,1280,800));window.UpdateLayout();
+                LocalizationPresentationCheck.Run();window.Close();
+                File.WriteAllText("localization-startup-results.txt","PASS German MainWindow construction, repeated theme application, rendered controls, dropdown key stability, data headers, placeholders and game-name preservation.");return 0;
+            }
             if (windowBenchmark) window.ContentRendered += async (_, _) => app.Shutdown(await window.MeasureWindowSession(args));
             if (overlayBenchmark) window.ContentRendered += (_, _) => window.Dispatcher.BeginInvoke(new Action(() => {
                 try { window.MeasureOverlayLifetime(); app.Shutdown(0); }
@@ -51,6 +61,6 @@ public static class Program
             }));
             return app.Run(window);
         }
-        catch (Exception ex) { LocalLog.Write("Startup failed: " + ex); MessageBox.Show(ex.ToString(), "Startup failed"); return 1; }
+        catch (Exception ex) { LocalLog.Write("Startup failed: " + ex); if(args.Contains("--check-localization-startup"))File.WriteAllText("localization-startup-error.txt",ex.ToString());else MessageBox.Show(ex.ToString(), "Startup failed"); return 1; }
     }
 }

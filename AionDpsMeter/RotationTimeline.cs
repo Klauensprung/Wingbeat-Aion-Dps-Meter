@@ -150,7 +150,7 @@ internal sealed class RotationPlot : FrameworkElement
                 dc.DrawRectangle(i % 2 == 0 ? Alternate : Surface, null, new(0, y, Math.Max(1, ActualWidth), RowHeight));
                 var lane = data.Lanes[i]; var color = UiTheme.Brush(MeterPresentation.ColorFor(lane.Actor));
                 Label(lane.Actor.Name, 9, y + 8, Text, 12);
-                Label($"{lane.Damage.Length:N0} hits · {lane.Healing.Length:N0} heals", 9, y + 29, Muted, 10);
+                Label(global::AionDpsMeter.Local.Localization.F($"{lane.Damage.Length:N0} hits · {lane.Healing.Length:N0} heals"), 9, y + 29, Muted, 10);
                 void Marks(RotationHit[] hits, bool healing)
                 {
                     int first = RotationLane.LowerBound(hits, start), after = RotationLane.LowerBound(hits, Math.BitIncrement(start + span));
@@ -188,7 +188,7 @@ internal sealed class RotationPlot : FrameworkElement
                 dc.DrawLine(GridLine, new(x, AxisHeight), new(x, ActualHeight));
                 Label(Time(at), Math.Min(x + 3, ActualWidth - 58), 5, Muted, maxWidth: 58);
             }
-            if (data.Lanes.Length == 0) Label("No matching characters yet", 12, 48, Muted, maxWidth: 300);
+            if (data.Lanes.Length == 0) Label(global::AionDpsMeter.Local.Localization.T("No matching characters yet"), 12, 48, Muted, maxWidth: 300);
         }
         scene.Freeze();
     }
@@ -206,8 +206,8 @@ internal sealed class RotationView : Grid
     readonly ComboBox zoom = new() { ItemsSource = new[] { "1 second", "2 seconds", "5 seconds", "10 seconds", "30 seconds", "60 seconds", "Whole fight", "Custom zoom" }, SelectedIndex = 4, Width = 130, Margin = new(0, 0, 6, 0) };
     readonly ScrollBar scrub = new() { Orientation = Orientation.Horizontal, Height = 16, Margin = new(155, 6, 12, 6), Minimum = 0, SmallChange = 1 };
     readonly TextBlock state = new() { Foreground = UiTheme.Brush("#93A2B8"), Margin = new(0, 8, 0, 8), TextWrapping = TextWrapping.Wrap };
-    readonly TextBlock title = new() { Text = "Point anywhere in a player's damage or healing lane", FontSize = 15, FontWeight = FontWeights.SemiBold, TextWrapping = TextWrapping.Wrap };
-    readonly TextBlock detail = new() { Text = "Details appear immediately. Click to pin, then use ◀ / ▶ or the arrow keys to step through events.", Foreground = UiTheme.Brush("#AAB6C8"), TextWrapping = TextWrapping.Wrap, Margin = new(0, 5, 0, 0) };
+    readonly TextBlock title = new() { Text = global::AionDpsMeter.Local.Localization.T("Point anywhere in a player's damage or healing lane"), FontSize = 15, FontWeight = FontWeights.SemiBold, TextWrapping = TextWrapping.Wrap };
+    readonly TextBlock detail = new() { Text = global::AionDpsMeter.Local.Localization.T("Details appear immediately. Click to pin, then use ◀ / ▶ or the arrow keys to step through events."), Foreground = UiTheme.Brush("#AAB6C8"), TextWrapping = TextWrapping.Wrap, Margin = new(0, 5, 0, 0) };
     readonly TextBlock tableSummary = new() { Margin = new(0, 8, 0, 2), Foreground = UiTheme.Brush("#93A2B8"), TextWrapping = TextWrapping.Wrap };
     readonly Image icon = new() { Width = 38, Height = 38, Source = SkillIcons.Placeholder, Margin = new(0, 0, 12, 0), VerticalAlignment = VerticalAlignment.Top };
     readonly Button hold, previous, next;
@@ -237,22 +237,22 @@ internal sealed class RotationView : Grid
         table = eventTable; skillName = names; skillIcon = images; Margin = new(8, 0, 8, 8);
         Button Button(string text, Action action) { var b = new Button { Content = text, Padding = new(10, 6, 10, 6), Margin = new(0, 0, 6, 0) }; b.Click += (_, _) => action(); return b; }
         var controls = new WrapPanel();
-        controls.Children.Add(new TextBlock { Text = "Zoom", VerticalAlignment = VerticalAlignment.Center, Margin = new(0, 0, 8, 0) });
-        var zoomOut = Button("−", () => ZoomAt(1.25, ZoomAnchor)); zoomOut.ToolTip = "Zoom out (−)"; controls.Children.Add(zoomOut);
+        controls.Children.Add(new TextBlock { Text = global::AionDpsMeter.Local.Localization.T("Zoom"), VerticalAlignment = VerticalAlignment.Center, Margin = new(0, 0, 8, 0) });
+        var zoomOut = Button("−", () => ZoomAt(1.25, ZoomAnchor)); zoomOut.ToolTip = global::AionDpsMeter.Local.Localization.T("Zoom out (−)"); controls.Children.Add(zoomOut);
         controls.Children.Add(zoom);
-        var zoomIn = Button("+", () => ZoomAt(.8, ZoomAnchor)); zoomIn.ToolTip = "Zoom in (+ or Ctrl + mouse wheel over the timeline)"; controls.Children.Add(zoomIn);
-        controls.Children.Add(Button("Fit fight", () => ChangeZoom(data.Seconds, .5, true)));
-        controls.Children.Add(Button("Earlier", () => Seek(windowStart - Span * .8)));
-        controls.Children.Add(Button("Later", () => Seek(windowStart + Span * .8)));
-        controls.Children.Add(Button("Follow latest", Resume));
-        hold = Button("Hold view", () => { if (paused || pinned) Resume(); else { paused = true; UpdateState(); } }); controls.Children.Add(hold);
+        var zoomIn = Button("+", () => ZoomAt(.8, ZoomAnchor)); zoomIn.ToolTip = global::AionDpsMeter.Local.Localization.T("Zoom in (+ or Ctrl + mouse wheel over the timeline)"); controls.Children.Add(zoomIn);
+        controls.Children.Add(Button(global::AionDpsMeter.Local.Localization.T("Fit fight"), () => ChangeZoom(data.Seconds, .5, true)));
+        controls.Children.Add(Button(global::AionDpsMeter.Local.Localization.T("Earlier"), () => Seek(windowStart - Span * .8)));
+        controls.Children.Add(Button(global::AionDpsMeter.Local.Localization.T("Later"), () => Seek(windowStart + Span * .8)));
+        controls.Children.Add(Button(global::AionDpsMeter.Local.Localization.T("Follow latest"), Resume));
+        hold = Button(global::AionDpsMeter.Local.Localization.T("Hold view"), () => { if (paused || pinned) Resume(); else { paused = true; UpdateState(); } }); controls.Children.Add(hold);
         RowDefinitions.Add(new() { Height = GridLength.Auto }); RowDefinitions.Add(new() { Height = GridLength.Auto });
         RowDefinitions.Add(new() { Height = GridLength.Auto }); RowDefinitions.Add(new() { Height = new GridLength(1, GridUnitType.Star) });
         Children.Add(controls); SetRow(state, 1); Children.Add(state);
         var inspect = new DockPanel(); DockPanel.SetDock(icon, Dock.Left); inspect.Children.Add(icon);
         var steps = new StackPanel { Orientation = Orientation.Horizontal, VerticalAlignment = VerticalAlignment.Top };
-        previous = Button("◀", () => Step(-1)); previous.ToolTip = "Previous event (Left arrow)";
-        next = Button("▶", () => Step(1)); next.ToolTip = "Next event (Right arrow)";
+        previous = Button("◀", () => Step(-1)); previous.ToolTip = global::AionDpsMeter.Local.Localization.T("Previous event (Left arrow)");
+        next = Button("▶", () => Step(1)); next.ToolTip = global::AionDpsMeter.Local.Localization.T("Next event (Right arrow)");
         steps.Children.Add(previous); steps.Children.Add(next); DockPanel.SetDock(steps, Dock.Right); inspect.Children.Add(steps);
         var labels = new StackPanel(); labels.Children.Add(title); labels.Children.Add(detail); inspect.Children.Add(labels);
         var inspection = new Border { Child = inspect, Background = UiTheme.Brush("#1C2939"), Padding = new(12), CornerRadius = new(5), MinHeight = 78, Margin = new(0, 5, 0, 4) };
@@ -352,12 +352,12 @@ internal sealed class RotationView : Grid
         hovering = pinned = paused = false; following = true; selected = null; plot.Select(null); ResetDetails();
         ApplyPending(); WindowChanged();
     }
-    void ResetDetails() { title.Text = "Point anywhere in a player's damage or healing lane"; detail.Text = "Details appear immediately. Click to pin, then use ◀ / ▶ or the arrow keys to step through events."; icon.Source = SkillIcons.Placeholder; previous.IsEnabled = next.IsEnabled = false; }
+    void ResetDetails() { title.Text = global::AionDpsMeter.Local.Localization.T("Point anywhere in a player's damage or healing lane"); detail.Text = global::AionDpsMeter.Local.Localization.T("Details appear immediately. Click to pin, then use ◀ / ▶ or the arrow keys to step through events."); icon.Source = SkillIcons.Placeholder; previous.IsEnabled = next.IsEnabled = false; }
     void UpdateDetails()
     {
         if (selected == null || source == null) { ResetDetails(); return; }
         var hit = selected; title.Text = $"{skillName(hit.SkillCode)}  ·  {hit.Amount:N0} {(hit.Healing ? "healing" : "damage")}";
-        detail.Text = $"{source.Name(hit.ActorId)} → {source.Name(hit.TargetId)}\n{RotationPlot.Time(hit.Seconds)} into fight · {(hit.Critical ? "Critical · " : "")}skill {hit.SkillCode}";
+        detail.Text = global::AionDpsMeter.Local.Localization.F($"{source.Name(hit.ActorId)} → {source.Name(hit.TargetId)}\n{RotationPlot.Time(hit.Seconds)} into fight · {(hit.Critical ? Localization.T("Critical · ") : "")}skill {hit.SkillCode}");
         icon.Source = skillIcon(hit.SkillCode) ?? SkillIcons.Placeholder;
         var lane = data.Lanes.First(l => l.Actor.Id == hit.ActorId); int index = Array.IndexOf(lane.Hits, hit);
         previous.IsEnabled = index > 0; next.IsEnabled = index < lane.Hits.Length - 1;
@@ -376,15 +376,15 @@ internal sealed class RotationView : Grid
             else if (table.ItemsSource == null || !table.ItemsSource.Cast<RotationRow>().SequenceEqual(rows)) table.ItemsSource = rows;
         }
         finally { updatingTable = false; }
-        tableSummary.Text = $"{(selected == null ? "Party" : source.Name(selected.ActorId))} · {visible.Length:N0} events in view" + (visible.Length > 400 ? " · table shows latest 400; zoom for earlier events" : " · select a row to pin its details");
+        tableSummary.Text = global::AionDpsMeter.Local.Localization.F($"{(selected == null ? Localization.T("Party") : source.Name(selected.ActorId))} · {visible.Length:N0} events in view") + (visible.Length > 400 ? global::AionDpsMeter.Local.Localization.T(" · table shows latest 400; zoom for earlier events") : global::AionDpsMeter.Local.Localization.T(" · select a row to pin its details"));
     }
     void UpdateState()
     {
         state.Text = $"{RotationPlot.Time(windowStart)} – {RotationPlot.Time(windowStart + Span)} · " +
-            (pinned ? "Pinned · click another event or Resume" : paused ? "View held" : hovering ? "View held under pointer" : following ? "Following latest" : "Inspecting history") +
-            (Held && context.StartsWith("live", StringComparison.Ordinal) ? " · capture continues" : "") +
-            (pending != null && source != null && pending.Id != source.Id ? " · new fight ready; Resume to follow" : "") +
-            "\nCtrl + wheel: zoom at pointer · + / −: zoom · scroll normally for players · upper marks: damage · lower green marks: healing";
-        hold.Content = pinned || paused ? "Resume" : "Hold view";
+            (pinned ? global::AionDpsMeter.Local.Localization.T("Pinned · click another event or Resume") : paused ? global::AionDpsMeter.Local.Localization.T("View held") : hovering ? global::AionDpsMeter.Local.Localization.T("View held under pointer") : following ? global::AionDpsMeter.Local.Localization.T("Following latest") : global::AionDpsMeter.Local.Localization.T("Inspecting history")) +
+            (Held && context.StartsWith(global::AionDpsMeter.Local.Localization.T("live"), StringComparison.Ordinal) ? global::AionDpsMeter.Local.Localization.T(" · capture continues") : "") +
+            (pending != null && source != null && pending.Id != source.Id ? global::AionDpsMeter.Local.Localization.T(" · new fight ready; Resume to follow") : "") +
+            global::AionDpsMeter.Local.Localization.T("\nCtrl + wheel: zoom at pointer · + / −: zoom · scroll normally for players · upper marks: damage · lower green marks: healing");
+        hold.Content = pinned || paused ? global::AionDpsMeter.Local.Localization.T("Resume") : global::AionDpsMeter.Local.Localization.T("Hold view");
     }
 }

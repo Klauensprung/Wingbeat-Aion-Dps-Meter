@@ -3,6 +3,7 @@ namespace AionDpsMeter.Local;
 public sealed record CooldownCharacterPreset(string Name, string Job, int[] Skills, Dictionary<int, double> Estimates)
 {
     public int[] Buffs { get; init; } = [];
+    public int[] VoiceSkills { get; init; } = [];
 }
 
 internal static class CooldownCharacterPresets
@@ -18,6 +19,7 @@ internal static class CooldownCharacterPresets
         settings.CooldownCharacters[key] = previous with {
             Skills = [.. settings.CooldownSkills ?? []],
             Buffs = [.. settings.CooldownBuffs ?? []],
+            VoiceSkills = [.. settings.CooldownVoiceSkills ?? []],
             Estimates = new(settings.CooldownFallbackSeconds ?? new())
         };
     }
@@ -34,18 +36,19 @@ internal static class CooldownCharacterPresets
         bool migrate = settings.CooldownCharacterKey == null && settings.CooldownCharacters.Count == 0;
         if (!settings.CooldownCharacters.TryGetValue(key, out var preset)) {
             preset = new(actor!.Name, actor.Job, migrate ? [.. settings.CooldownSkills ?? []] : [],
-                migrate ? new(settings.CooldownFallbackSeconds ?? new()) : new()) { Buffs = migrate ? [.. settings.CooldownBuffs ?? []] : [] };
+                migrate ? new(settings.CooldownFallbackSeconds ?? new()) : new()) { Buffs = migrate ? [.. settings.CooldownBuffs ?? []] : [], VoiceSkills = migrate ? [.. settings.CooldownVoiceSkills ?? []] : [] };
             settings.CooldownCharacters[key] = preset;
         }
         settings.CooldownCharacterKey = key;
         settings.CooldownSkills = [.. preset.Skills ?? []];
         settings.CooldownBuffs = [.. preset.Buffs ?? []];
+        settings.CooldownVoiceSkills = [.. preset.VoiceSkills ?? []];
         settings.CooldownFallbackSeconds = new(preset.Estimates ?? new());
         return true;
     }
 
     internal static string Description(Preferences settings) => settings.CooldownCharacterKey is { } key &&
         settings.CooldownCharacters?.TryGetValue(key, out var preset) == true
-        ? $"{preset.Name} ({preset.Job}) — saved automatically for this character."
-        : "Your setup will be assigned when your in-game character is detected.";
+        ? Localization.F($"{preset.Name} ({preset.Job}) — saved automatically for this character.")
+        : Localization.T("Your setup will be assigned when your in-game character is detected.");
 }

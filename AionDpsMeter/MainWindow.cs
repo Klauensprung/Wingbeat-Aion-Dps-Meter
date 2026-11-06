@@ -16,6 +16,8 @@ namespace AionDpsMeter.Local;
 
 public sealed class Preferences
 {
+    public string Language { get; set; } = "auto";
+    public string GameLanguage { get; set; } = "en";
     public bool AutoStartConfigured { get; set; } = true;
     public bool OverlayPlacementSetupCompleted { get; set; }
     public bool OpenMeterOnStartup { get; set; } = true;
@@ -24,6 +26,8 @@ public sealed class Preferences
     public Dictionary<int, double> CooldownFallbackSeconds { get; set; } = new();
     public int[] CooldownSkills { get; set; } = [];
     public int[] CooldownBuffs { get; set; } = [];
+    public int[] CooldownVoiceSkills { get; set; } = [];
+    public double CooldownVoiceVolume { get; set; } = .7;
     public string? CooldownCharacterKey { get; set; }
     public Dictionary<string, CooldownCharacterPreset> CooldownCharacters { get; set; } = new();
     public bool CooldownShowReady { get; set; } = true;
@@ -150,25 +154,25 @@ public sealed partial class MainWindow : Window
     readonly List<(Button Button, Func<bool> Enabled)> extraOverlayButtons = new();
     readonly ComboBox adapters = new() { Width = 330, DisplayMemberPath = "Description", Margin = new(4) };
     readonly ComboBox themes = new() { Width = 110, Margin = new(4), ItemsSource = new[] { "Midnight", "Slate", "Forest", "Ember", "Violet" } };
-    readonly ComboBox backAttackColor = new() { Width = 110, Margin = new(4), IsEditable = true, ItemsSource = new[] { "#E7CF7D", "#FF6464", "#55D6BE", "#7C9EF7", "#B087E9" }, ToolTip = "Back-attack border colour: choose a preset or enter a hex colour. Transparency is preserved." };
+    readonly ComboBox backAttackColor = new() { Width = 110, Margin = new(4), IsEditable = true, ItemsSource = new[] { "#E7CF7D", "#FF6464", "#55D6BE", "#7C9EF7", "#B087E9" }, ToolTip = global::AionDpsMeter.Local.Localization.T("Back-attack border colour: choose a preset or enter a hex colour. Transparency is preserved.") };
     readonly TextBox accent = new() { Width = 90, Margin = new(4) };
     readonly TextBox filter = new() { Width = 455, Margin = new(4) };
-    readonly TextBox encounter = new() { Text = "Local fight", Width = 180, Margin = new(4) };
-    readonly TextBox character = new() { Width = 150, Height = 34, VerticalContentAlignment = VerticalAlignment.Center, Margin = new(4), ToolTip = "Filter details by character name; blank shows everyone" };
+    readonly TextBox encounter = new() { Text = global::AionDpsMeter.Local.Localization.T("Local fight"), Width = 180, Margin = new(4) };
+    readonly TextBox character = new() { Width = 150, Height = 34, VerticalContentAlignment = VerticalAlignment.Center, Margin = new(4), ToolTip = global::AionDpsMeter.Local.Localization.T("Filter details by character name; blank shows everyone") };
     readonly TabControl tabs = new() { Margin = new(20, 4, 20, 0), TabStripPlacement = Dock.Left, Padding = new(12, 0, 0, 0), BorderThickness = new(0) };
     readonly RotationView rotationView;
     readonly TrendChart trendChart = new();
     readonly ComboBox trendCharacter = new() { MinWidth = 250, Margin = new(8), DisplayMemberPath = "Label" };
     readonly ComboBox trendMetric = new() { Width = 110, Margin = new(8), ItemsSource = new[] { "DPS", "HPS" }, SelectedIndex = 0 };
-    readonly CheckBox pinLocal = new() { Content = "Pin my character first in the overlay", Margin = new(8), VerticalAlignment = VerticalAlignment.Center };
-    readonly CheckBox customBars = new() { Content = "Use class colours", Margin = new(8), VerticalAlignment = VerticalAlignment.Center };
+    readonly CheckBox pinLocal = new() { Content = global::AionDpsMeter.Local.Localization.T("Pin my character first in the overlay"), Margin = new(8), VerticalAlignment = VerticalAlignment.Center };
+    readonly CheckBox customBars = new() { Content = global::AionDpsMeter.Local.Localization.T("Use class colours"), Margin = new(8), VerticalAlignment = VerticalAlignment.Center };
     readonly TextBlock trendSummary = new() { Margin = new(8), TextWrapping = TextWrapping.Wrap };
     readonly TextBlock cohortSummary = new() { Margin = new(8), TextWrapping = TextWrapping.Wrap };
     readonly TextBlock differenceSummary = new() { Margin = new(8), TextWrapping = TextWrapping.Wrap };
     readonly TextBlock partySummary = new() { Margin = new(8), TextWrapping = TextWrapping.Wrap };
     readonly TextBlock cooldownSummary = new() { Margin = new(8), TextWrapping = TextWrapping.Wrap };
     readonly TextBlock setupMessage = new() { Margin = new(8), TextWrapping = TextWrapping.Wrap, Visibility = Visibility.Collapsed };
-    readonly CheckBox autoStart = new() { Content = "Resume my configured setup when Wingbeat opens", Margin = new(8) };
+    readonly CheckBox autoStart = new() { Content = global::AionDpsMeter.Local.Localization.T("Resume my configured setup when Wingbeat opens"), Margin = new(8) };
     readonly Dictionary<string, DataGrid> detailGrids = new();
     bool updatingTrends;
     TrendRow[] trendRows = [];
@@ -177,8 +181,8 @@ public sealed partial class MainWindow : Window
     readonly List<Fight> archive = new();
     readonly DispatcherTimer timer = new() { Interval = TimeSpan.FromMilliseconds(200) };
     readonly Button start;
-    readonly CheckBox recordSample = new() { Content = "Save PCAP sample", Margin = new(8), VerticalAlignment = VerticalAlignment.Center };
-    readonly CheckBox decodeEu = new() { Content = "Experimental EU decoding", IsChecked = true, Margin = new(8), VerticalAlignment = VerticalAlignment.Center };
+    readonly CheckBox recordSample = new() { Content = global::AionDpsMeter.Local.Localization.T("Save PCAP sample"), Margin = new(8), VerticalAlignment = VerticalAlignment.Center };
+    readonly CheckBox decodeEu = new() { Content = global::AionDpsMeter.Local.Localization.T("Experimental EU decoding"), IsChecked = true, Margin = new(8), VerticalAlignment = VerticalAlignment.Center };
     CombatEngine engine;
     readonly PlayerProfileCache playerProfiles;
     readonly DutyMissionLedger dutyMissions;
@@ -223,7 +227,7 @@ public sealed partial class MainWindow : Window
     public MainWindow(bool demo)
     {
         demoMode = demo;
-        Title = "Wingbeat \u2665 Aion 2 DPS Meter"; Width = 1150; Height = 870; MinWidth = 980; MinHeight = 650;
+        Title = global::AionDpsMeter.Local.Localization.T("Wingbeat \u2665 Aion 2 DPS Meter"); Width = 1150; Height = 870; MinWidth = 980; MinHeight = 650;
         FontFamily = new("Segoe UI"); FontSize = 13; UseLayoutRounding = true; SnapsToDevicePixels = true;
         playerProfiles = new(demo ? null : AppDataPaths.FilePath("player-profiles.json"));
         dutyMissions = new(demo ? null : AppDataPaths.FilePath("duty-missions.json"));
@@ -238,7 +242,7 @@ public sealed partial class MainWindow : Window
         soulTracking = new(demo ? null : AppDataPaths.FilePath("farming-pet-souls.json"));
         checklistAdjustments = new(demo ? null : AppDataPaths.FilePath("checklist-adjustments.json"));
         engine = new(profiles: playerProfiles, dutyMissions: dutyMissions, accountCharacters: accountCharacters, shopPurchases: shopPurchases, crafting: crafting, visibilityMemoryPath: demo ? null : AppDataPaths.FilePath("visibility-memory.json"), gatheringTracking: gatheringTracking, killTracking: killTracking, lootTracking: lootTracking, soulTracking: soulTracking, petRegistrationTracking: petRegistrationTracking, petLevelTracking: petLevelTracking);
-        engine.FieldBossCache = new(demo ? null : AppDataPaths.FilePath("field-boss-timers.json"));
+        engine.FieldBossCache = new(demo ? null : AppDataPaths.CacheFilePath("field-boss-timers.json"));
         LocalLog.Write($"Application started; skill catalog entries {skills.Count}; " + (skills.LoadError ?? "catalog loaded"));
         LocalLog.Write($"Display metadata: {skillIcons.Count} icon families, {NpcNames.Default.Count} NPC names; " +
             (skillIcons.LoadError ?? "icons loaded") + "; " + (NpcNames.Default.LoadError ?? "NPC names loaded"));
@@ -250,54 +254,54 @@ public sealed partial class MainWindow : Window
         var header = new StackPanel(); DockPanel.SetDock(header, Dock.Top); root.Children.Add(header);
         var top = new DockPanel { Margin = new(22, 16, 18, 12), LastChildFill = true }; header.Children.Add(top);
         var controls = new StackPanel { Orientation = Orientation.Horizontal }; DockPanel.SetDock(controls, Dock.Right); top.Children.Add(controls);
-        start = IconButton(UiIcon.Play, "Start capture", StartRequested); controls.Children.Add(start);
+        start = IconButton(UiIcon.Play, global::AionDpsMeter.Local.Localization.T("Start capture"), StartRequested); controls.Children.Add(start);
         start.SetResourceReference(Control.BackgroundProperty, "Accent"); start.Foreground = UiTheme.Brush("#10201C"); start.FontWeight = FontWeights.SemiBold;
-        newFightButton = IconButton(UiIcon.NewFight, "New fight", NewFight); controls.Children.Add(newFightButton);
+        newFightButton = IconButton(UiIcon.NewFight, global::AionDpsMeter.Local.Localization.T("New fight"), NewFight); controls.Children.Add(newFightButton);
         var overlayControls = new WrapPanel { Margin = new(18, 0, 18, 10) };
         header.Children.Add(overlayControls);
-        overlayControls.Children.Add(IconButton(UiIcon.Cooldowns, "Timer setup", ShowReminderSettings));
-        meterButton = IconButton(UiIcon.Meter, "DPS1 overlay", ToggleOverlay); overlayControls.Children.Add(meterButton);
-        cooldownButton = IconButton(UiIcon.Cooldowns, "Cooldown overlay", ToggleCooldownOverlay); overlayControls.Children.Add(cooldownButton);
+        overlayControls.Children.Add(IconButton(UiIcon.Cooldowns, global::AionDpsMeter.Local.Localization.T("Timer setup"), ShowReminderSettings));
+        meterButton = IconButton(UiIcon.Meter, global::AionDpsMeter.Local.Localization.T("DPS1 overlay"), ToggleOverlay); overlayControls.Children.Add(meterButton);
+        cooldownButton = IconButton(UiIcon.Cooldowns, global::AionDpsMeter.Local.Localization.T("Cooldown overlay"), ToggleCooldownOverlay); overlayControls.Children.Add(cooldownButton);
         void OverlayAction(UiIcon icon, string label, Action toggle, Func<bool> enabled) {
             var button = IconButton(icon, label, () => { toggle(); UpdateToolbarState(); });
             overlayControls.Children.Add(button); extraOverlayButtons.Add((button, enabled));
         }
-        OverlayAction(UiIcon.Meter, "DPS2 overlay", ToggleSecondMeter, () => SecondMeterOptions.Enabled);
-        OverlayAction(UiIcon.Meter, "Hide / show overlays", ToggleOverlayVisibility, () => overlaysHidden);
-        OverlayAction(UiIcon.Folder, "Loot overlay", ToggleLootOverlay, () => preferences.LootOverlayEnabled);
-        overlayControls.Children.Add(IconButton(UiIcon.Chart, "Farming", ShowFarming));
-        overlayControls.Children.Add(IconButton(UiIcon.Chart, "Gathering routes", ShowGatheringRoutes));
-        OverlayAction(UiIcon.Chart, "Farming overlay", ToggleFarmingOverlay, () => farmingOverlay != null);
-        OverlayAction(UiIcon.Catalogue, "Pet farming", TogglePetTracker, () => petTrackerOverlay != null);
-        OverlayAction(UiIcon.Boss, "Nearby enemies", ToggleNearbyEnemies, () => preferences.NearbyEnemiesEnabled);
-        OverlayAction(UiIcon.Network, "Ping overlay", TogglePingOverlay, () => pingOverlay != null);
-        OverlayAction(UiIcon.Boss,"Boss alerts",()=>ConfigureBossAlerts(!preferences.BossAlertsEnabled,false),()=>preferences.BossAlertsEnabled);
-        OverlayAction(UiIcon.Cooldowns, "Control alerts", () => ConfigureControlAlerts(!preferences.ControlAlertsEnabled, true), () => preferences.ControlAlertsEnabled);
-        moreButton = IconButton(UiIcon.Catalogue, "Tools", OpenTools); controls.Children.Add(moreButton);
-        settingsButton = IconButton(UiIcon.Settings, "Settings", ToggleSettings); controls.Children.Add(settingsButton);
+        OverlayAction(UiIcon.Meter, global::AionDpsMeter.Local.Localization.T("DPS2 overlay"), ToggleSecondMeter, () => SecondMeterOptions.Enabled);
+        OverlayAction(UiIcon.Meter, global::AionDpsMeter.Local.Localization.T("Hide / show overlays"), ToggleOverlayVisibility, () => overlaysHidden);
+        OverlayAction(UiIcon.Folder, global::AionDpsMeter.Local.Localization.T("Loot overlay"), ToggleLootOverlay, () => preferences.LootOverlayEnabled);
+        overlayControls.Children.Add(IconButton(UiIcon.Chart, global::AionDpsMeter.Local.Localization.T("Farming"), ShowFarming));
+        overlayControls.Children.Add(IconButton(UiIcon.Chart, global::AionDpsMeter.Local.Localization.T("Gathering routes"), ShowGatheringRoutes));
+        OverlayAction(UiIcon.Chart, global::AionDpsMeter.Local.Localization.T("Farming overlay"), ToggleFarmingOverlay, () => farmingOverlay != null);
+        OverlayAction(UiIcon.Catalogue, global::AionDpsMeter.Local.Localization.T("Pet farming"), TogglePetTracker, () => petTrackerOverlay != null);
+        OverlayAction(UiIcon.Boss, global::AionDpsMeter.Local.Localization.T("Nearby enemies"), ToggleNearbyEnemies, () => preferences.NearbyEnemiesEnabled);
+        OverlayAction(UiIcon.Network, global::AionDpsMeter.Local.Localization.T("Ping overlay"), TogglePingOverlay, () => pingOverlay != null);
+        OverlayAction(UiIcon.Boss,global::AionDpsMeter.Local.Localization.T("Boss alerts"),()=>ConfigureBossAlerts(!preferences.BossAlertsEnabled,false),()=>preferences.BossAlertsEnabled);
+        OverlayAction(UiIcon.Cooldowns, global::AionDpsMeter.Local.Localization.T("Control alerts"), () => ConfigureControlAlerts(!preferences.ControlAlertsEnabled, true), () => preferences.ControlAlertsEnabled);
+        moreButton = IconButton(UiIcon.Catalogue, global::AionDpsMeter.Local.Localization.T("Tools"), OpenTools); controls.Children.Add(moreButton);
+        settingsButton = IconButton(UiIcon.Settings, global::AionDpsMeter.Local.Localization.T("Settings"), ToggleSettings); controls.Children.Add(settingsButton);
         var brand = new StackPanel { Orientation = Orientation.Horizontal, VerticalAlignment = VerticalAlignment.Center };
         var mark = new StackPanel { Orientation = Orientation.Horizontal, VerticalAlignment = VerticalAlignment.Center, Margin = new(0, 0, 10, 0) };
         foreach (int height in new[] { 10, 19, 27 }) { var bar = new Border { Width = 4, Height = height, CornerRadius = new(2), Margin = new(0, 0, 3, 0), VerticalAlignment = VerticalAlignment.Bottom }; bar.SetResourceReference(Border.BackgroundProperty, "Accent"); mark.Children.Add(bar); }
-        brand.Children.Add(mark); brand.Children.Add(new TextBlock { Text = "Wingbeat", FontSize = 21, FontWeight = FontWeights.SemiBold, VerticalAlignment = VerticalAlignment.Center }); brand.Children.Add(sessionState); top.Children.Add(brand);
+        brand.Children.Add(mark); brand.Children.Add(new TextBlock { Text = global::AionDpsMeter.Local.Localization.T("Wingbeat"), FontSize = 21, FontWeight = FontWeights.SemiBold, VerticalAlignment = VerticalAlignment.Center }); brand.Children.Add(sessionState); top.Children.Add(brand);
         var stats = new Grid { Margin = new(22, 0, 22, 10) };
         stats.ColumnDefinitions.Add(new() { Width = new GridLength(1.4, GridUnitType.Star) });
         for (int i = 0; i < 3; i++) stats.ColumnDefinitions.Add(new() { Width = new GridLength(1, GridUnitType.Star) });
         var current = new StackPanel { VerticalAlignment = VerticalAlignment.Center, Margin = new(0, 0, 15, 0) };
-        current.Children.Add(new TextBlock { Text = "CURRENT ENCOUNTER", FontSize = 10, Foreground = UiTheme.Brush("#93A2B8"), Margin = new(0, 0, 0, 5) }); current.Children.Add(summary);
+        current.Children.Add(new TextBlock { Text = global::AionDpsMeter.Local.Localization.T("CURRENT ENCOUNTER"), FontSize = 10, Foreground = UiTheme.Brush("#93A2B8"), Margin = new(0, 0, 0, 5) }); current.Children.Add(summary);
         var fightActions = new WrapPanel();
-        var rename = Button("Rename", () => { renamePanel.Visibility = renamePanel.Visibility == Visibility.Visible ? Visibility.Collapsed : Visibility.Visible; renamePanel.IsExpanded = renamePanel.Visibility == Visibility.Visible; if (renamePanel.IsExpanded) { encounter.Text = Current.Label; encounter.Focus(); encounter.SelectAll(); } });
+        var rename = Button(global::AionDpsMeter.Local.Localization.T("Rename"), () => { renamePanel.Visibility = renamePanel.Visibility == Visibility.Visible ? Visibility.Collapsed : Visibility.Visible; renamePanel.IsExpanded = renamePanel.Visibility == Visibility.Visible; if (renamePanel.IsExpanded) { encounter.Text = Current.Label; encounter.Focus(); encounter.SelectAll(); } });
         rename.Padding = new(8, 4, 8, 4); rename.Margin = new(0, 3, 6, 0); rename.Background = Brushes.Transparent; fightActions.Children.Add(rename);
-        showLive = Button("Show live", () => { viewed = null; Refresh(); }); showLive.Padding = new(8, 4, 8, 4); showLive.Margin = new(0, 3, 0, 0); fightActions.Children.Add(showLive);
+        showLive = Button(global::AionDpsMeter.Local.Localization.T("Show live"), () => { viewed = null; Refresh(); }); showLive.Padding = new(8, 4, 8, 4); showLive.Margin = new(0, 3, 0, 0); fightActions.Children.Add(showLive);
         current.Children.Add(fightActions); stats.Children.Add(current);
         InitializeUpdates(fightActions, demo);
         InitializeTraining(fightActions);
         AddMetric(stats, 1, "DAMAGE DONE", damageValue); AddMetric(stats, 2, "DAMAGE / SEC", dpsValue); AddMetric(stats, 3, "FIGHT TIME", durationValue); header.Children.Add(stats);
         var search = new DockPanel { Margin = new(20, 0, 20, 6) };
-        clearFilter = Button("×", () => character.Clear()); clearFilter.ToolTip = "Show all players"; clearFilter.Width = 28; clearFilter.Padding = new(0); clearFilter.Visibility = Visibility.Hidden;
+        clearFilter = Button("×", () => character.Clear()); clearFilter.ToolTip = global::AionDpsMeter.Local.Localization.T("Show all players"); clearFilter.Width = 28; clearFilter.Padding = new(0); clearFilter.Visibility = Visibility.Hidden;
         DockPanel.SetDock(clearFilter, Dock.Right); search.Children.Add(clearFilter);
         DockPanel.SetDock(character, Dock.Right); character.Width = 200; search.Children.Add(character); search.Children.Add(viewTitle);
         var labelControls = new StackPanel { Orientation = Orientation.Horizontal };
-        labelControls.Children.Add(encounter); labelControls.Children.Add(Button("Apply name", () => { var label = EncounterLabel(); if (viewed != null) viewed.Label = label; else engine.SetLabel(label); renamePanel.Visibility = Visibility.Collapsed; Refresh(); }));
+        labelControls.Children.Add(encounter); labelControls.Children.Add(Button(global::AionDpsMeter.Local.Localization.T("Apply name"), () => { var label = EncounterLabel(); if (viewed != null) viewed.Label = label; else engine.SetLabel(label); renamePanel.Visibility = Visibility.Collapsed; Refresh(); }));
         renamePanel.Content = labelControls; header.Children.Add(renamePanel); header.Children.Add(search);
         settingsWindow = BuildSettings();
         PreviewKeyDown += (_, e) => {
@@ -306,7 +310,7 @@ public sealed partial class MainWindow : Window
                 character.Focus(); character.SelectAll(); e.Handled = true;
             }
         };
-        settingsButton.ToolTip = "Settings (Ctrl+,)";
+        settingsButton.ToolTip = global::AionDpsMeter.Local.Localization.T("Settings (Ctrl+,)");
         settingsWindow.IsVisibleChanged += (_, _) => UpdateToolbarState();
         DockPanel.SetDock(footer, Dock.Bottom); root.Children.Add(footer); root.Children.Add(tabs);
         var encounterPanel = AddTab("Encounter", "Select a recorded encounter on the left. Current capture is first; saved encounters follow newest first. Participants and attributed skill damage are shown together. Select a participant to focus their skills. Adds remain in encounter totals. Each existing saved fight remains a separate entry; no inferred instance-run merging.");
@@ -321,8 +325,8 @@ public sealed partial class MainWindow : Window
         AddTab("Skills", "Damage per skill for every observed actor. Bar width and Damage % show the share of damage in the current character filter. Pet damage is attributed when its owner was discovered. Hits are damage events, not cast counts.");
         var pvp = AddTab("PvP", "Damage exchanged with you or your captured party. Opponents appear before their name arrives when their character skills identify them; these rows are marked name pending. Known NPCs and summon-only skills are excluded. Both sides use the same PvP damage window. Party membership and pet ownership must be captured to attribute their exchanges.");
         var pvpHeader = new DockPanel { LastChildFill = true };
-        var lastPvp = Button("Last saved PvP fight", ShowLastPvp); DockPanel.SetDock(lastPvp, Dock.Right);
-        var inspectOpponent = Button("Inspect selected opponent", ShowSelectedOpponent); DockPanel.SetDock(inspectOpponent, Dock.Right); pvpHeader.Children.Add(inspectOpponent);
+        var lastPvp = Button(global::AionDpsMeter.Local.Localization.T("Last saved PvP fight"), ShowLastPvp); DockPanel.SetDock(lastPvp, Dock.Right);
+        var inspectOpponent = Button(global::AionDpsMeter.Local.Localization.T("Inspect selected opponent"), ShowSelectedOpponent); DockPanel.SetDock(inspectOpponent, Dock.Right); pvpHeader.Children.Add(inspectOpponent);
         grids["PvP"].MouseDoubleClick += (_, _) => ShowSelectedOpponent();
         pvpHeader.Children.Add(lastPvp); pvpHeader.Children.Add(pvpSummary);
         pvp.Children.Insert(0, pvpHeader);
@@ -351,7 +355,7 @@ public sealed partial class MainWindow : Window
         var trendControls = new WrapPanel(); trendControls.Children.Add(trendCharacter); trendControls.Children.Add(trendMetric);
         trendsPanel.Children.Insert(0, trendControls); trendsPanel.Children.Insert(1, trendSummary);
         trendsPanel.Children.Remove(grids["Trends"]); trendsPanel.Children.Add(PageLayout.Fill(new SplitView(trendChart, grids["Trends"], .45, 145, 90)));
-        trendCharacter.ToolTip = "Character history across all saved encounters";
+        trendCharacter.ToolTip = global::AionDpsMeter.Local.Localization.T("Character history across all saved encounters");
         trendCharacter.SelectionChanged += (_, _) => { if (!updatingTrends) Refresh(); }; trendMetric.SelectionChanged += (_, _) => { if (!updatingTrends) Refresh(); };
         grids["Trends"].SelectionMode = DataGridSelectionMode.Single;
         grids["Trends"].SetResourceReference(DataGrid.CellStyleProperty, "TrendCell");
@@ -359,7 +363,7 @@ public sealed partial class MainWindow : Window
         grids["Trends"].MouseDoubleClick += (_, _) => { if (grids["Trends"].SelectedItem is EncounterTrendRow row) OpenTrendFight(row.FightId); };
         trendChart.OpenFight += OpenTrendFight;
         var reportPanel = AddTab("Report card", "Local-only comparisons: same encounter label, class, server and 1,000-CP band, with similar durations (−20%/+25%). Requires 20 observations for percentiles and 100 for top 5%. No population dataset is bundled.");
-        reportPanel.Children.Insert(0, CharacterDetailsHeader(new TextBlock { Text = "Set class, CP and server to compare matching fights", Margin = new(8), TextWrapping = TextWrapping.Wrap }));
+        reportPanel.Children.Insert(0, CharacterDetailsHeader(new TextBlock { Text = global::AionDpsMeter.Local.Localization.T("Set class, CP and server to compare matching fights"), Margin = new(8), TextWrapping = TextWrapping.Wrap }));
         var differences = AddTab("Top 5%", "Compare your damage, healing, criticals, event rate, opening damage and damage received with the top 5% of matching local fight observations. Requires 100 observations. Differences are descriptive, not proof that a playstyle caused better results.");
         differences.Children.Insert(0, CharacterDetailsHeader(differenceSummary));
         var cohortPanel = AddTab("Top cohort", "Top quarter needs 20 matching observations; top 5% needs 100. Match encounter, class, server, 1,000-CP band and duration (−20%/+25%). Skill shares include nonusers as zero.");
@@ -368,8 +372,8 @@ public sealed partial class MainWindow : Window
         AddTab("Player stats", "Latest captured stats for your local character, saved with the fight. Unknown stat IDs retain their raw values. These packets do not describe every nearby player.");
         var cooldownPanel = AddTab("Cooldowns", "Live countdowns for your tracked skills, even while browsing saved fights. Choose each skill once to include its charge tiers. Set an in-game duration for cast estimates when the server supplies no cooldown. The separate overlay shows the same countdowns.");
         var cooldownActions = new WrapPanel { Margin = new(8) };
-        cooldownActions.Children.Add(IconButton(UiIcon.Settings, "Choose tracked skills", ConfigureCooldowns));
-        cooldownActions.Children.Add(IconButton(UiIcon.Cooldowns, "Cooldown overlay", ToggleCooldownOverlay));
+        cooldownActions.Children.Add(IconButton(UiIcon.Settings, global::AionDpsMeter.Local.Localization.T("Choose tracked skills"), ConfigureCooldowns));
+        cooldownActions.Children.Add(IconButton(UiIcon.Cooldowns, global::AionDpsMeter.Local.Localization.T("Cooldown overlay"), ToggleCooldownOverlay));
         cooldownPanel.Children.Insert(0, cooldownActions);
         cooldownPanel.Children.Insert(1, cooldownSummary);
         AddTab("Network events", "Supported diagnostic events from capture. Repeated state updates may be combined; saved fights retain only selected analysis evidence and summaries.");
@@ -400,29 +404,29 @@ public sealed partial class MainWindow : Window
                 }
                 Refresh(skipUnchanged: true);
                 DeliverReminders();
-            } catch (Exception ex) { notice = "Local save/update failed: " + ex.Message; LocalLog.Write(notice); }
+            } catch (Exception ex) { notice = global::AionDpsMeter.Local.Localization.T("Local save/update failed: ") + ex.Message; LocalLog.Write(notice); }
         };
         timer.Start();
         SourceInitialized += (_,_) => InitializeOverlayHotkey();
         Loaded += (_,_) => InitializeOverlayHotkey();
-        Closed += (_,_) => {overlayHotkey?.Dispose();};
+        Closed += (_,_) => {overlayHotkey?.Dispose();cooldownVoicePlayer?.Dispose();};
         Closing += (_, e) => {
             if (shuttingDown) return;
-            try { capture?.Dispose(); engine.StopTraining(DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()); LogCapture(); capture = null; FinishAutosave(); engine.SaveCompleted(store); var f = LiveSnapshot(); if (f.HasRecordedData) SaveFight(f); playerProfiles.Save(); dutyMissions.Save(); accountCharacters.Save(); shopPurchases.Save(); crafting.Save(); gatheringTracking.Save(); killTracking.Save(); lootTracking.Save(); soulTracking.Save(); petRegistrationTracking.Save(); petLevelTracking.Save(); engine.SaveVisibilityMemory(); engine.FieldBossCache.Save(); }
-            catch (Exception ex) { e.Cancel = true; notice = "Could not save before closing: " + ex.Message; Refresh(); return; }
+            try { capture?.Dispose(); engine.StopTraining(DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()); LogCapture(); capture = null; FinishAutosave(); engine.SaveCompleted(store); var f = LiveSnapshot(); if (f.HasRecordedData) SaveFight(f); playerProfiles.Save(); dutyMissions.Save(); accountCharacters.Save(); shopPurchases.Save(); crafting.Save(); gatheringTracking.Save(); killTracking.Save(); lootTracking.Save(); soulTracking.Save(); petRegistrationTracking.Save(); petLevelTracking.Save(); engine.SaveVisibilityMemory(); engine.FieldBossCache.Save(); ArmUpdateAfterSave(); }
+            catch (Exception ex) { e.Cancel = true; notice = global::AionDpsMeter.Local.Localization.T("Could not save before closing: ") + ex.Message; Refresh(); return; }
             shuttingDown = true; secondMeter?.Close(); archiveLoading?.Cancel(); timer.Stop(); settingsWindow.Shutdown(); reminderToast?.Close(); reminderSound.Close(); windowsNotifications?.Dispose(); bossAlertOverlay?.Close(); controlOverlay?.Close(); ticketOverlay?.Close(); currencyOverlay?.Close(); lootOverlay?.Close(); farmingOverlay?.Close(); petTrackerOverlay?.Close(); petMapOverlay?.Close(); pingOverlay?.Close(); nearbyEnemiesOverlay?.Close(); cooldownOverlay?.Close(); overlay?.Close(); LocalLog.Write("Application closed.");
         };
     }
-    static TextBlock Label(string text) => new() { Text = text, VerticalAlignment = VerticalAlignment.Center, Margin = new(6) };
+    static TextBlock Label(string text) => new() { Text = Localization.T(text), VerticalAlignment = VerticalAlignment.Center, Margin = new(6) };
     static Border SettingsSection(string title, UIElement content)
     {
-        var panel = new StackPanel(); panel.Children.Add(new TextBlock { Text = title, FontWeight = FontWeights.SemiBold, Margin = new(8, 2, 0, 5) }); panel.Children.Add(content);
+        var panel = new StackPanel(); panel.Children.Add(new TextBlock { Text = Localization.T(title), FontWeight = FontWeights.SemiBold, Margin = new(8, 2, 0, 5) }); panel.Children.Add(content);
         var card = new Border { Child = panel, CornerRadius = new(10), Padding = new(14), Margin = new(0, 0, 0, 14), BorderThickness = new(1) };
         card.SetResourceReference(Border.BackgroundProperty, "Panel"); card.SetResourceReference(Border.BorderBrushProperty, "Edge"); return card;
     }
     FrameworkElement CharacterDetailsHeader(TextBlock text)
     {
-        var header = new DockPanel(); var edit = Button("Party & character details", EditCharacters);
+        var header = new DockPanel(); var edit = Button(global::AionDpsMeter.Local.Localization.T("Party & character details"), EditCharacters);
         DockPanel.SetDock(edit, Dock.Right); header.Children.Add(edit); header.Children.Add(text); return header;
     }
     void EditCharacters()
@@ -432,14 +436,14 @@ public sealed partial class MainWindow : Window
         if (editor.ShowDialog() != true || editor.Result == null) return;
         if (wasSaved) { viewed = editor.Result; SaveFight(viewed); ReloadArchive(); }
         else { engine.SetMetadata(editor.Result); var edited = LiveSnapshot(); if (edited.HasRecordedData) SaveFight(edited); ReloadArchive(); }
-        displayedSnapshot = null; notice = "Character details saved locally."; Refresh();
+        displayedSnapshot = null; notice = global::AionDpsMeter.Local.Localization.T("Character details saved locally."); Refresh();
     }
     void AddDetail(Panel panel, string key, string title)
     {
         var grid = new LiveTable { IsReadOnly = true, AutoGenerateColumns = true, CanUserAddRows = false, CanUserDeleteRows = false,
             RowHeight = 38, MinHeight = 60, EnableRowVirtualization = true, EnableColumnVirtualization = true,
             HeadersVisibility = DataGridHeadersVisibility.Column, Margin = new(8), ColumnWidth = DataGridLength.SizeToHeader };
-        grid.AutoGeneratingColumn += (_, e) => { e.Column.Header = ColumnHeader(e.PropertyName); e.Column.MinWidth = 110; if (e.Column is DataGridTextColumn t && t.Binding is System.Windows.Data.Binding b && e.PropertyType == typeof(double)) b.StringFormat = "N1"; };
+        grid.AutoGeneratingColumn += (_, e) => { e.Column.Header = Localization.T(ColumnHeader(e.PropertyName)); e.Column.MinWidth = 110; if (e.Column is DataGridTextColumn t && t.Binding is System.Windows.Data.Binding b && e.PropertyType == typeof(double)) b.StringFormat = "N1"; };
         detailGrids[key] = grid;
         var section = new Expander { Header = title, Content = grid, Margin = new(8) };
         if (panel is PageLayout && panel.Children.OfType<DataGrid>().LastOrDefault() is { } primary) {
@@ -479,8 +483,8 @@ public sealed partial class MainWindow : Window
         var selected = grids["Trends"].SelectedItem as EncounterTrendRow;
         bool healing = trendMetric.SelectedIndex == 1; string metric = healing ? "HPS" : "DPS";
         trendChart.Update(selected == null ? [] : EncounterTrends.ForEncounter(trendRows, selected.Encounter), healing);
-        trendSummary.Text = selected == null ? "No saved encounters for this character yet." :
-            $"{selected.Encounter} · {selected.Attempts:N0} attempts\nAverage {metric} {selected.Average:N1} · latest {selected.Latest:N1} · best {selected.Best:N1}";
+        trendSummary.Text = selected == null ? global::AionDpsMeter.Local.Localization.T("No saved encounters for this character yet.") :
+            global::AionDpsMeter.Local.Localization.F($"{selected.Encounter} · {selected.Attempts:N0} attempts\nAverage {metric} {selected.Average:N1} · latest {selected.Latest:N1} · best {selected.Best:N1}");
     }
     void OpenTrendFight(string fightId)
     {
@@ -503,7 +507,7 @@ public sealed partial class MainWindow : Window
         card.SetResourceReference(Border.BorderBrushProperty, "Edge");
         card.SetResourceReference(Border.BackgroundProperty, "Panel");
         var content = new StackPanel();
-        content.Children.Add(new TextBlock { Text = label, FontSize = 10, Foreground = UiTheme.Brush("#93A2B8"), Margin = new(0, 0, 0, 8) });
+        content.Children.Add(new TextBlock { Text = Localization.T(label), FontSize = 10, Foreground = UiTheme.Brush("#93A2B8"), Margin = new(0, 0, 0, 8) });
         value.FontSize = 27; value.FontWeight = FontWeights.SemiBold; content.Children.Add(value);
         if (column == 2) value.SetResourceReference(TextBlock.ForegroundProperty, "Accent");
         card.Child = content; Grid.SetColumn(card, column); grid.Children.Add(card);
@@ -526,7 +530,7 @@ public sealed partial class MainWindow : Window
         menu.Items.Add(new Separator());
         var updates = new MenuItem { Header = "Check for updates…", IsEnabled = !checkingRelease };
         var gameOnly = new MenuItem { Header = "Hide overlays outside Aion 2 / Wingbeat", IsCheckable = true, IsChecked = preferences.OverlaysGameOnly,
-            ToolTip = "Applies to all overlays. Wingbeat stays allowed so you can configure and preview them." };
+            ToolTip = global::AionDpsMeter.Local.Localization.T("Applies to all overlays. Wingbeat stays allowed so you can configure and preview them.") };
         gameOnly.Click += (_, _) => { preferences.OverlaysGameOnly = gameOnly.IsChecked; SavePreferences(); RefreshCooldownVisibility(); };
         menu.Items.Add(gameOnly);
         var ping = new MenuItem { Header = "Ping overlay", IsCheckable = true, IsChecked = pingOverlay != null };
@@ -548,7 +552,7 @@ public sealed partial class MainWindow : Window
         var controlPlacement = new MenuItem { Header = "Position control alerts…", IsEnabled = preferences.ControlAlertsEnabled };
         controlPlacement.Click += (_, _) => ConfigureControlAlerts(true, preview: true); menu.Items.Add(controlPlacement);
         var partyAlerts = new MenuItem { Header = "Party debuff alerts", IsCheckable = true, IsChecked = preferences.PartyDebuffAlerts,
-            ToolTip = "Configure the member threshold and sound in Timer setup." };
+            ToolTip = global::AionDpsMeter.Local.Localization.T("Configure the member threshold and sound in Timer setup.") };
         partyAlerts.Click += (_, _) => { preferences.PartyDebuffAlerts = partyAlerts.IsChecked; SavePreferences(); }; menu.Items.Add(partyAlerts);
         var compareTraining = new MenuItem { Header = "Compare training attempts…" };
         var chatSummary = new MenuItem { Header = "Copy fight summary…" };
@@ -574,7 +578,7 @@ public sealed partial class MainWindow : Window
         foreach (var (label, action) in new (string, Action)[] { ("Save current fight", () => { SaveFight(Current); ReloadArchive(); Refresh(); }), ("Import fights…", Import), ("Export current fight…", Export), ("Import events…", ImportEvents), ("Open data folder", () => System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(AppDataPaths.Root) { UseShellExecute = true })) })
         {
             var item = new MenuItem { Header = label, Icon = UiIcons.Create(label.StartsWith("Save") || label.StartsWith("Export") ? UiIcon.Save : UiIcon.Folder, 16) };
-            item.Click += (_, _) => { try { action(); } catch (Exception ex) { LocalLog.Write(label + " failed: " + ex); MessageBox.Show(this, ex.Message, "Wingbeat", MessageBoxButton.OK, MessageBoxImage.Error); } };
+            item.Click += (_, _) => { try { action(); } catch (Exception ex) { LocalLog.Write(label + " failed: " + ex); MessageBox.Show(this, ex.Message, global::AionDpsMeter.Local.Localization.T("Wingbeat"), MessageBoxButton.OK, MessageBoxImage.Error); } };
             menu.Items.Add(item);
         }
         return menu;
@@ -591,7 +595,7 @@ public sealed partial class MainWindow : Window
     static Button Button(string text, Action action)
     {
         var b = new Button { Content = text, Margin = new(4), Padding = new(12, 6, 12, 6) };
-        b.Click += (_, _) => { try { action(); } catch (Exception ex) { LocalLog.Write(text + " failed: " + ex); MessageBox.Show(ex.Message, "Wingbeat Local", MessageBoxButton.OK, MessageBoxImage.Error); } };
+        b.Click += (_, _) => { try { action(); } catch (Exception ex) { LocalLog.Write(text + " failed: " + ex); MessageBox.Show(ex.Message, global::AionDpsMeter.Local.Localization.T("Wingbeat Local"), MessageBoxButton.OK, MessageBoxImage.Error); } };
         return b;
     }
     static Button IconButton(UiIcon icon, string label, Action action)
@@ -604,7 +608,7 @@ public sealed partial class MainWindow : Window
         void State(Button button, bool visible, string name) {
             button.SetResourceReference(Control.BorderBrushProperty, visible ? "Accent" : "Edge");
             button.SetResourceReference(Control.ForegroundProperty, visible ? "Accent" : "Text");
-            button.ToolTip = (visible ? "Hide " : "Show ") + name;
+            button.ToolTip = (visible ? global::AionDpsMeter.Local.Localization.T("Hide ") : global::AionDpsMeter.Local.Localization.T("Show ")) + name;
             System.Windows.Automation.AutomationProperties.SetHelpText(button, visible ? "Visible" : "Hidden");
         }
         State(meterButton, overlay?.IsVisible == true, "DPS overlay");
@@ -613,22 +617,22 @@ public sealed partial class MainWindow : Window
             bool active = enabled();
             button.SetResourceReference(Control.BorderBrushProperty, active ? "Accent" : "Edge");
             button.SetResourceReference(Control.ForegroundProperty, active ? "Accent" : "Text");
-            button.ToolTip = (active ? "Disable " : "Enable ") + System.Windows.Automation.AutomationProperties.GetName(button);
+            button.ToolTip = (active ? global::AionDpsMeter.Local.Localization.T("Disable ") : global::AionDpsMeter.Local.Localization.T("Enable ")) + System.Windows.Automation.AutomationProperties.GetName(button);
             System.Windows.Automation.AutomationProperties.SetHelpText(button, active ? "Enabled" : "Disabled");
         }
         if (meterWanted && overlay?.IsVisible == false) {
             meterButton.SetResourceReference(Control.ForegroundProperty, "Accent");
-            meterButton.ToolTip = "Disable DPS overlay (waiting for Aion 2 / Wingbeat)";
+            meterButton.ToolTip = global::AionDpsMeter.Local.Localization.T("Disable DPS overlay (waiting for Aion 2 / Wingbeat)");
             System.Windows.Automation.AutomationProperties.SetHelpText(meterButton, "Enabled; waiting for game or Wingbeat");
         }
         if (cooldownWanted && cooldownOverlay?.IsVisible == false && preferences.OverlaysGameOnly) {
             cooldownButton.SetResourceReference(Control.ForegroundProperty, "Accent");
-            cooldownButton.ToolTip = "Disable cooldown overlay (waiting for Aion 2 / Wingbeat or combat)";
+            cooldownButton.ToolTip = global::AionDpsMeter.Local.Localization.T("Disable cooldown overlay (waiting for Aion 2 / Wingbeat or combat)");
             System.Windows.Automation.AutomationProperties.SetHelpText(cooldownButton, "Enabled; automatically hidden");
         }
         if (cooldownWanted && cooldownOverlay?.IsVisible == false && preferences.CooldownCombatOnly && !preferences.OverlaysGameOnly) {
             cooldownButton.SetResourceReference(Control.ForegroundProperty, "Accent");
-            cooldownButton.ToolTip = "Disable cooldown overlay (currently waiting for combat)";
+            cooldownButton.ToolTip = global::AionDpsMeter.Local.Localization.T("Disable cooldown overlay (currently waiting for combat)");
             System.Windows.Automation.AutomationProperties.SetHelpText(cooldownButton, "Enabled; waiting for combat");
         }
         State(settingsButton, settingsWindow?.IsVisible == true, "settings");
@@ -646,7 +650,7 @@ public sealed partial class MainWindow : Window
                 else e.Cancel = true;
                 return;
             }
-            e.Column.Header = ColumnHeader(e.PropertyName);
+            e.Column.Header = Localization.T(ColumnHeader(e.PropertyName));
             if (e.PropertyName is "Id" or "FightId" or "ActorId") e.Cancel = true;
             if (title == "Trends" && e.PropertyName is "Character" or "Job" or "Server") e.Cancel = true;
             if (title == "Report card" && e.PropertyName == "Encounter" || title == "Top 5%" && e.PropertyName == "Tier" || title == "Top cohort" && e.PropertyName == "Code") e.Cancel = true;
@@ -660,7 +664,7 @@ public sealed partial class MainWindow : Window
                 icon.SetValue(FrameworkElement.MarginProperty, new Thickness(0, 0, 8, 0));
                 icon.SetValue(DockPanel.DockProperty, Dock.Left);
                 icon.SetBinding(Image.SourceProperty, new System.Windows.Data.Binding("SkillCode") { Converter = skillIcons });
-                icon.SetBinding(FrameworkElement.ToolTipProperty, new System.Windows.Data.Binding("SkillCode") { StringFormat = "Skill ID {0}" });
+                icon.SetBinding(FrameworkElement.ToolTipProperty, new System.Windows.Data.Binding("SkillCode") { StringFormat = Localization.T("Skill ID {0}") });
                 row.AppendChild(icon);
                 var name = new FrameworkElementFactory(typeof(TextBlock));
                 name.SetValue(FrameworkElement.VerticalAlignmentProperty, VerticalAlignment.Center);
@@ -738,13 +742,13 @@ public sealed partial class MainWindow : Window
             var devices = loadedDevices ?? LibPcapLiveDeviceList.Instance.ToArray(); adapters.ItemsSource = devices;
             adapters.SelectedItem = GameAdapterDetector.Automatic(preferences) ? null : devices.FirstOrDefault(d => string.Equals(d.Name, selected, StringComparison.OrdinalIgnoreCase));
             adapterDetection = null;
-            notice = adapters.Items.Count == 0 ? "No capture adapters found. Check your network connection and Npcap installation, then refresh adapters." : GameAdapterDetector.Automatic(preferences)
-                ? "Connect Aion to a server, then use Detect game adapter or Start capture." : "Choose the adapter carrying game traffic. Use Npcap loopback if the game uses a local proxy.";
+            notice = adapters.Items.Count == 0 ? global::AionDpsMeter.Local.Localization.T("No capture adapters found. Check your network connection and Npcap installation, then refresh adapters.") : GameAdapterDetector.Automatic(preferences)
+                ? global::AionDpsMeter.Local.Localization.T("Connect Aion to a server, then use Detect game adapter or Start capture.") : global::AionDpsMeter.Local.Localization.T("Choose the adapter carrying game traffic. Use Npcap loopback if the game uses a local proxy.");
         }
         catch (Exception ex) {
             adapters.ItemsSource = null;
             npcapMissing = NpcapSetup.IsLoadFailure(ex);
-            notice = "Npcap unavailable: " + ex.Message + " Demo and saved fights remain available.";
+            notice = global::AionDpsMeter.Local.Localization.T("Npcap unavailable: ") + ex.Message + global::AionDpsMeter.Local.Localization.T(" Demo and saved fights remain available.");
         }
         adapterStatus.Text = notice; UpdateAdapterControls();
     }
@@ -809,7 +813,7 @@ public sealed partial class MainWindow : Window
         string? samplePath = null;
         if (!automatic && recordSample.IsChecked == true)
         {
-            var dialog = new SaveFileDialog { Filter = "Packet capture|*.pcap", FileName = "eu-game-sample.pcap", Title = "Save a private packet sample (do not commit captures to GitHub)" };
+            var dialog = new SaveFileDialog { Filter = "Packet capture|*.pcap", FileName = "eu-game-sample.pcap", Title = global::AionDpsMeter.Local.Localization.T("Save a private packet sample (do not commit captures to GitHub)") };
             if (dialog.ShowDialog(this) != true) return;
             samplePath = dialog.FileName;
         }
@@ -821,11 +825,11 @@ public sealed partial class MainWindow : Window
         }
         capture = newCapture;
         nextMaintenance = Environment.TickCount64; nextAutosave = nextMaintenance + 30000;
-        UiIcons.SetLabel(start, UiIcon.Stop, "Stop & save"); UpdateAdapterControls(); filter.IsEnabled = false; decodeEu.IsEnabled = false;
+        UiIcons.SetLabel(start, UiIcon.Stop, global::AionDpsMeter.Local.Localization.T("Stop & save")); UpdateAdapterControls(); filter.IsEnabled = false; decodeEu.IsEnabled = false;
         preferences.AutoDetectAdapter = GameAdapterDetector.Automatic(preferences);
         preferences.Adapter = device.Name; preferences.Filter = filter.Text; preferences.DecodeEu = decodeEu.IsChecked == true; SavePreferences();
         setupMessage.Visibility = Visibility.Collapsed;
-        notice = engine.DecoderStatus + (samplePath == null ? "" : " Private sample recording enabled (256 MB limit).");
+        notice = engine.DecoderStatus + (samplePath == null ? "" : global::AionDpsMeter.Local.Localization.T(" Private sample recording enabled (256 MB limit)."));
         LocalLog.Write("Capture started: " + engine.DecoderStatus);
         LocalLog.Write($"Startup: capture active after {Environment.TickCount64-Program.StartedAt:N0} ms");
         Refresh();
@@ -833,8 +837,8 @@ public sealed partial class MainWindow : Window
     void StopAndSave()
     {
         engine.StopTraining(DateTimeOffset.UtcNow.ToUnixTimeMilliseconds());
-        capture?.Dispose(); LogCapture(); capture = null; UiIcons.SetLabel(start, UiIcon.Play, "Start capture"); UpdateAdapterControls(); filter.IsEnabled = true; decodeEu.IsEnabled = true;
-        FinishAutosave(); engine.SaveCompleted(store); var f = LiveSnapshot(); if (f.HasRecordedData) SaveFight(f); playerProfiles.Save(); dutyMissions.Save(); accountCharacters.Save(); shopPurchases.Save(); crafting.Save(); gatheringTracking.Save(); killTracking.Save(); lootTracking.Save(); soulTracking.Save(); petRegistrationTracking.Save(); petLevelTracking.Save(); engine.SaveVisibilityMemory(); ReloadArchive(); notice = "Capture stopped. Recorded events saved locally."; Refresh();
+        capture?.Dispose(); LogCapture(); capture = null; UiIcons.SetLabel(start, UiIcon.Play, global::AionDpsMeter.Local.Localization.T("Start capture")); UpdateAdapterControls(); filter.IsEnabled = true; decodeEu.IsEnabled = true;
+        FinishAutosave(); engine.SaveCompleted(store); var f = LiveSnapshot(); if (f.HasRecordedData) SaveFight(f); playerProfiles.Save(); dutyMissions.Save(); accountCharacters.Save(); shopPurchases.Save(); crafting.Save(); gatheringTracking.Save(); killTracking.Save(); lootTracking.Save(); soulTracking.Save(); petRegistrationTracking.Save(); petLevelTracking.Save(); engine.SaveVisibilityMemory(); ReloadArchive(); notice = global::AionDpsMeter.Local.Localization.T("Capture stopped. Recorded events saved locally."); Refresh();
     }
     void NewFight()
     {
@@ -851,9 +855,9 @@ public sealed partial class MainWindow : Window
         }
         catch (Exception ex)
         {
-            notice = "New fight failed: " + ex.Message;
+            notice = global::AionDpsMeter.Local.Localization.T("New fight failed: ") + ex.Message;
             LocalLog.Write("New fight failed: " + ex);
-            MessageBox.Show(notice, "Wingbeat Local", MessageBoxButton.OK, MessageBoxImage.Error);
+            MessageBox.Show(notice, global::AionDpsMeter.Local.Localization.T("Wingbeat Local"), MessageBoxButton.OK, MessageBoxImage.Error);
         }
     }
     void StartAutosave(bool saveCurrent)
@@ -905,14 +909,14 @@ public sealed partial class MainWindow : Window
             $"queued {timing.QueuedPackets} (peak {timing.PeakQueuedPackets}), driver avg {timing.DriverDelivery.AverageMs:F2} ms, queue avg/max {timing.QueueWait.AverageMs:F2}/{timing.QueueWait.MaxMs:F2} ms, " +
             $"processing avg {timing.Processing.AverageMs:F2} ms, capture-to-processed avg/max {timing.CaptureToProcessed.AverageMs:F2}/{timing.CaptureToProcessed.MaxMs:F2} ms; {activeCapture.LastError}");
     }
-    void SaveCurrent() { var f = Current; if (!f.HasRecordedData) throw new InvalidOperationException("No recorded events to save."); SaveFight(f); ReloadArchive(); notice = "Saved locally: " + f.Label; Refresh(); }
+    void SaveCurrent() { var f = Current; if (!f.HasRecordedData) throw new InvalidOperationException("No recorded events to save."); SaveFight(f); ReloadArchive(); notice = global::AionDpsMeter.Local.Localization.T("Saved locally: ") + f.Label; Refresh(); }
     void ImportSkillNames()
     {
-        var dialog = new OpenFileDialog { Filter = "Skill name catalog JSON|*.json", Title = "Load a local skill ID to name catalog" };
+        var dialog = new OpenFileDialog { Filter = "Skill name catalog JSON|*.json", Title = global::AionDpsMeter.Local.Localization.T("Load a local skill ID to name catalog") };
         if (dialog.ShowDialog(this) != true) return;
         FinishAutosave();
         skills = SkillNames.Import(dialog.FileName);
-        notice = $"Loaded {skills.Count:N0} skill names locally. Saved fights also use these names.";
+        notice = global::AionDpsMeter.Local.Localization.F($"Loaded {skills.Count:N0} skill names locally. Saved fights also use these names.");
         LocalLog.Write(notice); Refresh();
         if (Current.HasRecordedData && !Current.Demo) SkillAudit.Write(Current, skills);
     }
@@ -922,7 +926,7 @@ public sealed partial class MainWindow : Window
         if (dialog.ShowDialog(this) != true) return;
         FinishAutosave();
         foreach (var file in dialog.FileNames) { var f = store.Load(file); store.Save(f); viewed = f; }
-        ReloadArchive(); notice = "Imported local fight files."; Refresh();
+        ReloadArchive(); notice = global::AionDpsMeter.Local.Localization.T("Imported local fight files."); Refresh();
     }
     void Export()
     {
@@ -939,7 +943,7 @@ public sealed partial class MainWindow : Window
         foreach (var item in events) replay.Apply(item);
         replay.SaveCompleted(store); viewed = replay.Snapshot();
         if (viewed.HasRecordedData) store.Save(viewed);
-        ReloadArchive(); notice = "Imported normalized events. This is an application interchange format, not decoded game traffic."; Refresh();
+        ReloadArchive(); notice = global::AionDpsMeter.Local.Localization.T("Imported normalized events. This is an application interchange format, not decoded game traffic."); Refresh();
     }
     void LoadDemo()
     {
@@ -951,7 +955,7 @@ public sealed partial class MainWindow : Window
         for (int i = 0; i < viewed.Damage.Count; i++)
             if (viewed.Damage[i].ActorId is >= 1 and <= 10) viewed.Damage[i] = viewed.Damage[i] with { SkillCode = demoSkills[viewed.Damage[i].ActorId - 1] };
         for (int i = 0; i < viewed.Healing.Count; i++) viewed.Healing[i] = viewed.Healing[i] with { SkillCode = 17100001 };
-        encounter.Text = viewed.Label; notice = "DEMO DATA — illustrative events, not captured game traffic."; Refresh();
+        encounter.Text = viewed.Label; notice = global::AionDpsMeter.Local.Localization.T("DEMO DATA — illustrative events, not captured game traffic."); Refresh();
     }
     void ReloadArchive()
     {
@@ -959,12 +963,12 @@ public sealed partial class MainWindow : Window
         if(!demoMode){LoadArchiveInBackground();return;}
         archive.Clear(); archiveChanged = true; int skipped = 0;
         foreach (var path in store.Files()) { try { archive.Add(FightArchiveSummary.Create(store.Load(path))); } catch { skipped++; } }
-        if (skipped > 0) notice = $"Skipped {skipped} invalid fight file(s); original files retained.";
+        if (skipped > 0) notice = global::AionDpsMeter.Local.Localization.F($"Skipped {skipped} invalid fight file(s); original files retained.");
     }
     void ShowLastPvp()
     {
         var last = archive.Where(f => !f.Demo).OrderByDescending(f => f.Created).FirstOrDefault(f => f.ArchiveSummary?.HasPvp ?? PvpAnalysis.Build(f).HasOpponents);
-        if (last == null) { notice = "No saved PvP fight found yet."; Refresh(); return; }
+        if (last == null) { notice = global::AionDpsMeter.Local.Localization.T("No saved PvP fight found yet."); Refresh(); return; }
         viewed = LoadArchiveDetails(last); character.Clear();
         tabs.SelectedItem = tabs.Items.Cast<TabItem>().First(t => t.Header?.ToString() == "PvP"); Refresh();
     }
@@ -988,7 +992,7 @@ public sealed partial class MainWindow : Window
     {
         if (capture != null) RefreshCooldownCharacter();
         var editor = new CooldownSettingsWindow(preferences, skills, cooldownTracker.ObservedSkills,
-            () => { CooldownCharacterPresets.Save(preferences); SavePreferences(); cooldownOverlay?.Refresh(); }, OpenCooldownOverlay, () => liveEffects.Active(Environment.TickCount64)) { Owner = settingsWindow.IsActive ? settingsWindow : this, Topmost = cooldownOverlay?.IsVisible == true };
+            () => { cooldownVoicePlayer?.Stop(); cooldownVoiceTransitions.Reset(); CooldownCharacterPresets.Save(preferences); SavePreferences(); cooldownOverlay?.Refresh(); }, OpenCooldownOverlay, () => liveEffects.Active(Environment.TickCount64)) { Owner = settingsWindow.IsActive ? settingsWindow : this, Topmost = cooldownOverlay?.IsVisible == true };
         cooldownEditor = editor;
         try { editor.ShowDialog(); }
         finally { if (ReferenceEquals(cooldownEditor, editor)) cooldownEditor = null; }
@@ -1056,7 +1060,7 @@ public sealed partial class MainWindow : Window
     void SavePreferences()
     {
         try { Directory.CreateDirectory(System.IO.Path.GetDirectoryName(PreferencePath)!); File.WriteAllText(PreferencePath, JsonSerializer.Serialize(preferences)); settingsWindow?.ShowStatus("Settings saved on this PC."); }
-        catch (Exception ex) { notice = "Could not save settings: " + ex.Message; LocalLog.Write(notice); settingsWindow?.ShowStatus(notice); }
+        catch (Exception ex) { notice = global::AionDpsMeter.Local.Localization.T("Could not save settings: ") + ex.Message; LocalLog.Write(notice); settingsWindow?.ShowStatus(notice); }
     }
     void ApplyTheme()
     {
@@ -1105,6 +1109,7 @@ public sealed partial class MainWindow : Window
             var debuffs = partyDebuffs.Poll(Environment.TickCount64, preferences.PartyDebuffThreshold, preferences.PartyDebuffAlerts);
             if (debuffs.Length > 0) ShowReminder(string.Join("\n", debuffs.Select(d => $"{d.Name} · {d.Members} party members")));
         }
+        RefreshCooldownVoice();
         var f = Current;
         bool changed = !ReferenceEquals(f, displayedSnapshot);
         if (changed) { displayedTotals = Analysis.Totals(f); displayedPvp = PvpAnalysis.Build(f); displayedSnapshot = f; }
@@ -1113,16 +1118,16 @@ public sealed partial class MainWindow : Window
         {
         var meterData = MeterPresentation.Build(f, totals, limit: 50);
         summary.Text = f.Label; summary.TextTrimming = TextTrimming.CharacterEllipsis;
-        summary.ToolTip = (f.Demo ? "Demo · " : viewed != null ? "Saved fight · " : "Live fight · ") + f.Label;
-        if (f.Training is { } attempt) summary.ToolTip += $"\nTraining · {f.Seconds:0.#} seconds\nGroup: {attempt.Group}\n{attempt.Notes}";
-        damageValue.Text = MeterPresentation.Number(meterData.Amount); damageValue.ToolTip = $"{meterData.Amount:N0} damage · {meterData.Scope}";
-        dpsValue.Text = MeterPresentation.Number(meterData.Rate); dpsValue.ToolTip = $"{meterData.Rate:N1} DPS · {meterData.Scope}";
+        summary.ToolTip = (f.Demo ? global::AionDpsMeter.Local.Localization.T("Demo · ") : viewed != null ? global::AionDpsMeter.Local.Localization.T("Saved fight · ") : global::AionDpsMeter.Local.Localization.T("Live fight · ")) + f.Label;
+        if (f.Training is { } attempt) summary.ToolTip += global::AionDpsMeter.Local.Localization.F($"\nTraining · {f.Seconds:0.#} seconds\nGroup: {attempt.Group}\n{attempt.Notes}");
+        damageValue.Text = MeterPresentation.Number(meterData.Amount); damageValue.ToolTip = global::AionDpsMeter.Local.Localization.F($"{meterData.Amount:N0} damage · {meterData.Scope}");
+        dpsValue.Text = MeterPresentation.Number(meterData.Rate); dpsValue.ToolTip = global::AionDpsMeter.Local.Localization.F($"{meterData.Rate:N1} DPS · {meterData.Scope}");
         durationValue.Text = MeterPresentation.Duration(f);
         string tab = (tabs.SelectedItem as TabItem)?.Header?.ToString() ?? "Party";
         bool bossSearch = tab is "Boss analysis" or "Boss catalogue";
         character.Tag = bossSearch ? "Search bosses, IDs, instances..." : tab == "Encounter" ? "Search encounters or participants..." : tab == "Saved fights" ? "Search fights, bosses, players..." : "Filter characters...";
-        character.ToolTip = bossSearch ? "Search boss names, NPC template IDs or possible instances" : "Filter details by character name; blank shows everyone";
-        clearFilter.ToolTip = "Clear search";
+        character.ToolTip = bossSearch ? global::AionDpsMeter.Local.Localization.T("Search boss names, NPC template IDs or possible instances") : global::AionDpsMeter.Local.Localization.T("Filter details by character name; blank shows everyone");
+        clearFilter.ToolTip = global::AionDpsMeter.Local.Localization.T("Clear search");
         bool hasCharacterFilter = tab is not ("Cooldowns" or "Player stats" or "Tools");
         character.Visibility = hasCharacterFilter ? Visibility.Visible : Visibility.Hidden;
         if (viewTitle.Text != tab) {
@@ -1142,22 +1147,22 @@ public sealed partial class MainWindow : Window
             case "Party":
                 Set(tab, totals.Where(r => Matches(r.Character)).ToArray());
                 overview.Update(meterData.Rows.Where(r => Matches(r.Name)).ToArray(), compact: true, hasEvents: f.HasEvents, emptyText: character.Text.Length > 0 ? "No matching players" : null);
-                partySummary.Text = f.PartyKnown || f.Actors.Values.Any(a => a.Party) ? $"{f.Actors.Values.Count(a => a.Party || a.Id == f.LocalPlayer)} party players" : "Known players · party roster not set";
-                if (!string.IsNullOrEmpty(f.PartyLeaderName)) partySummary.Text += " | Leader: " + f.PartyLeaderName;
+                partySummary.Text = f.PartyKnown || f.Actors.Values.Any(a => a.Party) ? global::AionDpsMeter.Local.Localization.F($"{f.Actors.Values.Count(a => a.Party || a.Id == f.LocalPlayer)} party players") : global::AionDpsMeter.Local.Localization.T("Known players · party roster not set");
+                if (!string.IsNullOrEmpty(f.PartyLeaderName)) partySummary.Text += global::AionDpsMeter.Local.Localization.T(" | Leader: ") + f.PartyLeaderName;
                 if (PartyBossTarget.Label(f) is { Length: > 0 } aggroLabel) partySummary.Text += " | " + aggroLabel;
-                partySummary.ToolTip = "Idle and healing-only party members stay visible. Roster: " + f.PartySource; break;
+                partySummary.ToolTip = global::AionDpsMeter.Local.Localization.T("Idle and healing-only party members stay visible. Roster: ") + f.PartySource; break;
             case "Skills": Set(tab, SkillDamageDisplay.Shares(Analysis.Skills(f, skills.GetSkillName).Where(r => Matches(r.Character)))); break;
             case "PvP":
                 var pvp = displayedPvp;
                 Set(tab, pvp.Opponents);
                 pvpMeter.Update(pvp.HasOpponents ? PvpAnalysis.Meter(f, pvp).Rows : [], compact: true, hasEvents: f.HasEvents,
                     emptyText: f.LocalPlayer == 0 && !f.Actors.Values.Any(a => a.Party) ? "Your character identity is pending\nCapture before entering a zone." : "No PvP damage recorded in this fight");
-                pvpSummary.Text = pvp.HasOpponents ? $"YOU  {pvp.YourDamage:N0} damage · {pvp.YourDamage / pvp.Seconds:N1} DPS     ENEMY  {pvp.EnemyDamage:N0} damage     {MeterPresentation.Duration(pvp.Seconds)} · {pvp.Opponents.Length} opponent(s) · enemies in red" : "Rows rank by damage. Enable pinning in settings to keep your row first. Names update when captured.";
+                pvpSummary.Text = pvp.HasOpponents ? global::AionDpsMeter.Local.Localization.F($"YOU  {pvp.YourDamage:N0} damage · {pvp.YourDamage / pvp.Seconds:N1} DPS     ENEMY  {pvp.EnemyDamage:N0} damage     {MeterPresentation.Duration(pvp.Seconds)} · {pvp.Opponents.Length} opponent(s) · enemies in red") : global::AionDpsMeter.Local.Localization.T("Rows rank by damage. Enable pinning in settings to keep your row first. Names update when captured.");
                 if (pvp.HasOpponents && pvp.Combatants.FirstOrDefault(c => c.Id == f.LocalPlayer) is { } localPvp)
-                    pvpSummary.Text += $"\nYour confirmed kills: {localPvp.ConfirmedKills} · peak 5s damage: {localPvp.Peak5sDamage:N0}";
-                pvpSummary.ToolTip = "Confirmed kills require captured killer attribution and an observed death. Unknown or conflicting killers are excluded. Observed deaths include this fight's captured deaths. Peak 5s is damage in the strongest rolling five-second window, not DPS.";
-                damageValue.Text = MeterPresentation.Number(pvp.YourDamage); damageValue.ToolTip = "Your damage to PvP opponents";
-                dpsValue.Text = MeterPresentation.Number(pvp.YourDamage / pvp.Seconds); dpsValue.ToolTip = "Your DPS over the shared PvP window";
+                    pvpSummary.Text += global::AionDpsMeter.Local.Localization.F($"\nYour confirmed kills: {localPvp.ConfirmedKills} · peak 5s damage: {localPvp.Peak5sDamage:N0}");
+                pvpSummary.ToolTip = global::AionDpsMeter.Local.Localization.T("Confirmed kills require captured killer attribution and an observed death. Unknown or conflicting killers are excluded. Observed deaths include this fight's captured deaths. Peak 5s is damage in the strongest rolling five-second window, not DPS.");
+                damageValue.Text = MeterPresentation.Number(pvp.YourDamage); damageValue.ToolTip = global::AionDpsMeter.Local.Localization.T("Your damage to PvP opponents");
+                dpsValue.Text = MeterPresentation.Number(pvp.YourDamage / pvp.Seconds); dpsValue.ToolTip = global::AionDpsMeter.Local.Localization.T("Your DPS over the shared PvP window");
                 durationValue.Text = MeterPresentation.Duration(pvp.HasOpponents ? pvp.Seconds : 0); break;
             case "Healing": Set(tab, SkillDamageDisplay.Shares(DetailedAnalysis.Healing(f, skills.GetSkillName).Where(r => Matches(r.Healer)))); break;
             case "Rotations":
@@ -1177,9 +1182,9 @@ public sealed partial class MainWindow : Window
                 var tracked = CooldownPresentation.Rows(preferences, skills, cooldownTracker, capture != null, Environment.TickCount64);
                 Set(tab, tracked);
                 string trackedLabel = $"{tracked.Length} tracked skill{(tracked.Length == 1 ? "" : "s")}";
-                cooldownSummary.Text = tracked.Length == 0 ? "Choose the skills you want to track, then open the cooldown overlay."
-                    : capture == null ? $"{trackedLabel}. Start capture to follow cooldowns."
-                    : $"{trackedLabel}. Live timers stay active while you browse saved encounters.";
+                cooldownSummary.Text = tracked.Length == 0 ? global::AionDpsMeter.Local.Localization.T("Choose the skills you want to track, then open the cooldown overlay.")
+                    : capture == null ? global::AionDpsMeter.Local.Localization.F($"{trackedLabel}. Start capture to follow cooldowns.")
+                    : global::AionDpsMeter.Local.Localization.F($"{trackedLabel}. Live timers stay active while you browse saved encounters.");
                 break;
             case "Network events": Set(tab, f.Network.TakeLast(500).Reverse().Select(e => new { e.Timestamp, e.Kind, e.Opcode, Fields = e.Fields.GetRawText() }).ToArray()); break;
             case "Top cohort":
@@ -1196,15 +1201,15 @@ public sealed partial class MainWindow : Window
         }
         string energy = f.Energy == null ? "Loot energy: not captured" : $"Loot energy: daily {f.Energy.Daily} · bonus {f.Energy.Bonus}";
         int namedPlayers = f.Actors.Values.Count(a => a.Player);
-        sessionState.Text = f.Demo ? "● DEMO" : capture != null ? "● LIVE" : "● READY";
+        sessionState.Text = f.Demo ? global::AionDpsMeter.Local.Localization.T("● DEMO") : capture != null ? global::AionDpsMeter.Local.Localization.T("● LIVE") : global::AionDpsMeter.Local.Localization.T("● READY");
         sessionState.Foreground = UiTheme.Brush(capture != null && !f.Demo ? preferences.Accent : "#93A2B8");
-        footer.Text = (f.Demo ? "Demo preview" : viewed != null ? "Saved fight" : capture != null ? "Capturing" : "Ready to capture") + $"   ·   {namedPlayers} named players   ·   " + (f.Demo ? "Illustrative data" : "Saved locally") + (f.Energy == null ? "" : $"   ·   Loot energy {f.Energy.Daily:N0} / {f.Energy.Bonus:N0}");
+        footer.Text = (f.Demo ? global::AionDpsMeter.Local.Localization.T("Demo preview") : viewed != null ? global::AionDpsMeter.Local.Localization.T("Saved fight") : capture != null ? global::AionDpsMeter.Local.Localization.T("Capturing") : global::AionDpsMeter.Local.Localization.T("Ready to capture")) + global::AionDpsMeter.Local.Localization.F($"   ·   {namedPlayers} named players   ·   ") + (f.Demo ? global::AionDpsMeter.Local.Localization.T("Illustrative data") : global::AionDpsMeter.Local.Localization.T("Saved locally")) + (f.Energy == null ? "" : global::AionDpsMeter.Local.Localization.F($"   ·   Loot energy {f.Energy.Daily:N0} / {f.Energy.Bonus:N0}"));
         string identity = namedPlayers == 0 && f.HasEvents ? "Player names pending: capture while teleporting to refresh identities." : $"Named players: {namedPlayers}";
-        status.Text = $"{notice}\n{energy}  |  {identity}" + (skills.Count == 0 ? "  |  Skill names unavailable: use Load skill names." : $"  |  {skills.Count:N0} skill names loaded") + (capture == null ? "" : $"  |  Packets {capture.Received:N0} · {engine.DecoderDetails} · queue drops {capture.Dropped:N0} · capture errors {capture.Errors:N0}" + (capture.LastError == null ? "" : " · " + capture.LastError));
+        status.Text = $"{notice}\n{energy}  |  {identity}" + (skills.Count == 0 ? global::AionDpsMeter.Local.Localization.T("  |  Skill names unavailable: use Load skill names.") : global::AionDpsMeter.Local.Localization.F($"  |  {skills.Count:N0} skill names loaded")) + (capture == null ? "" : global::AionDpsMeter.Local.Localization.F($"  |  Packets {capture.Received:N0} · {engine.DecoderDetails} · queue drops {capture.Dropped:N0} · capture errors {capture.Errors:N0}") + (capture.LastError == null ? "" : " · " + capture.LastError));
         if (capture != null)
         {
             var timing = capture.Timing;
-            status.Text += $"\nQueued {timing.QueuedPackets} (peak {timing.PeakQueuedPackets}) · queue avg {timing.QueueWait.AverageMs:F2} ms · capture-to-processed avg {timing.CaptureToProcessed.AverageMs:F2} ms · display refresh 200 ms";
+            status.Text += global::AionDpsMeter.Local.Localization.F($"\nQueued {timing.QueuedPackets} (peak {timing.PeakQueuedPackets}) · queue avg {timing.QueueWait.AverageMs:F2} ms · capture-to-processed avg {timing.CaptureToProcessed.AverageMs:F2} ms · display refresh 200 ms");
         }
         RefreshCooldownVisibility();
         if (overlay?.IsVisible != true && secondMeter?.IsVisible != true) return;
@@ -1395,7 +1400,7 @@ public sealed partial class MainWindow : Window
             new(3,"Blessing of Life","Check buff",true)
         ];
         uptimeView.Update(uptimeRows, skills, skillIcons);
-        var uptimePreview = new Window { Content=uptimeView, Width=340, SizeToContent=SizeToContent.Height, Background=UiTheme.Brush("#10151F"), Title="Buff uptime preview" };
+        var uptimePreview = new Window { Content=uptimeView, Width=340, SizeToContent=SizeToContent.Height, Background=UiTheme.Brush("#10151F"), Title=global::AionDpsMeter.Local.Localization.T("Buff uptime preview") };
         try {
             uptimePreview.Show();
             foreach (string buffStyle in new[] { "Bars", "Round", "Square" }) {

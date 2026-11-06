@@ -11,7 +11,7 @@ public sealed partial class MainWindow
     {
         var saved = liveOnly ? null : viewed;
         var historical = saved == null ? null : LootLedger.FromFight(saved);
-        var window = new Window { Title = "Loot", Owner = this, Width = 940, Height = 590, MinWidth = 650, MinHeight = 400,
+        var window = new Window { Title = global::AionDpsMeter.Local.Localization.T("Loot"), Owner = this, Width = 940, Height = 590, MinWidth = 650, MinHeight = 400,
             WindowStartupLocation = WindowStartupLocation.CenterOwner };
         UiTheme.Apply(window, preferences);
         var layout = new DockPanel { Margin = new(20) };
@@ -23,7 +23,7 @@ public sealed partial class MainWindow
             "Loot comes from increases in your inventory marked as drops, gathering, boxes or quest rewards. Existing inventory and purchases are excluded. Sessions separate characters and gaps of 30 minutes. Older records may have an unknown map."));
         var session = new ComboBox { DisplayMemberPath = "Label", SelectedValuePath = "Id", Margin = new(0, 0, 0, 8) };
         var maps = new ComboBox { DisplayMemberPath = "Label", SelectedValuePath = "Id", Margin = new(0, 0, 0, 8) };
-        var search = new TextBox { Tag = "Item, map or character...", ToolTip = "Search item, map, ID or character", Margin = new(0, 0, 0, 8) };
+        var search = new TextBox { Tag = "Item, map or character...", ToolTip = global::AionDpsMeter.Local.Localization.T("Search item, map, ID or character"), Margin = new(0, 0, 0, 8) };
         var status = new TextBlock { TextWrapping = TextWrapping.Wrap, Margin = new(0, 0, 0, 12) };
         var filterRow = new WrapPanel();
         filterRow.Children.Add(UiSections.Field("Session", session, 250));
@@ -48,9 +48,9 @@ public sealed partial class MainWindow
                 (r.Item.Contains(query, StringComparison.OrdinalIgnoreCase) || r.ItemId.ToString().Contains(query) || r.Character.Contains(query, StringComparison.OrdinalIgnoreCase) ||
                  r.Map.Contains(query, StringComparison.OrdinalIgnoreCase) || r.MapId.ToString().Contains(query))).ToArray();
             table.SetRows(rows);
-            status.Text = allRows.Length == 0 ? "No loot captured yet. Start capture before entering your character, then collect loot or claim a reward." :
-                $"{rows.Sum(r => (decimal)r.Quantity):N0} items · {rows.Sum(r => (long)r.Pickups):N0} pickups · {rows.Select(r => r.ItemId).Distinct().Count():N0} item types";
-            if (omittedItems > 0 || omittedSessions > 0) status.Text += $" · Memory limit: {omittedItems:N0} item entries and {omittedSessions:N0} older sessions omitted from this view.";
+            status.Text = allRows.Length == 0 ? global::AionDpsMeter.Local.Localization.T("No loot captured yet. Start capture before entering your character, then collect loot or claim a reward.") :
+                global::AionDpsMeter.Local.Localization.F($"{rows.Sum(r => (decimal)r.Quantity):N0} items · {rows.Sum(r => (long)r.Pickups):N0} pickups · {rows.Select(r => r.ItemId).Distinct().Count():N0} item types");
+            if (omittedItems > 0 || omittedSessions > 0) status.Text += global::AionDpsMeter.Local.Localization.F($" · Memory limit: {omittedItems:N0} item entries and {omittedSessions:N0} older sessions omitted from this view.");
             if (ItemNames.Default.LoadError is { } error) status.Text += " · " + error;
             if (ZoneNames.Default.LoadError is { } mapError) status.Text += " · " + mapError;
         }

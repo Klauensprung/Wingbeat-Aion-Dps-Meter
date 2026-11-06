@@ -9,14 +9,14 @@ public sealed partial class MainWindow
     void ShowObservedRuns()
     {
         var groups = ObservedRunGroups.Build(archive);
-        var window = new Window { Title = "Observed dungeon runs", Owner = this, Width = 1050, Height = 760,
+        var window = new Window { Title = global::AionDpsMeter.Local.Localization.T("Observed dungeon runs"), Owner = this, Width = 1050, Height = 760,
             MinWidth = 750, MinHeight = 600, WindowStartupLocation = WindowStartupLocation.CenterOwner };
         UiTheme.Apply(window, preferences);
         var layout = new DockPanel { Margin = new(20) };
         var heading = new StackPanel(); DockPanel.SetDock(heading, Dock.Top); layout.Children.Add(heading);
         heading.Children.Add(UiSections.Heading("Observed dungeon runs", "Saved fights, captured completions and available clear times.",
             "Completion requires a successful dungeon result. Clear time uses a captured process-state start and the arrival of that result; post-clear deadlines are excluded. Partial entries are labeled. Rates cover captured combat spans, including gaps; missing fights are not reconstructed."));
-        var status = new TextBlock { Text = groups.Length == 0 ? "No saved fights with matching run observations yet. Capture a dungeon from entry to preserve its context." : $"{groups.Length:N0} observed runs · select a run to inspect its members and fights.",
+        var status = new TextBlock { Text = groups.Length == 0 ? global::AionDpsMeter.Local.Localization.T("No saved fights with matching run observations yet. Capture a dungeon from entry to preserve its context.") : global::AionDpsMeter.Local.Localization.F($"{groups.Length:N0} observed runs · select a run to inspect its members and fights."),
             TextWrapping = TextWrapping.Wrap, Margin = new(0, 0, 0, 12) }; heading.Children.Add(status);
         var progress = new TextBlock { TextWrapping = TextWrapping.Wrap, Margin = new(0, 0, 0, 12), Visibility = Visibility.Collapsed };
         heading.Children.Add(progress);
@@ -55,14 +55,14 @@ public sealed partial class MainWindow
         runs.SelectionChanged += (_, _) => {
             var selected = runs.SelectedItem as ObservedRunGroup;
             progress.Visibility = selected is null ? Visibility.Collapsed : Visibility.Visible;
-            progress.Text = selected is null ? "" : $"{selected.Map}: {selected.CapturedBossKills:N0} boss kills captured | Reported deaths: {selected.ReportedDeaths}";
-            if (selected?.OmittedUses > 0) progress.Text += $" | {selected.OmittedUses:N0} uses omitted at the retention limit";
-            if (selected?.OmittedReceived > 0) progress.Text += $" | {selected.OmittedReceived:N0} received items omitted at the retention limit";
-            if (selected?.OmittedSplits > 0) progress.Text += $" | {selected.OmittedSplits:N0} checkpoints omitted at the retention limit";
+            progress.Text = selected is null ? "" : global::AionDpsMeter.Local.Localization.F($"{selected.Map}: {selected.CapturedBossKills:N0} boss kills captured | Reported deaths: {selected.ReportedDeaths}");
+            if (selected?.OmittedUses > 0) progress.Text += global::AionDpsMeter.Local.Localization.F($" | {selected.OmittedUses:N0} uses omitted at the retention limit");
+            if (selected?.OmittedReceived > 0) progress.Text += global::AionDpsMeter.Local.Localization.F($" | {selected.OmittedReceived:N0} received items omitted at the retention limit");
+            if (selected?.OmittedSplits > 0) progress.Text += global::AionDpsMeter.Local.Localization.F($" | {selected.OmittedSplits:N0} checkpoints omitted at the retention limit");
             checkpoints.SetRows((selected?.Splits ?? []).Select(s => new { s.Event, s.Stage, s.Step, Status = s.Done ? "Completed" : "In progress" }).ToArray());
-            if (selected?.OmittedSkillEvents > 0) progress.Text += $" | {selected.OmittedSkillEvents:N0} skill observations omitted at the retention limit";
+            if (selected?.OmittedSkillEvents > 0) progress.Text += global::AionDpsMeter.Local.Localization.F($" | {selected.OmittedSkillEvents:N0} skill observations omitted at the retention limit");
             runSkills.SetRows((selected?.Skills ?? []).Select(id => new { Id = id, Name = skills.GetSkillName(id) }).ToArray());
-            if (selected?.OmittedPartyObservations > 0) progress.Text += $" | {selected.OmittedPartyObservations:N0} roster observations omitted at the retention limit";
+            if (selected?.OmittedPartyObservations > 0) progress.Text += global::AionDpsMeter.Local.Localization.F($" | {selected.OmittedPartyObservations:N0} roster observations omitted at the retention limit");
             roster.SetRows(selected?.Party ?? []);
             var received = selected?.ReceivedItems.ToDictionary(i => i.ItemId, i => i.Count) ?? new();
             var used = selected?.UsedItems.ToDictionary(i => i.ItemId, i => i.Count) ?? new();

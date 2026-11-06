@@ -12,7 +12,7 @@ internal sealed class BossAlertOverlayWindow:Window
     internal void Preview()=>previewUntil=Environment.TickCount64+30000;
     internal void EndPreview()=>previewUntil=0;
     internal BossAlertOverlayWindow(Preferences settings,Action save){
-        Title="Wingbeat boss alerts";Width=400;SizeToContent=SizeToContent.Height;ResizeMode=ResizeMode.NoResize;
+        Title=global::AionDpsMeter.Local.Localization.T("Wingbeat boss alerts");Width=400;SizeToContent=SizeToContent.Height;ResizeMode=ResizeMode.NoResize;
         WindowStyle=WindowStyle.None;AllowsTransparency=true;Background=Brushes.Transparent;Topmost=true;ShowInTaskbar=false;ShowActivated=false;
         UiTheme.Apply(this,settings);Background=Brushes.Transparent;Content=rows;
         slots=Enumerable.Range(0,3).Select(_=>{
@@ -44,7 +44,7 @@ internal sealed class BossAlertOverlayWindow:Window
         var preview=new MenuItem{Header="Preview placement for 30 seconds"};preview.Click+=(_,_)=>Preview();menu.Items.Add(preview);
         var done=new MenuItem{Header="Finish setup"};done.Click+=(_,_)=>EndPreview();menu.Items.Add(done);
         var close=new MenuItem{Header="Disable boss alerts"};close.Click+=(_,_)=>Close();menu.Items.Add(close);ContextMenu=menu;
-        ToolTip="Live boss signals and approximate HP preparation hints. Countdown only for observed casts. Right-click for placement options.";
+        ToolTip=global::AionDpsMeter.Local.Localization.T("Live boss signals and approximate HP preparation hints. Countdown only for observed casts. Right-click for placement options.");
         OverlayPlacement.Track(this,()=>{settings.BossAlertsLeft=Left;settings.BossAlertsTop=Top;save();});
     }
     internal void Update(BossAlert[] alerts,long now,Func<int,string> skillName){
@@ -53,8 +53,8 @@ internal sealed class BossAlertOverlayWindow:Window
         if(alerts.Length==0&&IsVisible)Hide();
         for(int i=0;i<slots.Length;i++){
             var slot=slots[i];slot.Card.Visibility=i<alerts.Length?Visibility.Visible:Visibility.Collapsed;if(i>=alerts.Length){CountdownBar.Update(slot.Bar,0,0);continue;}
-            var alert=alerts[i];slot.Title.Text=alert.State+(alert.TargetsYou?" - targeting you":"");
-            slot.Detail.Text=alert.Boss+(alert.Detail!=null?" | "+alert.Detail:"")+(alert.Skill>0?" | "+skillName(alert.Skill):"")+(alert.Duration>0?$" | {Math.Max(0,alert.Until-now)/1000d:0.0}s":"");
+            var alert=alerts[i];slot.Title.Text=alert.State+(alert.TargetsYou?global::AionDpsMeter.Local.Localization.T(" - targeting you"):"");
+            slot.Detail.Text=alert.Boss+(alert.Detail!=null?" | "+alert.Detail:"")+(alert.Skill>0?" | "+skillName(alert.Skill):"")+(alert.Duration>0?global::AionDpsMeter.Local.Localization.F($" | {Math.Max(0,alert.Until-now)/1000d:0.0}s"):"");
             slot.Bar.Visibility=alert.Duration>0?Visibility.Visible:Visibility.Collapsed;
             CountdownBar.Update(slot.Bar,alert.Duration>0?Math.Clamp((alert.Until-now)/(double)alert.Duration,0,1):0,
                 alert.Duration>0?Math.Max(0,alert.Until-now)/1000d:0);

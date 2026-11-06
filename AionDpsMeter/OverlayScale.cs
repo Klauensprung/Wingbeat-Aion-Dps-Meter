@@ -48,9 +48,9 @@ internal static class OverlayScale
     {
         var row=new DockPanel{Margin=new(4),MinWidth=210};
         var label=new TextBlock{Width=48,VerticalAlignment=VerticalAlignment.Center};DockPanel.SetDock(label,Dock.Right);row.Children.Add(label);
-        var reset=new Button{Content="100%",ToolTip="Reset scale",Padding=new(5,2,5,2),Margin=new(6,0,6,0)};
+        var reset=new Button{Content="100%",ToolTip=global::AionDpsMeter.Local.Localization.T("Reset scale"),Padding=new(5,2,5,2),Margin=new(6,0,6,0)};
         DockPanel.SetDock(reset,Dock.Right);row.Children.Add(reset);reset.Click+=(_,_)=>Set(key,100);
-        var slider=new Slider{Minimum=50,Maximum=200,TickFrequency=5,IsSnapToTickEnabled=true,SmallChange=5,LargeChange=25,MinWidth=110,VerticalAlignment=VerticalAlignment.Center,ToolTip="Scale text, icons and controls"};row.Children.Add(slider);
+        var slider=new Slider{Minimum=50,Maximum=200,TickFrequency=5,IsSnapToTickEnabled=true,SmallChange=5,LargeChange=25,MinWidth=110,VerticalAlignment=VerticalAlignment.Center,ToolTip=global::AionDpsMeter.Local.Localization.T("Scale text, icons and controls")};row.Children.Add(slider);
         bool updating=false;
         void Refresh(){updating=true;slider.Value=Get(key);label.Text=$"{Get(key):0}%";updating=false;}
         slider.ValueChanged+=(_,_)=>{if(!updating)Set(key,slider.Value);};
@@ -60,15 +60,15 @@ internal static class OverlayScale
     internal static FrameworkElement Settings()
     {
         var panel=new StackPanel();
-        panel.Children.Add(new TextBlock{Text="Scale text, icons and controls independently for each overlay. Window size stays separate.",TextWrapping=TextWrapping.Wrap,Margin=new(8)});
+        panel.Children.Add(new TextBlock{Text=global::AionDpsMeter.Local.Localization.T("Scale text, icons and controls independently for each overlay. Window size stays separate."),TextWrapping=TextWrapping.Wrap,Margin=new(8)});
         foreach(var option in Options){panel.Children.Add(new TextBlock{Text=option.Label,Margin=new(8,10,8,0)});panel.Children.Add(Editor(option.Key));}
         return panel;
     }
     internal static void Attach(Window window,FrameworkElement shell,Panel controls)
     {
         var transform=new ScaleTransform(1,1);shell.LayoutTransform=transform;
-        var button=new Button{Content="Scale 100%",FontSize=10,Padding=new(5,1,5,1),Margin=new(2),Focusable=false,ToolTip="Scale this overlay's text, icons and controls"};controls.Children.Insert(0,button);
-        void Refresh(){double scale=Get(Key(window));transform.ScaleX=transform.ScaleY=scale/100;button.Content=$"Scale {scale:0}%";}
+        var button=new Button{Content=global::AionDpsMeter.Local.Localization.T("Scale 100%"),FontSize=10,Padding=new(5,1,5,1),Margin=new(2),Focusable=false,ToolTip=global::AionDpsMeter.Local.Localization.T("Scale this overlay's text, icons and controls")};controls.Children.Insert(0,button);
+        void Refresh(){double scale=Get(Key(window));transform.ScaleX=transform.ScaleY=scale/100;button.Content=global::AionDpsMeter.Local.Localization.F($"Scale {scale:0}%");}
         button.Click+=(_,_)=>{
             var menu=UiTheme.Menu(window,button);
             menu.Items.Add(new MenuItem{Header=Editor(Key(window)),StaysOpenOnClick=true});

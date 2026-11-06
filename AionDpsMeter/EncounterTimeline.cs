@@ -42,7 +42,7 @@ internal sealed class EncounterTimelinePlot : FrameworkElement
             if (buckets.Length == 0) return;
             int index = Math.Clamp((int)(e.GetPosition(this).X / Math.Max(1, ActualWidth) * buckets.Length), 0, buckets.Length - 1);
             var bucket = buckets[index];
-            ToolTip = $"{MeterPresentation.Duration(bucket.From)}–{MeterPresentation.Duration(bucket.To)}\n{bucket.Damage:N0} damage · {bucket.Dps:N1} DPS";
+            ToolTip = global::AionDpsMeter.Local.Localization.F($"{MeterPresentation.Duration(bucket.From)}–{MeterPresentation.Duration(bucket.To)}\n{bucket.Damage:N0} damage · {bucket.Dps:N1} DPS");
         };
     }
     internal void Update(Fight fight, IEnumerable<int> actorIds)

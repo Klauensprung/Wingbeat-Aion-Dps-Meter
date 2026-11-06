@@ -40,13 +40,13 @@ internal sealed class CharacterEditor : Window
     readonly ObservableCollection<GearEntry> gear = new();
     readonly List<DataGrid> grids = new();
     readonly ContentControl editor = new() { HorizontalContentAlignment = HorizontalAlignment.Stretch, VerticalContentAlignment = VerticalAlignment.Stretch };
-    readonly CheckBox roster = new() { Content = "Use checked Party members as the current roster (up to 10)", Margin = new(8, 12, 8, 12) };
+    readonly CheckBox roster = new() { Content = global::AionDpsMeter.Local.Localization.T("Use checked Party members as the current roster (up to 10)"), Margin = new(8, 12, 8, 12) };
     readonly TextBlock error = new() { Margin = new(10), TextWrapping = TextWrapping.Wrap };
     public Fight? Result { get; private set; }
     internal CharacterEditor(Fight fight, Preferences preferences)
     {
         original = fight.Copy();
-        Title = "Party & character details"; Width = 1100; Height = 610; MinWidth = 900; MinHeight = 500;
+        Title = global::AionDpsMeter.Local.Localization.T("Party & character details"); Width = 1100; Height = 610; MinWidth = 900; MinHeight = 500;
         WindowStartupLocation = WindowStartupLocation.CenterOwner;
         UiTheme.Apply(this, preferences);
         foreach (var actor in fight.Actors.Values.Where(a => a.NpcId == 0).OrderByDescending(a => a.Id == fight.LocalPlayer).ThenByDescending(a => a.Player).ThenBy(a => a.Name))
@@ -63,8 +63,8 @@ internal sealed class CharacterEditor : Window
         var root = new DockPanel { Margin = new(14) }; Content = root;
         var footer = new StackPanel(); DockPanel.SetDock(footer, Dock.Bottom); root.Children.Add(footer); footer.Children.Add(error);
         var buttons = new StackPanel { Orientation = Orientation.Horizontal, HorizontalAlignment = HorizontalAlignment.Right }; footer.Children.Add(buttons);
-        var cancel = new Button { Content = "Cancel", IsCancel = true, Margin = new(4), Padding = new(15, 6, 15, 6) }; buttons.Children.Add(cancel);
-        var save = new Button { Content = "Save details", Margin = new(4), Padding = new(15, 6, 15, 6) }; buttons.Children.Add(save); save.Click += (_, _) => Save();
+        var cancel = new Button { Content = global::AionDpsMeter.Local.Localization.T("Cancel"), IsCancel = true, Margin = new(4), Padding = new(15, 6, 15, 6) }; buttons.Children.Add(cancel);
+        var save = new Button { Content = global::AionDpsMeter.Local.Localization.T("Save details"), Margin = new(4), Padding = new(15, 6, 15, 6) }; buttons.Children.Add(save); save.Click += (_, _) => Save();
         var help = UiSections.Heading("Party and character details", "Set your roster, class and Combat Power for local comparisons.",
             "Changes are stored with this fight and marked as entered locally. Player names come from capture.");
         DockPanel.SetDock(help, Dock.Top); root.Children.Add(help);

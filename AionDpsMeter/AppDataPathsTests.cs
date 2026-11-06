@@ -27,6 +27,13 @@ internal static class AppDataPathsTests
         File.Delete(Path.Combine(target, "fights", "example.json"));
         AppDataPaths.Migrate(source, target);
         check(!File.Exists(Path.Combine(target, "fights", "example.json")), "Completed migration does not resurrect deleted fights on restart");
+        File.WriteAllText(Path.Combine(target,"field-boss-timers.json"),"old timers");
+        string timerCache=AppDataPaths.CacheFilePath("field-boss-timers.json",target);
+        check(timerCache==Path.Combine(target,"cache","field-boss-timers.json")&&File.ReadAllText(timerCache)=="old timers",
+            "Boss timers migrate into the shared cache directory independently of release location");
+        File.WriteAllText(timerCache,"new timers");
+        check(File.ReadAllText(AppDataPaths.CacheFilePath("field-boss-timers.json",target))=="new timers"&&File.Exists(Path.Combine(target,"field-boss-timers.json")),
+            "Restart keeps newer cached timers and preserves the legacy timer file");
         AppDataPaths.Migrate(Path.Combine(temp, "missing-install"), target);
         check(File.Exists(Path.Combine(target, "player-profiles.json")), "A new installation without legacy data keeps the shared player cache");
     }

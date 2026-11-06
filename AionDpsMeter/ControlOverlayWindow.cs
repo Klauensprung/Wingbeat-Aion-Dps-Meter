@@ -14,7 +14,7 @@ internal sealed class ControlOverlayWindow : Window
     internal void Preview() => previewUntil = Environment.TickCount64 + 30000;
     internal ControlOverlayWindow(Preferences settings, Action save)
     {
-        Title = "Wingbeat control alerts"; Width = 330; SizeToContent = SizeToContent.Height; ResizeMode = ResizeMode.NoResize;
+        Title = global::AionDpsMeter.Local.Localization.T("Wingbeat control alerts"); Width = 330; SizeToContent = SizeToContent.Height; ResizeMode = ResizeMode.NoResize;
         WindowStyle = WindowStyle.None; AllowsTransparency = true; Background = Brushes.Transparent;
         Topmost = true; ShowInTaskbar = false; ShowActivated = false;
         UiTheme.Apply(this, settings); Background = Brushes.Transparent;
@@ -38,7 +38,7 @@ internal sealed class ControlOverlayWindow : Window
     }
     internal void Update(ControlEffectDisplay[] effects)
     {
-        text.Text = effects.Length == 0 ? "Move control alerts here\n30-second placement preview" : string.Join("\n", effects.Select(e => e.Text));
-        text.ToolTip = "Captured local effects identified by the reference catalogue. Unknown duration stays visible until a removal event. Right-click to lock or disable.";
+        text.Text = effects.Length == 0 ? global::AionDpsMeter.Local.Localization.T("Move control alerts here\n30-second placement preview") : string.Join("\n", effects.Select(e => e.Text));
+        text.ToolTip = global::AionDpsMeter.Local.Localization.T("Captured local effects identified by the reference catalogue. Unknown duration stays visible until a removal event. Right-click to lock or disable.");
     }
 }

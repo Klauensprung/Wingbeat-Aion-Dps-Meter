@@ -89,10 +89,10 @@ public sealed class SkillNames
     }
 
     internal IEnumerable<int> SearchCodes(string query) => names.Where(p => p.Key is >= 11000000 and < 20000000 &&
-        (query.Length == 0 || p.Value.Contains(query, StringComparison.OrdinalIgnoreCase) || p.Key.ToString().Contains(query)))
+        (query.Length == 0 || p.Value.Contains(query, StringComparison.OrdinalIgnoreCase) || LocalizedSkillNames.Matches(p.Key,query) || p.Key.ToString().Contains(query)))
         .OrderBy(p => p.Value).ThenBy(p => p.Key).Select(p => p.Key);
 
-    public string GetSkillName(int code) => Resolve(code).Name;
+    public string GetSkillName(int code) => LocalizedSkillNames.Display(code,Resolve(code).Name);
 
     public static SkillNames Import(string path)
     {

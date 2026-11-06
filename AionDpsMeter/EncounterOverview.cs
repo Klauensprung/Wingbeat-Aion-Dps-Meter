@@ -1,4 +1,4 @@
-﻿using AionDpsMeter.Models;
+using AionDpsMeter.Models;
 
 namespace AionDpsMeter.Local;
 

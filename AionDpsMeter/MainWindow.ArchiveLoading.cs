@@ -13,7 +13,7 @@ public sealed partial class MainWindow
         archiveLoading?.Cancel();
         var request=new CancellationTokenSource();archiveLoading=request;
         archiveUpdatedDuringLoad.Clear();
-        archiveLoadingStatus.Text="Loading saved fights in the background. Live capture is independent.";
+        archiveLoadingStatus.Text=global::AionDpsMeter.Local.Localization.T("Loading saved fights in the background. Live capture is independent.");
         int loaded=0,skipped=0;
         try {
             await archiveLoader.LoadAsync(store.Files,store.Load,(batch,invalid)=>Dispatcher.InvokeAsync(()=>{
@@ -23,14 +23,14 @@ public sealed partial class MainWindow
                     archive.RemoveAll(f=>f.Id==fight.Id);archive.Add(fight);
                 }
                 loaded+=batch.Length;skipped=invalid;archiveChanged=true;
-                archiveLoadingStatus.Text=$"Loading saved fights: {loaded:N0} loaded"+(skipped>0?$", {skipped:N0} unreadable files skipped.":".");
+                archiveLoadingStatus.Text=global::AionDpsMeter.Local.Localization.F($"Loading saved fights: {loaded:N0} loaded")+(skipped>0?global::AionDpsMeter.Local.Localization.F($", {skipped:N0} unreadable files skipped."):".");
             },DispatcherPriority.Background).Task,request.Token);
             if(!shuttingDown&&!request.IsCancellationRequested){
-                archiveLoadingStatus.Text=$"{loaded:N0} saved fights loaded."+(skipped>0?$" Skipped {skipped:N0} unreadable files; originals retained.":"");
+                archiveLoadingStatus.Text=global::AionDpsMeter.Local.Localization.F($"{loaded:N0} saved fights loaded.")+(skipped>0?global::AionDpsMeter.Local.Localization.F($" Skipped {skipped:N0} unreadable files; originals retained."):"");
                 LocalLog.Write("Background archive loaded: "+loaded+" fights; skipped "+skipped);
             }
         }catch(OperationCanceledException) { }
-        catch(Exception ex){if(!shuttingDown&&!request.IsCancellationRequested){archiveLoadingStatus.Text="Saved fights could not finish loading: "+ex.Message;LocalLog.Write(archiveLoadingStatus.Text);}}
+        catch(Exception ex){if(!shuttingDown&&!request.IsCancellationRequested){archiveLoadingStatus.Text=global::AionDpsMeter.Local.Localization.T("Saved fights could not finish loading: ")+ex.Message;LocalLog.Write(archiveLoadingStatus.Text);}}
         finally{if(ReferenceEquals(archiveLoading,request))archiveLoading=null;request.Dispose();}
     }
 }

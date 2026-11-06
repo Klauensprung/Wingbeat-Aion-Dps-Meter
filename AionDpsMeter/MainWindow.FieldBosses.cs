@@ -11,12 +11,12 @@ public sealed partial class MainWindow
     {
         lock (engine.Gate) return engine.LiveIdentityReady
             ? engine.Fight.Actors.GetValueOrDefault(engine.Fight.LocalPlayer)?.Server ?? 0
-            : capture == null ? engine.FieldBossCache.LastServer : 0;
+            : engine.FieldBossCache.LastServer;
     }
     CheckBox FieldBossNotificationChoice()
     {
-        var choice = new CheckBox { Content = "Notify me before captured field-boss respawns", IsChecked = preferences.FieldBossNotifications,
-            Margin = new(0, 8, 0, 8), ToolTip = "Uses the lead time, sound and delivery options in Timer setup. Cached timers remain available after restart; no daily recurrence is assumed." };
+        var choice = new CheckBox { Content = global::AionDpsMeter.Local.Localization.T("Notify me before captured field-boss respawns"), IsChecked = preferences.FieldBossNotifications,
+            Margin = new(0, 8, 0, 8), ToolTip = global::AionDpsMeter.Local.Localization.T("Uses the lead time, sound and delivery options in Timer setup. Cached timers remain available after restart; no daily recurrence is assumed.") };
         choice.Click += (_, _) => { preferences.FieldBossNotifications = choice.IsChecked == true; SavePreferences(); };
         return choice;
     }
@@ -25,15 +25,15 @@ public sealed partial class MainWindow
         var saved = viewed;
         var historical = new FieldBossTracker();
         if (saved != null) foreach (var item in saved.Network) historical.Apply(item);
-        var window = new Window { Title = "Field boss timers", Owner = this, Width = 1050, Height = 620, MinWidth = 700, MinHeight = 520, WindowStartupLocation = WindowStartupLocation.CenterOwner };
+        var window = new Window { Title = global::AionDpsMeter.Local.Localization.T("Field boss timers"), Owner = this, Width = 1050, Height = 620, MinWidth = 700, MinHeight = 520, WindowStartupLocation = WindowStartupLocation.CenterOwner };
         UiTheme.Apply(window, preferences);
         var layout = new DockPanel { Margin = new(18) };
         var heading = new StackPanel(); DockPanel.SetDock(heading, Dock.Top); layout.Children.Add(heading);
         heading.Children.Add(UiSections.Heading("Field boss timers", "While capture is running, open Aion's field-boss list for each map you want to track. Timers are saved automatically, even with this window closed.",
             (saved == null ? "Live capture. " : "Saved fight: " + saved.Label + ". ") + "Experimental map-list data. An elapsed timer does not confirm a spawn. Unrecognized maps retain their IDs."));
-        var search = new TextBox { Tag = "Search boss or map...", Margin = new(0, 0, 0, 8), ToolTip = "Search map, boss or map ID" }; heading.Children.Add(search);
+        var search = new TextBox { Tag = "Search boss or map...", Margin = new(0, 0, 0, 8), ToolTip = global::AionDpsMeter.Local.Localization.T("Search map, boss or map ID") }; heading.Children.Add(search);
         heading.Children.Add(FieldBossNotificationChoice());
-        var reminderOptions = new Button { Content = "Notification timing and sound", HorizontalAlignment = HorizontalAlignment.Left, Margin = new(0, 0, 0, 8) };
+        var reminderOptions = new Button { Content = global::AionDpsMeter.Local.Localization.T("Notification timing and sound"), HorizontalAlignment = HorizontalAlignment.Left, Margin = new(0, 0, 0, 8) };
         reminderOptions.Click += (_, _) => ShowReminderSettings(); heading.Children.Add(reminderOptions);
         var status = new TextBlock { Margin = new(0, 0, 0, 8) }; heading.Children.Add(status);
         var table = new LiveTable { IsReadOnly = true, AutoGenerateColumns = false, CanUserAddRows = false, EnableRowVirtualization = true, RowHeight = 36 };
@@ -48,8 +48,8 @@ public sealed partial class MainWindow
             if (saved != null) rows = historical.Rows(now); else rows = engine.FieldBossCache.Rows(server, now);
             string query = search.Text.Trim();
             table.SetRows(rows.Where(r => r.Map.Contains(query, StringComparison.OrdinalIgnoreCase) || r.Boss.Contains(query, StringComparison.OrdinalIgnoreCase) || r.MapId.ToString().Contains(query)).ToArray());
-            status.Text = rows.Length == 0 ? "No timers for this server yet. Start capture and open the field-boss list in Aion." :
-                $"{rows.Length} observed slots · " + (saved != null ? "Saved fight" : $"Server {server} · cached locally") + " · Refresh expired timers in game; they do not repeat automatically.";
+            status.Text = rows.Length == 0 ? global::AionDpsMeter.Local.Localization.T("No timers for this server yet. Start capture and open the field-boss list in Aion.") :
+                global::AionDpsMeter.Local.Localization.F($"{rows.Length} observed slots · ") + (saved != null ? global::AionDpsMeter.Local.Localization.T("Saved fight") : global::AionDpsMeter.Local.Localization.F($"Server {server} · cached locally")) + global::AionDpsMeter.Local.Localization.T(" · Refresh expired timers in game; they do not repeat automatically.");
         }
         search.TextChanged += (_, _) => Update();
         var timer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(1) }; timer.Tick += (_, _) => Update(); window.Closed += (_, _) => timer.Stop();

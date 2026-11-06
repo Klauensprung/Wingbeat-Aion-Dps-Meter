@@ -12,14 +12,14 @@ public sealed partial class MainWindow
         var rows = fight.Actors.Values.Where(a => a.Gear != null).SelectMany(a => a.Gear!.Items.Select(i => new EquippedGearRow(
             a.Name, ItemNames.Default.Find(i.ItemId), i.Details.Slot, i.Details.Enchant, i.Details.Surpass, i.Details.ItemLevel,
             a.Gear.Complete ? "Full inventory" : "Partial capture", i))).ToArray();
-        var window = new Window { Title = "Equipped gear", Owner = this, Width = 1100, Height = 760, MinWidth = 800, MinHeight = 600,
+        var window = new Window { Title = global::AionDpsMeter.Local.Localization.T("Equipped gear"), Owner = this, Width = 1100, Height = 760, MinWidth = 800, MinHeight = 600,
             WindowStartupLocation = WindowStartupLocation.CenterOwner };
         UiTheme.Apply(window, preferences);
         var layout = new DockPanel { Margin = new(18) }; var heading = new StackPanel(); DockPanel.SetDock(heading, Dock.Top); layout.Children.Add(heading);
         heading.Children.Add(UiSections.Heading("Equipped gear", fight.Label,
             "Captured equipped inventory items, separate from appearance skins. Select an item to inspect its raw stats, skills and socketed stones. Combined stats include soul stats once; main stats remain separate. Values are not converted into derived character bonuses."));
-        heading.Children.Add(new TextBlock { Text = rows.Length == 0 ? "No equipped items captured. Enter the game while capture is running."
-            : $"{rows.Length:N0} equipped items captured", Margin = new(0, 0, 0, 12), TextWrapping = TextWrapping.Wrap });
+        heading.Children.Add(new TextBlock { Text = rows.Length == 0 ? global::AionDpsMeter.Local.Localization.T("No equipped items captured. Enter the game while capture is running.")
+            : global::AionDpsMeter.Local.Localization.F($"{rows.Length:N0} equipped items captured"), Margin = new(0, 0, 0, 12), TextWrapping = TextWrapping.Wrap });
         LiveTable Table() => new() { IsReadOnly = true, AutoGenerateColumns = false, CanUserAddRows = false, CanUserDeleteRows = false, EnableRowVirtualization = true, RowHeight = 36 };
         var items = Table(); var details = Table();
         void Column(LiveTable table, string title, string property, int width) => table.Columns.Add(new DataGridTextColumn { Header = title, Binding = new Binding(property), Width = width });

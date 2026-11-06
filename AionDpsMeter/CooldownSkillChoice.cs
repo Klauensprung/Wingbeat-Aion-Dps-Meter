@@ -10,7 +10,8 @@ internal sealed partial record CooldownSkillChoice(int Id, string Name)
     // and importing a new catalogue must not reuse old name associations.
     static readonly ConditionalWeakTable<SkillNames, ConcurrentDictionary<int, CooldownSkillChoice>> Cache = new();
     internal string Key { get; } = $"{Family(Id)}:{Name.ToUpperInvariant()}";
-    public override string ToString() => Name;
+    internal string DisplayName=>LocalizedSkillNames.Display(Id,Name);
+    public override string ToString() => DisplayName;
     internal bool Matches(CooldownSkillChoice other) => Key == other.Key;
     static int Family(int id) => id is >= 11000000 and < 20000000 ? id / 10000 * 10000 : id;
 
@@ -52,7 +53,7 @@ internal sealed partial record CooldownSkillChoice(int Id, string Name)
         if (int.TryParse(text, out int exact) && exact > 0) ids = new[] { exact }.Concat(ids);
         // Filter original aliases before grouping: searching "Bolt MAX" or its ID
         // must still return the single Bolt choice.
-        return Group(ids.Distinct().Where(id => text.Length == 0 || names.GetSkillName(id).Contains(text, StringComparison.OrdinalIgnoreCase) ||
+        return Group(ids.Distinct().Where(id => text.Length == 0 || names.GetSkillName(id).Contains(text, StringComparison.OrdinalIgnoreCase) || names.Resolve(id).Name.Contains(text,StringComparison.OrdinalIgnoreCase) || LocalizedSkillNames.Matches(id,text) ||
             id.ToString().Contains(text)), names).Take(150).ToArray();
     }
 }

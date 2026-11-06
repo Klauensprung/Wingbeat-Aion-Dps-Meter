@@ -42,7 +42,7 @@ public sealed partial class MainWindow
     void ApplyOverlayHotkey()
     {
         string? error=overlayHotkey?.Register(preferences.OverlayHideKey,preferences.OverlayHideModifiers);
-        if(overlayHotkeyStatus!=null)overlayHotkeyStatus.Text=error ?? "Hide/show all overlays: "+OverlayHotkey.Label(preferences.OverlayHideKey,preferences.OverlayHideModifiers);
+        if(overlayHotkeyStatus!=null)overlayHotkeyStatus.Text=error ?? global::AionDpsMeter.Local.Localization.T("Hide/show all overlays: ")+OverlayHotkey.Label(preferences.OverlayHideKey,preferences.OverlayHideModifiers);
         if(error!=null)LocalLog.Write(error);
     }
     void RefreshCooldownVisibility()

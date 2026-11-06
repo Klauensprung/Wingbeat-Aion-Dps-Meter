@@ -72,7 +72,7 @@ public sealed class OverlayWindow : Window
         this.reset = reset; this.saveSettings = saveSettings;
         this.trainingAction = trainingAction;
         skillBreakdown = new(skillName ?? (id => $"Skill {id}"), skillIcons) { Margin = new(8, 6, 8, 2) };
-        Title = "Wingbeat Overlay"; Width = 390; Height = 530; MinWidth = 310; MinHeight = 185;
+        Title = global::AionDpsMeter.Local.Localization.T("Wingbeat Overlay"); Width = 390; Height = 530; MinWidth = 310; MinHeight = 185;
         Topmost = true; ShowInTaskbar = false; WindowStyle = WindowStyle.None; ResizeMode = ResizeMode.CanResizeWithGrip;
         AllowsTransparency = true; Background = Brushes.Transparent;
         FontFamily = new("Segoe UI"); UseLayoutRounding = true; SnapsToDevicePixels = true;
@@ -89,10 +89,10 @@ public sealed class OverlayWindow : Window
             e.Handled = true; DragMove();
         };
         var toolbar = new DockPanel { Margin = new(6, 4, 5, 0), LastChildFill = true, Background = Brushes.Transparent };
-        mode = SmallButton("DAMAGE  ▾", "Choose damage, healing, party health and display options", ShowOptions); mode.FontWeight = FontWeights.Bold; mode.HorizontalAlignment = HorizontalAlignment.Left;
-        var close = SmallButton("×", "Close overlay", Close); close.FontSize = 19;
-        moveLock = SmallButton("◇", "Lock or unlock overlay position", () => { preferences.OverlayLocked = !preferences.OverlayLocked; RefreshMeter(); saveSettings?.Invoke(); });
-        var clear = SmallButton("↻", "Save and start a new fight", () => this.reset?.Invoke()); clear.FontSize = 18;
+        mode = SmallButton(global::AionDpsMeter.Local.Localization.T("DAMAGE  ▾"), global::AionDpsMeter.Local.Localization.T("Choose damage, healing, party health and display options"), ShowOptions); mode.FontWeight = FontWeights.Bold; mode.HorizontalAlignment = HorizontalAlignment.Left;
+        var close = SmallButton("×", global::AionDpsMeter.Local.Localization.T("Close overlay"), Close); close.FontSize = 19;
+        moveLock = SmallButton("◇", global::AionDpsMeter.Local.Localization.T("Lock or unlock overlay position"), () => { preferences.OverlayLocked = !preferences.OverlayLocked; RefreshMeter(); saveSettings?.Invoke(); });
+        var clear = SmallButton("↻", global::AionDpsMeter.Local.Localization.T("Save and start a new fight"), () => this.reset?.Invoke()); clear.FontSize = 18;
         foreach (var button in new[] { close, moveLock, clear }) { DockPanel.SetDock(button, Dock.Right); toolbar.Children.Add(button); }
         DockPanel.SetDock(duration, Dock.Right); toolbar.Children.Add(duration); toolbar.Children.Add(mode);
         var moveRow = new DockPanel(); DockPanel.SetDock(moveGrip, Dock.Left);
@@ -254,17 +254,17 @@ public sealed class OverlayWindow : Window
         else data = participantColors.Apply(fight, data);
         data = data with { Rows = data.Rows.Select(r => r with { Health = health.GetValueOrDefault(r.Id)?.Label ?? "" }).ToArray() };
         CurrentScope = data.Scope;
-        mode.Content = (showPvp ? "PVP · " : "") + (healing ? "HEALING" : "DAMAGE") + "  ▾";
+        mode.Content = (showPvp ? global::AionDpsMeter.Local.Localization.T("PVP · ") : "") + (healing ? global::AionDpsMeter.Local.Localization.T("HEALING") : global::AionDpsMeter.Local.Localization.T("DAMAGE")) + "  ▾";
         moveLock.Content = preferences.OverlayLocked ? "◆" : "◇";
-        moveLock.ToolTip = preferences.OverlayLocked ? "Unlock overlay position" : "Lock overlay position";
+        moveLock.ToolTip = preferences.OverlayLocked ? global::AionDpsMeter.Local.Localization.T("Unlock overlay position") : global::AionDpsMeter.Local.Localization.T("Lock overlay position");
         header.Cursor = preferences.OverlayLocked ? Cursors.Arrow : Cursors.SizeAll;
-        header.ToolTip = preferences.OverlayLocked ? "Position locked — use the diamond button to unlock" : "Drag the header to move the overlay";
+        header.ToolTip = preferences.OverlayLocked ? global::AionDpsMeter.Local.Localization.T("Position locked — use the diamond button to unlock") : global::AionDpsMeter.Local.Localization.T("Drag the header to move the overlay");
         moveGrip.Opacity = preferences.OverlayLocked ? .35 : 1;
         var resizeMode=preferences.OverlayLocked ? ResizeMode.NoResize : ResizeMode.CanResizeWithGrip;
         if(ResizeMode!=resizeMode)ResizeMode=resizeMode;
         resizeGrip.Visibility = preferences.OverlayLocked ? Visibility.Collapsed : Visibility.Visible;
         duration.Text = showPvp ? MeterPresentation.Duration(displayPvp.HasOpponents ? displayPvp.Seconds : 0) : MeterPresentation.Duration(fight);
-        encounter.Text = (fight.Demo ? "DEMO  ·  " : "") + fight.Label + "  ·  " + data.Scope;
+        encounter.Text = (fight.Demo ? global::AionDpsMeter.Local.Localization.T("DEMO  ·  ") : "") + fight.Label + "  ·  " + data.Scope;
         var own = data.Rows.Where(r => preferences.OverlayPinLocal && r.Local).ToArray();
         var others = data.Rows.Where(r => !preferences.OverlayPinLocal || !r.Local).ToArray();
         // Skills mode supplies its own stable personal row below. Clearing it
@@ -290,11 +290,11 @@ public sealed class OverlayWindow : Window
             ownMeter.Update(personalData.Rows, preferences.OverlayCompact, healing, fight.HasEvents, showClassSymbols: true);
             ownMeter.Visibility = personalData.Rows.Length > 0 ? Visibility.Visible : Visibility.Collapsed;
             actorScroll.Visibility = Visibility.Visible;
-            CurrentScope = "Your skills"; mode.Content = "MY SKILLS  ▾";
-            encounter.Text = (fight.Demo ? "DEMO  ·  " : "") + fight.Name(fight.LocalPlayer) + "  ·  " + fight.Label;
+            CurrentScope = "Your skills"; mode.Content = global::AionDpsMeter.Local.Localization.T("MY SKILLS  ▾");
+            encounter.Text = (fight.Demo ? global::AionDpsMeter.Local.Localization.T("DEMO  ·  ") : "") + fight.Name(fight.LocalPlayer) + "  ·  " + fight.Label;
             duration.Text = MeterPresentation.Duration(fight);
             long amount=personalSkills.Sum(r=>r.Amount);
-            summary=$"YOU {MeterPresentation.Number(amount)} | {MeterPresentation.Number(amount/fight.Seconds)} {(healing?"HPS":"DPS")}";
+            summary=global::AionDpsMeter.Local.Localization.F($"YOU {MeterPresentation.Number(amount)} | {MeterPresentation.Number(amount/fight.Seconds)} {(healing?Localization.T("HPS"):Localization.T("DPS"))}");
         } else { skillSnapshot = null; personalSkills = []; }
         if (bossesOnly || selectedTarget != 0) encounter.Text += "  ·  " + TargetLabel;
         int healthTarget = selectedTarget > 0 ? selectedTarget : preferences.OverlayFollowGameTarget ? 0 : engagedBoss;
@@ -306,11 +306,11 @@ public sealed class OverlayWindow : Window
         OverlayMotion.Column(targetGuardBar.ColumnDefinitions[1],1-(guard?.Ratio??0),IsVisible);
         targetGuardFill.Background = UiTheme.Brush(guard?.Broken == true ? "#E7CF7D" : "#75B5F5");
         targetHealthText.Text = healthTarget > 0 ? $"{fight.Name(healthTarget)} · {health.GetValueOrDefault(healthTarget)?.Label ?? "HP not captured"}" : "";
-        targetHealthText.ToolTip = (selectedTarget > 0 ? "Selected target" : "Most recently engaged recognized boss") + "\n" + targetHealthText.Text +
-            "\nHealth is the last captured value. Maximum HP is unavailable; no percentage is inferred.";
+        targetHealthText.ToolTip = (selectedTarget > 0 ? global::AionDpsMeter.Local.Localization.T("Selected target") : global::AionDpsMeter.Local.Localization.T("Most recently engaged recognized boss")) + "\n" + targetHealthText.Text +
+            global::AionDpsMeter.Local.Localization.T("\nHealth is the last captured value. Maximum HP is unavailable; no percentage is inferred.");
         if (training) {
-            status=TrainingLabel.Contains("stop",StringComparison.Ordinal)?TrainingLabel:"Saved training attempt";
-            mode.Content = "TRAINING  ▾";
+            status=TrainingLabel.Contains(global::AionDpsMeter.Local.Localization.T("stop"),StringComparison.Ordinal)?TrainingLabel:global::AionDpsMeter.Local.Localization.T("Saved training attempt");
+            mode.Content = global::AionDpsMeter.Local.Localization.T("TRAINING  ▾");
             duration.Text = MeterPresentation.Duration(fight.Seconds);
         }
         if (showHealth) {
@@ -319,14 +319,14 @@ public sealed class OverlayWindow : Window
             var ranges=PartyRanges?.Invoke(fight);
             if(ranges!=null)healthRows=healthRows.Select(row=>row with {Range=row.Entity==fight.LocalPlayer?PartyRange.Nearby:ranges.GetValueOrDefault(row.Entity,PartyRange.Unknown)}).ToArray();
             if (distances != null) healthRows = healthRows.Select(row => row with { Proximity = row.Entity == fight.LocalPlayer ? "" : distances.GetValueOrDefault(row.Entity, "Distance unknown") }).ToArray();
-            summary=$"{healthRows.Length} MEMBERS | {healthRows.Count(r=>r.Critical)} at or below 25% HP";
-            status="Green 75% | yellow 50% | red 25%";
+            summary=global::AionDpsMeter.Local.Localization.F($"{healthRows.Length} MEMBERS | {healthRows.Count(r=>r.Critical)} at or below 25% HP");
+            status=global::AionDpsMeter.Local.Localization.T("Green 75% | yellow 50% | red 25%");
             partyHealth.Update(healthRows, preferences.OverlayCompact);
             actorScroll.Content = partyHealth; actorScroll.Visibility = Visibility.Visible;
             ownMeter.Visibility = Visibility.Collapsed; targetHealthText.Visibility = targetGuard.Visibility = Visibility.Collapsed;
-            mode.Content = "PARTY HEALTH  ▾"; CurrentScope = "Party health";
-            encounter.Text = fight.PartyKnown ? "Party health · last captured HP" : PartyHealthView.HasRoster(fight)
-                ? "Party health · partial roster · last captured HP" : "Party health · waiting for party roster";
+            mode.Content = global::AionDpsMeter.Local.Localization.T("PARTY HEALTH  ▾"); CurrentScope = "Party health";
+            encounter.Text = fight.PartyKnown ? global::AionDpsMeter.Local.Localization.T("Party health · last captured HP") : PartyHealthView.HasRoster(fight)
+                ? global::AionDpsMeter.Local.Localization.T("Party health · partial roster · last captured HP") : global::AionDpsMeter.Local.Localization.T("Party health · waiting for party roster");
         }
         string headerText=summary+" | "+(Notification.Length>0?Notification:status);
         if(headerSummary.Text!=headerText){headerSummary.Text=headerText;headerSummary.ToolTip=headerText;}
@@ -347,7 +347,7 @@ public sealed class OverlayWindow : Window
             menu.Items.Add(item);
         }
         var follow = new MenuItem { Header = "Follow in-game target", IsCheckable = true, IsChecked = preferences.OverlayFollowGameTarget,
-            ToolTip = "Follow captured target selections. Clearing your target clears the meter filter; without a selected target, no target damage is shown." };
+            ToolTip = global::AionDpsMeter.Local.Localization.T("Follow captured target selections. Clearing your target clears the meter filter; without a selected target, no target damage is shown.") };
         follow.Click += (_, _) => { preferences.OverlayFollowGameTarget = follow.IsChecked; selectedTarget = 0; selectedTargetIdentity = null; RefreshMeter(); saveSettings?.Invoke(); };
         menu.Items.Add(follow);
         Choice("All targets", false, 0); Choice("Encounter bosses only", true, 0);
