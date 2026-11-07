@@ -77,11 +77,13 @@ public sealed class OverlayWindow : Window
         AllowsTransparency = true; Background = Brushes.Transparent;
         FontFamily = new("Segoe UI"); UseLayoutRounding = true; SnapsToDevicePixels = true;
         var shell = new Border { Padding = new(1, 3, 1, 1) };
-        var layers = new Grid(); layers.Children.Add(shell); layers.Children.Add(backAttackBorder); Content = layers;
+        var layers = new Grid(); layers.Children.Add(shell); Content = layers;
         var root = new DockPanel(); shell.Child = root;
         // Tint only the controls and bars: unused space stays clear and text
         // retains full opacity. The header's tint also keeps it easy to drag.
-        DockPanel.SetDock(header, Dock.Top); root.Children.Add(header);
+        var headerLayers = new Grid();
+        headerLayers.Children.Add(header); headerLayers.Children.Add(backAttackBorder);
+        DockPanel.SetDock(headerLayers, Dock.Top); root.Children.Add(headerLayers);
         // Buttons consume their own mouse-down events. Everything else in the
         // header, including the full encounter row and its padding, can drag.
         header.MouseLeftButtonDown += (_, e) => {

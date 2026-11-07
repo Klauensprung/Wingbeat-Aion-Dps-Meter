@@ -9,6 +9,7 @@ namespace AionDpsMeter.Local;
 
 internal sealed class OverlaySnooze
 {
+    internal bool SetupPreview {get;set;}
     internal Panel? Controls { get; set; }
     internal long Until { get; private set; }
     internal void HideForMinute(long now) => Until = now + 60000;
@@ -40,7 +41,7 @@ internal static class OverlayHideControls
                 // Keep the launcher available while its scale popup is open.
                 hover|=controls.Children.OfType<Button>().Any(b=>b.ContextMenu?.IsOpen==true);
             }
-            controls.Visibility=hover?Visibility.Visible:Visibility.Hidden;
+            controls.Visibility=hover&&!pair.Value.SetupPreview?Visibility.Visible:Visibility.Hidden;
         }
         if(anyVisible)hoverTimer.Start();else hoverTimer.Stop();
     }
@@ -59,6 +60,7 @@ internal static class OverlayHideControls
         return false;
     }
     internal static bool Allows(Window? window) => window == null || !states.TryGetValue(window,out var state) || state.Allows(Environment.TickCount64);
+    internal static void SetupPreview(Window window){if(states.TryGetValue(window,out var state)){state.SetupPreview=true;if(state.Controls!=null)state.Controls.Visibility=Visibility.Collapsed;}}
     internal static void Attach(Window window)
     {
         if (states.TryGetValue(window,out _)) return;

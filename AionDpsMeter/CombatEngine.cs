@@ -14,6 +14,7 @@ public sealed partial class CombatEngine
     internal BossAlertTracker BossAlerts {get;}=new();
     internal long LiveIdentityBoundary => skillBoundaryTime;
     internal long LiveSceneRevision { get; private set; }
+    internal readonly PartyAttackWarnings PartyAttacks = new();
     internal bool LiveIdentityReady => !skillsAwaitingIdentity && !cachedLocalIdentity && Fight.LocalPlayer > 0;
     internal PetCollectionSnapshot? CurrentPets() { lock (Gate) return LiveIdentityReady ? Fight.Pets : null; }
     internal SessionSignalTracker SessionSignals { get; } = new();
@@ -697,6 +698,7 @@ public sealed partial class CombatEngine
                 lastOverlayHealing=Math.Max(lastOverlayHealing??damage.Timestamp,damage.Timestamp);
             if (!healing && damage.Damage > 0) ObservePartyCombat(damage.Timestamp, damage.ActorId, damage.TargetId);
             EnsureActor(damage.ActorId); EnsureActor(damage.TargetId);
+            if(!healing&&LiveIdentityReady&&damage.Timestamp>=skillBoundaryTime)PartyAttacks.Observe(Fight,damage,LiveSceneRevision);
             ObserveTraining(damage, healing);
             (healing ? Fight.Healing : Fight.Damage).Add(damage with { IsHeal = healing });
             revision++;

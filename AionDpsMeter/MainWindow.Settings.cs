@@ -31,7 +31,7 @@ public sealed partial class MainWindow
         var restoreCooldowns = new CheckBox { Content = global::AionDpsMeter.Local.Localization.T("Restore the cooldown overlay"), IsChecked = preferences.OpenCooldownsOnStartup, Margin = new(8) };
         var restore = new StackPanel(); restore.Children.Add(restoreMeter); restore.Children.Add(restoreCooldowns);
         restore.Children.Add(SettingsHint(global::AionDpsMeter.Local.Localization.T("The DPS overlay needs a saved position. Cooldowns need at least one tracked skill. Positions are saved as you move each overlay.")));
-        restore.Children.Add(SettingsAction(UiIcon.Meter, global::AionDpsMeter.Local.Localization.T("Arrange DPS meter and boss alerts"), ShowOverlayPlacementSetup));
+        restore.Children.Add(SettingsAction(UiIcon.Meter, global::AionDpsMeter.Local.Localization.T("Overlay setup"), ShowOverlayPlacementSetup));
         void SaveStartup() {
             preferences.AutoStartConfigured = autoStart.IsChecked == true;
             preferences.OpenMeterOnStartup = restoreMeter.IsChecked == true;

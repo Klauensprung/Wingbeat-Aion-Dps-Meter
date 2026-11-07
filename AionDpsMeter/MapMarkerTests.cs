@@ -6,6 +6,16 @@ internal static class MapMarkerTests
     internal static void Run(Action<bool,string> check,string temp)
     {
         var catalogue=MapMarkers.Default;
+        foreach(int cubeWorld in new[]{1010,1011,1110,1111}){
+            var cubeGroups=GatheringRouteSources.Groups(catalogue,cubeWorld,GatheringRouteSources.HiddenCubes);
+            var cubeIds=cubeGroups.Select(g=>g.Id).ToHashSet();
+            var cubePoints=catalogue.LoadWorld(cubeWorld).Where(p=>cubeIds.Contains(p.Group)).Select(p=>new PetSpawnPoint(p.Group+1,p.X,p.Y,0)).ToArray();
+            var cubeRoute=FarmingRoute.Build(cubePoints,new(cubeWorld,0,0,0,1000),32);
+            check(cubeGroups.Length>0&&cubeGroups.All(g=>g.DatabaseId==0&&g.Category=="hidden-cube")&&cubeRoute.Length==32,
+                $"Hidden cube locations produce a route on world {cubeWorld} without inventing inventory item IDs");
+        }
+        check(GatheringRouteSources.Groups(catalogue,999999,GatheringRouteSources.HiddenCubes).Length==0,
+            "Hidden cube route on an unsupported teleport destination has no old-map stops");
         check(catalogue.LoadError==null && catalogue.Groups.Length==11279 && catalogue.Groups.Sum(g=>g.Count)==88256,
             "Compact marker catalogue retains all 88256 reference locations and categories");
         int total=0;MapMarkerPoint? sample=null;

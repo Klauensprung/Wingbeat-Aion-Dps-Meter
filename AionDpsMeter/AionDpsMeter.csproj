@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <OutputType>WinExe</OutputType>
     <TargetFramework>net10.0-windows</TargetFramework>
@@ -11,7 +11,7 @@
     <AssemblyTitle>Wingbeat ♥ Aion 2 DPS Meter</AssemblyTitle>
     <ApplicationIcon>Assets/aion-dps-meter.ico</ApplicationIcon>
     <Description>Free local Aion 2 DPS meter with live damage, healing, PvP tracking, and a customizable overlay.</Description>
-    <Version>0.5.51</Version>
+    <Version>0.5.52</Version>
   </PropertyGroup>
   <ItemGroup>
     <EmbeddedResource Include="Assets/cooldown-voice.json" LogicalName="Wingbeat.CooldownVoice.json" />

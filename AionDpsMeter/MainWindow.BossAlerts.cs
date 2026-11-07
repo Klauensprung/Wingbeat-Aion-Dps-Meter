@@ -13,9 +13,6 @@ public sealed partial class MainWindow
         window.Closed+=(_,_)=>{if(ReferenceEquals(bossAlertOverlay,window))bossAlertOverlay=null;if(!shuttingDown){preferences.BossAlertsEnabled=false;SavePreferences();}};
     }
     void RefreshBossAlerts(bool allowed){
-        if(placementSetup!=null){
-            preferences.BossAlertsEnabled=true;EnsureBossAlerts();bossAlertOverlay!.Preview();
-        }
         if(!preferences.BossAlertsEnabled)return;
         long now=DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();BossAlert[] alerts=[];
         if(capture!=null)lock(engine.Gate)alerts=engine.BossAlerts.Snapshot(now);

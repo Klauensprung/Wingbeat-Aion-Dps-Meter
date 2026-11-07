@@ -8,6 +8,26 @@ internal static class WorldObjectTests
 {
     internal static void Run(Action<bool, string> check, string temp)
     {
+        WorldObjectReading Cube(int id,float x,float y)=>new(id,1200039,x,y,0,1,true,1,0,0,0);
+        var origin=new CapturedPosition(901,0,0,0,1000);
+        foreach(var (x,y,cardinal,bearing) in new[]{(0f,-10f,"N",0d),(10f,0f,"E",90d),(0f,10f,"S",180d),(-10f,0f,"W",270d)}){
+            var result=HiddenCubes.Nearest([Cube(1,x,y)],901,origin,1000);
+            check(result?.Cardinal==cardinal&&result.Bearing==bearing,$"Hidden cube compass points {cardinal} from the player");
+        }
+        var cubes=new[]{Cube(1,100,0),Cube(2,0,-20),Cube(3,1,0) with{ObjectId=1234},Cube(4,2,0) with{CanInteract=false}};
+        check(HiddenCubes.Nearest(cubes,901,origin,2000)?.EntityId==2,"Hidden cube compass selects nearest interactable verified cube, ignoring unrelated objects");
+        check(HiddenCubes.Nearest(cubes,902,origin,2000)==null&&HiddenCubes.Nearest(cubes,901,origin,6001)==null&&HiddenCubes.Nearest(cubes,901,null,2000)==null,
+            "Cube compass suppresses stale, absent and different-map player directions");
+        check(HiddenCubes.Nearest([],901,origin,1000)==null,"Cube compass does not invent cubes from static map spots");
+        var cubeTracker=new WorldObjectTracker();
+        cubeTracker.Apply(new("local-zone",900,"test",JsonSerializer.SerializeToElement(new{MapId=901})));
+        cubeTracker.Apply(new("world-object",1000,"test",JsonSerializer.SerializeToElement(Cube(1,0,-10))));
+        check(HiddenCubes.Nearest(cubeTracker.Snapshot(),cubeTracker.MapId,origin,1000)?.EntityId==1,"Live cube spawn enables its compass direction");
+        cubeTracker.Apply(new("world-object-removed",1100,"test",JsonSerializer.SerializeToElement(new WorldObjectRemoval(1,0,4,0))));
+        check(!cubeTracker.Snapshot().Any(HiddenCubes.IsCube),"Opened or despawned cube disappears from the compass");
+        cubeTracker.Apply(new("world-object",1200,"test",JsonSerializer.SerializeToElement(Cube(1,0,-10))));
+        cubeTracker.Apply(new("local-zone",1300,"test",JsonSerializer.SerializeToElement(new{MapId=902})));
+        check(!cubeTracker.Snapshot().Any(HiddenCubes.IsCube),"Teleport clears old cube targets");
         byte[] Body(byte flags, byte desc) {
             var w = new PartyWireTests.Writer(); w.Var(128); w.Raw(flags, desc);
             if ((desc & 1) != 0) w.Text("Discarded name"); w.Int(1234);

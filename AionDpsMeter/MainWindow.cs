@@ -19,6 +19,12 @@ public sealed class Preferences
     public string Language { get; set; } = "auto";
     public string GameLanguage { get; set; } = "en";
     public bool AutoStartConfigured { get; set; } = true;
+    public double? GatheringSetupLeft {get;set;}
+    public double? GatheringSetupTop {get;set;}
+    public double GatheringSetupWidth {get;set;}=700;
+    public double GatheringSetupHeight {get;set;}=550;
+    public bool GatheringSetupPending {get;set;}
+    public Dictionary<string,bool> SetupOverlayEnabled {get;set;} = new();
     public bool OverlayPlacementSetupCompleted { get; set; }
     public bool OpenMeterOnStartup { get; set; } = true;
     public bool OpenCooldownsOnStartup { get; set; } = true;
@@ -46,6 +52,12 @@ public sealed class Preferences
     public double? NearbyEnemiesLeft { get; set; }
     public double? NearbyEnemiesTop { get; set; }
     public bool PingLocked { get; set; }
+    public double? HiddenCubeLeft {get;set;}
+    public double? HiddenCubeTop {get;set;}
+    public bool HiddenCubeLocked {get;set;}
+    public double? FlightPowerLeft {get;set;}
+    public double? FlightPowerTop {get;set;}
+    public bool FlightPowerLocked {get;set;}
     public double? PingLeft { get; set; }
     public double? PingTop { get; set; }
     public bool LootOverlayEnabled { get; set; } = true;
@@ -80,6 +92,9 @@ public sealed class Preferences
     public bool BossAlertsLocked {get;set;}
     public double? BossAlertsLeft {get;set;}
     public double? BossAlertsTop {get;set;}
+    public bool PartyAttackWarningsEnabled {get;set;}=true;
+    public double? PartyAttackLeft {get;set;}
+    public double? PartyAttackTop {get;set;}
     public bool ControlAlertsEnabled { get; set; }
     public bool PartyDebuffAlerts { get; set; }
     public bool PetLevelAlerts { get; set; }
@@ -261,6 +276,8 @@ public sealed partial class MainWindow : Window
         newFightButton = IconButton(UiIcon.NewFight, global::AionDpsMeter.Local.Localization.T("New fight"), NewFight); controls.Children.Add(newFightButton);
         var overlayControls = new WrapPanel { Margin = new(18, 0, 18, 10) };
         var shortcuts=new WrapPanel{Margin=new(20,0,20,14)};header.Children.Add(shortcuts);
+        dpsToggleButton=IconButton(UiIcon.Meter,Localization.T("DPS overlays"),ToggleDpsMeters);shortcuts.Children.Add(dpsToggleButton);
+        shortcuts.Children.Add(IconButton(UiIcon.Settings,Localization.T("Overlay setup"),ShowOverlayPlacementSetup));
         shortcuts.Children.Add(IconButton(UiIcon.Meter,Localization.T("Overlays"),()=>NavigateTo("Overlays")));
         shortcuts.Children.Add(IconButton(UiIcon.Cooldowns,Localization.T("Timer setup"),ShowReminderSettings));
         shortcuts.Children.Add(IconButton(UiIcon.Chart,Localization.T("Gathering routes"),ShowGatheringRoutes));
@@ -278,11 +295,16 @@ public sealed partial class MainWindow : Window
         overlayControls.Children.Add(IconButton(UiIcon.Chart, global::AionDpsMeter.Local.Localization.T("Farming"), ShowFarming));
         overlayControls.Children.Add(IconButton(UiIcon.Chart, global::AionDpsMeter.Local.Localization.T("Gathering routes"), ShowGatheringRoutes));
         OverlayAction(UiIcon.Chart, global::AionDpsMeter.Local.Localization.T("Farming overlay"), ToggleFarmingOverlay, () => farmingOverlay != null);
-        OverlayAction(UiIcon.Catalogue, global::AionDpsMeter.Local.Localization.T("Pet farming"), TogglePetTracker, () => petTrackerOverlay != null);
+        OverlayAction(UiIcon.Catalogue, global::AionDpsMeter.Local.Localization.T("Pet farming overlay"), TogglePetTracker, () => preferences.PetGatheringAutoShow);
+        petFarmingButton=(Button)overlayControls.Children[overlayControls.Children.Count-1];
         OverlayAction(UiIcon.Boss, global::AionDpsMeter.Local.Localization.T("Nearby enemies"), ToggleNearbyEnemies, () => preferences.NearbyEnemiesEnabled);
         OverlayAction(UiIcon.Network, global::AionDpsMeter.Local.Localization.T("Ping overlay"), TogglePingOverlay, () => pingOverlay != null);
         OverlayAction(UiIcon.Boss,global::AionDpsMeter.Local.Localization.T("Boss alerts"),()=>ConfigureBossAlerts(!preferences.BossAlertsEnabled,false),()=>preferences.BossAlertsEnabled);
         OverlayAction(UiIcon.Cooldowns, global::AionDpsMeter.Local.Localization.T("Control alerts"), () => ConfigureControlAlerts(!preferences.ControlAlertsEnabled, true), () => preferences.ControlAlertsEnabled);
+        OverlayAction(UiIcon.Chart, Localization.T("Flight power"), ToggleFlightPowerOverlay, () => flightPowerOverlay != null);
+        OverlayAction(UiIcon.Chart, Localization.T("Hidden cubes"), ToggleHiddenCubeOverlay, () => hiddenCubeOverlay != null);
+        OverlayAction(UiIcon.Catalogue,Localization.T("Pet map overlay"),TogglePetMap,()=>petMapOverlay!=null||preferences.SetupOverlayEnabled.GetValueOrDefault("PetMap"));
+        petMapButton=(Button)overlayControls.Children[overlayControls.Children.Count-1];
         moreButton = IconButton(UiIcon.Catalogue, global::AionDpsMeter.Local.Localization.T("Tools"), OpenTools);
         settingsButton = IconButton(UiIcon.Settings, global::AionDpsMeter.Local.Localization.T("Settings"), ToggleSettings); controls.Children.Add(settingsButton);
         var brand = new StackPanel { Orientation = Orientation.Horizontal, VerticalAlignment = VerticalAlignment.Center };
@@ -429,7 +451,7 @@ public sealed partial class MainWindow : Window
             if (shuttingDown) return;
             try { capture?.Dispose(); engine.StopTraining(DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()); LogCapture(); capture = null; FinishAutosave(); engine.SaveCompleted(store); var f = LiveSnapshot(); if (f.HasRecordedData) SaveFight(f); playerProfiles.Save(); dutyMissions.Save(); accountCharacters.Save(); shopPurchases.Save(); crafting.Save(); gatheringTracking.Save(); killTracking.Save(); lootTracking.Save(); soulTracking.Save(); petRegistrationTracking.Save(); petLevelTracking.Save(); engine.SaveVisibilityMemory(); engine.FieldBossCache.Save(); ArmUpdateAfterSave(); }
             catch (Exception ex) { e.Cancel = true; notice = global::AionDpsMeter.Local.Localization.T("Could not save before closing: ") + ex.Message; Refresh(); return; }
-            shuttingDown = true; secondMeter?.Close(); archiveLoading?.Cancel(); timer.Stop(); settingsWindow.Shutdown(); reminderToast?.Close(); reminderSound.Close(); windowsNotifications?.Dispose(); bossAlertOverlay?.Close(); controlOverlay?.Close(); ticketOverlay?.Close(); currencyOverlay?.Close(); lootOverlay?.Close(); farmingOverlay?.Close(); petTrackerOverlay?.Close(); petMapOverlay?.Close(); pingOverlay?.Close(); nearbyEnemiesOverlay?.Close(); cooldownOverlay?.Close(); overlay?.Close(); LocalLog.Write("Application closed.");
+            SaveSetupExtras();SavePreferences();shuttingDown = true;placementSetup?.Close(); secondMeter?.Close(); archiveLoading?.Cancel(); timer.Stop(); settingsWindow.Shutdown(); reminderToast?.Close(); reminderSound.Close(); windowsNotifications?.Dispose(); bossAlertOverlay?.Close(); controlOverlay?.Close();partyAttackWarning?.Close(); ticketOverlay?.Close(); currencyOverlay?.Close(); lootOverlay?.Close(); farmingOverlay?.Close(); petTrackerOverlay?.Close(); petMapOverlay?.Close(); pingOverlay?.Close(); flightPowerOverlay?.Close(); hiddenCubeOverlay?.Close(); nearbyEnemiesOverlay?.Close(); cooldownOverlay?.Close(); overlay?.Close(); LocalLog.Write("Application closed.");
         };
     }
     static TextBlock Label(string text) => new() { Text = Localization.T(text), VerticalAlignment = VerticalAlignment.Center, Margin = new(6) };
@@ -620,6 +642,9 @@ public sealed partial class MainWindow : Window
     }
     void UpdateToolbarState()
     {
+        if(petMapButton!=null)petMapButton.Content=Localization.T(petMapOverlay!=null||preferences.SetupOverlayEnabled.GetValueOrDefault("PetMap")?"Pet map overlay: On":"Pet map overlay: Off");
+        if(petFarmingButton!=null)petFarmingButton.Content=Localization.T(preferences.PetGatheringAutoShow?"Pet farming overlay: On":"Pet farming overlay: Off");
+        if(dpsToggleButton!=null){bool enabled=meterWanted||SecondMeterOptions.Enabled;dpsToggleButton.Content=Localization.T(enabled?"DPS overlays: On":"DPS overlays: Off");dpsToggleButton.SetResourceReference(Control.ForegroundProperty,enabled?"Accent":"Text");}
         void State(Button button, bool visible, string name) {
             button.SetResourceReference(Control.BorderBrushProperty, visible ? "Accent" : "Edge");
             button.SetResourceReference(Control.ForegroundProperty, visible ? "Accent" : "Text");
@@ -806,6 +831,7 @@ public sealed partial class MainWindow : Window
     }
     void RestoreStartupOverlays(StartupPlan plan)
     {
+        RestoreSetupExtras();
         if(preferences.AutoStartConfigured&&SecondMeterOptions.Enabled)OpenSecondMeter();
         foreach (var (enabled, open) in new (bool, Action)[] { (plan.OpenMeter, OpenOverlay), (plan.OpenCooldowns, OpenCooldownOverlay) }) {
             if (!enabled) continue;

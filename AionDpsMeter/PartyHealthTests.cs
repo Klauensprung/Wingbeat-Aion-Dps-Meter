@@ -3,6 +3,14 @@ namespace AionDpsMeter.Local;
 internal static class PartyHealthTests
 {
     internal static void Run(Action<bool,string> check) {
+        check(PartyHealthEffects.ShouldBubble(new(1,"Player",70,"70%","Slow"))&&!PartyHealthEffects.ShouldBubble(new(1,"Player",70,"70%","")),"Bubbles mark any active debuff and stop when cleared");
+        var low=new PartyHealthRow(1,"Player",24,"24%","");
+        check(PartyHealthEffects.ShouldPulse(low)&&!PartyHealthEffects.ShouldPulse(low with{Percent=25})&&
+            !PartyHealthEffects.ShouldPulse(low with{Percent=0})&&!PartyHealthEffects.ShouldPulse(low with{Percent=null})&&
+            !PartyHealthEffects.ShouldPulse(low with{Range=PartyRange.Far}),"Health pulse is only for living, available players below 25 percent");
+        check(PartyHealthEffects.IsPoison(new(1,12000101,"Localized name",null))&&
+            !PartyHealthEffects.IsPoison(new(1,458,"Poison",null))&&!PartyHealthEffects.IsPoison(new(1,int.MaxValue,"Poison",null)),
+            "Poison bubbles use known debuff identities, excluding buffs and unknown names");
         var origin = new CapturedPosition(1010, 0, 0, 0, 10000);
         var memberPosition = new SpatialEntity(2, 0, 0, 0, 10000, 3, 4, 12, 10000);
         check(PartyProximity.Describe(origin, 1010, memberPosition, 10000) == $"{13:N0} units away", "Party distance includes vertical separation for flight and different elevations");
@@ -41,6 +49,9 @@ internal static class PartyHealthTests
         recovery.Set(2,10,104,500,9000);recovery.Set(2,10,104,0,9100);
         check(recovery.Snapshot(9100).Count==0,"Explicit zero remaining recovery clears the preview");
         var rows=PartyHealthView.Build(fight,health,[new(3,100,"Stun",2.1),new(3,101,"Poison",null)]);
+        var poisonRows=PartyHealthView.Build(fight,health,[new(3,12000101,"Poison",12)]);
+        check(poisonRows.Single(r=>r.Entity==3).Poisoned&&!poisonRows.Single(r=>r.Entity==2).Poisoned&&
+            !PartyHealthView.Build(fight,health,[]).Single(r=>r.Entity==3).Poisoned,"Poison visual follows the affected player and clears with the debuff");
         check(rows.Length==5&&rows[0].Entity==1,"Party health includes idle members and local player but excludes nearby outsiders and pets");
         check(rows[1] is {Percent:25,Critical:true}&&rows[2] is {Percent:24.9,Critical:true},"Party health is critical at 25 percent and below");
         check(rows[3] is {Percent:0,Health:"Dead",Critical:true}&&rows[4] is {Percent:null,Health:"HP unknown",Critical:false},"Dead and unknown maximum HP remain distinct");

@@ -10,11 +10,14 @@ namespace AionDpsMeter.Local;
 internal static class OverlayScale
 {
     internal static readonly (string Key,string Label)[] Options = [
+        (nameof(PartyAttackWarningWindow),"Party attack warnings"),
+        (nameof(HiddenCubeOverlayWindow),"Hidden cubes"),
+        (nameof(FlightPowerOverlayWindow),"Flight power"),
         ("DPS1","DPS1"),("DPS2","DPS2"),(nameof(CooldownOverlayWindow),"Cooldowns and buff uptime"),
         (nameof(BossAlertOverlayWindow),"Boss warnings"),(nameof(ControlOverlayWindow),"Control alerts"),
         (nameof(NearbyEnemiesOverlayWindow),"Nearby enemies"),(nameof(PingOverlayWindow),"Ping"),(nameof(LootOverlayWindow),"Loot history"),
-        (nameof(FarmingOverlayWindow),"Farming"),(nameof(CurrencyOverlayWindow),"Currency"),
-        (nameof(TicketOverlayWindow),"Tickets"),(nameof(PetTrackerOverlayWindow),"Pet gathering"),
+        (nameof(FarmingOverlayWindow),"Farming"),
+        (nameof(PetTrackerOverlayWindow),"Pet gathering"),
         (nameof(PetMapOverlayWindow),"Pet map"),(nameof(GatheringMapOverlay),"Gathering map")];
     static readonly Dictionary<string,double> values=Load();
     static readonly DispatcherTimer saveTimer=new(){Interval=TimeSpan.FromMilliseconds(400)};

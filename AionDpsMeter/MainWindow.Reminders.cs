@@ -72,6 +72,8 @@ public sealed partial class MainWindow
         var body = new StackPanel { Margin = new(20) };
         body.Children.Add(UiSections.Heading("Timer setup", "Choose your reminders. Everything saves automatically.",
             "Reported Global schedule, reviewed 31 Oct 2026. Times use your Windows time zone. Wingbeat must be open; reminders do not confirm a server reset or event start. Source: aion2data.com/timers."));
+        var attacks=new CheckBox{Content=Localization.T("Warn when a player attacks a party member"),IsChecked=preferences.PartyAttackWarningsEnabled,Margin=new(0,0,0,14)};
+        attacks.Click+=(_,_)=>{preferences.PartyAttackWarningsEnabled=attacks.IsChecked==true;SavePreferences();RefreshCooldownVisibility();};body.Children.Add(attacks);
         var bossOptions = new StackPanel();
         bossOptions.Children.Add(FieldBossNotificationChoice());
         bossOptions.Children.Add(new TextBlock { Text = global::AionDpsMeter.Local.Localization.T("Start capture, then open the field-boss list in Aion. Wingbeat remembers the times for your server. Open it again when timers expire."), TextWrapping = TextWrapping.Wrap, Margin = new(0, 0, 0, 8) });

@@ -6,6 +6,7 @@ namespace AionDpsMeter.Local;
 
 internal sealed record PartyHealthRow(int Entity, string Name, double? Percent, string Health, string Debuffs)
 {
+    internal bool Poisoned { get; init; }
     internal string Job { get; init; } = "Unknown";
     internal double RecoveryPercent { get; init; }
     internal PartyRange Range { get; init; }
@@ -16,9 +17,8 @@ internal sealed record PartyHealthRow(int Entity, string Name, double? Percent, 
 
 internal sealed class PartyHealthView : AnimatedStackPanel
 {
-    sealed record Row(Border Card, Grid Gauge, Border Fill, Border RecoveryFill, TextBlock Name, Image ClassIcon, TextBlock Distance, TextBlock Health, TextBlock Debuffs);
+    sealed record Row(Border Card, Grid Gauge, Border Fill, Border RecoveryFill, PartyHealthEffects Effects, TextBlock Name, Image ClassIcon, TextBlock Distance, TextBlock Health, TextBlock Debuffs);
     static readonly Brush NormalRecovery = UiTheme.Brush("#7095F5A6");
-    static readonly Brush DebuffedRecovery = UiTheme.Brush("#7055A66F");
     readonly EncounterView.ClassIconConverter classIcons=new();
     readonly Dictionary<int, Row> rows = new();
     readonly Dictionary<int,(PartyHealthRow Row,bool Compact)> presented=new();
@@ -38,14 +38,16 @@ internal sealed class PartyHealthView : AnimatedStackPanel
     }
     internal static bool HasRoster(Fight fight) => fight.PartyKnown || fight.Actors.Values.Any(a=>a.Player&&a.OriginalEntityId==0&&a.Party&&a.Id!=fight.LocalPlayer);
     internal static PartyHealthRow[] Build(Fight fight, IReadOnlyDictionary<int,HealthReading> health, IEnumerable<PartyMemberDebuff> effects, IReadOnlyDictionary<int,double>? recovery=null) {
-        var debuffs=effects.GroupBy(e=>e.Target).ToDictionary(g=>g.Key,g=>string.Join("  ·  ",g.Select(e=>e.Name+(e.Seconds is double seconds?$" {Math.Ceiling(seconds):0}s":""))));
+        var observed=effects.ToArray();
+        var poisoned=observed.Where(PartyHealthEffects.IsPoison).Select(e=>e.Target).ToHashSet();
+        var debuffs=observed.GroupBy(e=>e.Target).ToDictionary(g=>g.Key,g=>string.Join("  ·  ",g.Select(e=>e.Name+(e.Seconds is double seconds?$" {Math.Ceiling(seconds):0}s":""))));
         // Combat proximity is not evidence of party membership.
         return fight.Actors.Values.Where(a=>a.Player&&a.OriginalEntityId==0&&(a.Id==fight.LocalPlayer||a.Party))
             .OrderByDescending(a=>a.Id==fight.LocalPlayer).ThenBy(a=>a.Id).Take(64).Select(a=>{
                 var hp=health.GetValueOrDefault(a.Id);
                 double? percent=hp?.Value is long value && value>=0 && hp.Maximum is > 0 && value<=hp.Maximum ? value*100d/hp.Maximum.Value : hp?.Value==0?0:null;
                 string label=percent is double p?(p==0?"Dead":$"{p:0.#}%"):"HP unknown";
-                return new PartyHealthRow(a.Id,a.Name+(a.Id==fight.LocalPlayer?" (you)":""),percent,label,debuffs.GetValueOrDefault(a.Id,"")) { Job=a.Job, RecoveryPercent=percent is >0 and <100 && hp?.Maximum is >0 ? Math.Min(100-percent.Value,Math.Max(0,recovery?.GetValueOrDefault(a.Id)??0)*100/hp.Maximum.Value):0 };
+                return new PartyHealthRow(a.Id,a.Name+(a.Id==fight.LocalPlayer?" (you)":""),percent,label,debuffs.GetValueOrDefault(a.Id,"")) { Job=a.Job, Poisoned=poisoned.Contains(a.Id), RecoveryPercent=percent is >0 and <100 && hp?.Maximum is >0 ? Math.Min(100-percent.Value,Math.Max(0,recovery?.GetValueOrDefault(a.Id)??0)*100/hp.Maximum.Value):0 };
             }).ToArray();
     }
     internal void Update(PartyHealthRow[] data,bool compact) {
@@ -61,6 +63,7 @@ internal sealed class PartyHealthView : AnimatedStackPanel
                 gauge.ColumnDefinitions.Add(new());gauge.ColumnDefinitions.Add(new());gauge.ColumnDefinitions.Add(new());
                 var fill=new Border{CornerRadius=new(6)};gauge.Children.Add(fill);
                 var recoveryFill=new Border { Background=NormalRecovery,CornerRadius=new(0,6,6,0) };Grid.SetColumn(recoveryFill,1);gauge.Children.Add(recoveryFill);
+                var effects=new PartyHealthEffects{HealthWidth=()=>gauge.ColumnDefinitions[0].ActualWidth};Grid.SetColumnSpan(effects,3);gauge.Children.Add(effects);
                 var labels=new Grid{Margin=new(10,6,10,6)};Grid.SetColumnSpan(labels,3);
                 labels.ColumnDefinitions.Add(new());labels.ColumnDefinitions.Add(new(){Width=GridLength.Auto});labels.ColumnDefinitions.Add(new(){Width=GridLength.Auto});
                 var name=new TextBlock{Foreground=Brushes.White,FontWeight=FontWeights.SemiBold,TextTrimming=TextTrimming.CharacterEllipsis,Margin=new(0,0,10,0)};
@@ -73,7 +76,7 @@ internal sealed class PartyHealthView : AnimatedStackPanel
                 var debuffs=new TextBlock{Foreground=UiTheme.Brush("#FFADB6"),TextWrapping=TextWrapping.Wrap,Margin=new(10,4,10,6),FontSize=11};
                 var content=new StackPanel();content.Children.Add(gauge);content.Children.Add(debuffs);
                 var card=new Border{Child=content,Background=UiTheme.Brush("#B010151F"),Margin=new(7,3,7,3),CornerRadius=new(8)};
-                rows[item.Entity]=row=new(card,gauge,fill,recoveryFill,name,classIcon,distance,hp,debuffs);Children.Add(card);
+                rows[item.Entity]=row=new(card,gauge,fill,recoveryFill,effects,name,classIcon,distance,hp,debuffs);Children.Add(card);
             }
             if(Children.IndexOf(row.Card)!=i){Children.Remove(row.Card);Children.Insert(i,row.Card);}
             if(presented.TryGetValue(item.Entity,out var previous)&&previous==(item,compact))continue;
@@ -88,15 +91,16 @@ internal sealed class PartyHealthView : AnimatedStackPanel
             double recoveryFraction=item.Unavailable?0:Math.Clamp(item.RecoveryPercent/100,0,1-fraction);
             OverlayMotion.Column(row.Gauge.ColumnDefinitions[1],recoveryFraction,IsVisible);
             OverlayMotion.Column(row.Gauge.ColumnDefinitions[2],Math.Max(0,1-fraction-recoveryFraction),IsVisible);
-            bool debuffed=item.Debuffs.Length>0;
-            var color=item.Unavailable?Color.FromRgb(112,121,133):debuffed?Color.FromRgb(32,112,65):HealthColor(item.Percent);
-            row.RecoveryFill.Background=debuffed?DebuffedRecovery:NormalRecovery;
+            var color=item.Unavailable?Color.FromRgb(112,121,133):HealthColor(item.Percent);
+            row.RecoveryFill.Background=NormalRecovery;
             var fillColor=Color.FromArgb(184,color.R,color.G,color.B);
             if(row.Fill.Background is not SolidColorBrush existing||existing.Color!=fillColor){
                 var brush=new SolidColorBrush(fillColor);brush.Freeze();row.Fill.Background=brush;
             }
             row.Card.Opacity=item.Unavailable?.65:1;
-            row.Card.BorderThickness=new(1);row.Card.BorderBrush=item.Critical&&!item.Unavailable?UiTheme.Brush("#FF6975"):Brushes.Transparent;
+            row.Effects.Update(item);
+            row.Card.BorderThickness=new(2);
+            row.Card.BorderBrush=item.Critical&&!item.Unavailable?UiTheme.Brush("#FF6975"):Brushes.Transparent;
             row.Health.Foreground=item.Unavailable?UiTheme.Brush("#BCC3CC"):item.Critical?UiTheme.Brush("#FFADB6"):item.Percent is <=50?UiTheme.Brush("#F0C84B"):Brushes.White;
             row.Name.Text=item.Name;row.Health.Text=item.Health+(!item.Unavailable&&item.RecoveryPercent>0?$"  +{item.RecoveryPercent:0.#}%":"");row.Name.FontSize=row.Health.FontSize=compact?12:14;
             string distanceText=item.Range!=PartyRange.OutOfView&&item.Proximity.EndsWith(" units away",StringComparison.Ordinal)?item.Proximity.Replace(" units away"," units"):"";

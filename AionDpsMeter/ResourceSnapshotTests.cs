@@ -7,6 +7,9 @@ internal static class ResourceSnapshotTests
 {
     internal static void Run(Action<bool, string> check, string temp)
     {
+        check(Math.Abs(FlightPowerOverlayWindow.Fraction(new(1,Fp:240527,MaximumFp:661027))!.Value-.36386868)<.000001,"Flight power overlay uses the captured current/max ratio");
+        check(FlightPowerOverlayWindow.Fraction(new(1,Fp:661027,MaximumFp:661027))==1&&FlightPowerOverlayWindow.Fraction(new(1,Fp:0,MaximumFp:661027))==0,"Flight power distinguishes fully recharged from empty");
+        check(FlightPowerOverlayWindow.Fraction(null)==null&&FlightPowerOverlayWindow.Fraction(new(1,Fp:5))==null&&FlightPowerOverlayWindow.Fraction(new(1,Fp:6,MaximumFp:5))==null,"Missing or inconsistent flight power remains unknown instead of inventing readiness");
         var engine = new CombatEngine(); var local = new Actor(1, "Local", true, false, 0, "Cleric", 1);
         engine.Apply(new("local-player", Actor: local));
         void Send(int id, long time, byte type, long amount) => engine.Apply(new("network", Network: new("resources", time, "test",

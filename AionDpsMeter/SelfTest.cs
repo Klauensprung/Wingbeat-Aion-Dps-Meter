@@ -176,6 +176,7 @@ public static class SelfTest
             LocalizationTests.Run(Check);
             CooldownVoiceTests.Run(Check);
             PartyHealthTests.Run(Check);
+            PartyAttackWarningTests.Run(Check);
             NearbyEnemiesTests.Run(Check);
             OverlayVisibilityTests.Run(Check);
             PvpCombatStatsTests.Run(Check);

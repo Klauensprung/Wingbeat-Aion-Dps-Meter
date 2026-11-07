@@ -24,7 +24,7 @@ internal sealed class PetTrackerOverlayWindow : Window
             Top = Math.Clamp(top, SystemParameters.VirtualScreenTop, SystemParameters.VirtualScreenTop + Math.Max(0, SystemParameters.VirtualScreenHeight - 400));
         }
         var menu = UiTheme.Menu(this);
-        var automatic = new MenuItem { Header = "Show when collecting pet souls", IsCheckable = true, IsChecked = settings.PetGatheringAutoShow };
+        var automatic = new MenuItem { Header = Localization.T("Pet farming overlay"), IsCheckable = true, IsChecked = settings.PetGatheringAutoShow };
         automatic.Click += (_, _) => { settings.PetGatheringAutoShow = automatic.IsChecked; save(); }; menu.Items.Add(automatic);
         var locked = new MenuItem { Header = "Lock position", IsCheckable = true, IsChecked = settings.PetTrackerLocked };
         locked.Click += (_, _) => { settings.PetTrackerLocked = locked.IsChecked; save(); }; menu.Items.Add(locked);

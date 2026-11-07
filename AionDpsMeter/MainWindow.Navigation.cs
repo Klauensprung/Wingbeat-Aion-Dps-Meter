@@ -19,8 +19,8 @@ public sealed partial class MainWindow
             var card=UiTheme.Card(body,new Thickness(20));card.Width=310;card.Margin=new(0,0,16,16);cards.Children.Add(card);
         }
         Section("Combat & party","Damage, party health and nearby opponents.",1,3,2,10);
-        Section("Gathering & loot","Track materials, collect pets and follow a route.",8,9,5,7,6);
-        Section("Timers & alerts","Boss mechanics, reminders and connection status.",0,12,13,11);
+        Section("Gathering & loot","Track materials, collect pets and follow a route.",8,9,16,5,7,6,15);
+        Section("Timers & alerts","Boss mechanics, reminders and connection status.",0,12,13,11,14);
         var actions=new WrapPanel{Margin=new(0,4,0,0)};page.Children.Add(actions);
         actions.Children.Add(buttons[4]);
         actions.Children.Add(IconButton(UiIcon.Settings,Localization.T("Overlay settings"),()=>ShowSettings("Overlays")));

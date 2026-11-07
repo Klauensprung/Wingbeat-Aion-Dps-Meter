@@ -52,6 +52,7 @@ internal sealed class PetMapOverlayWindow : Window
         var close = new MenuItem { Header = "Close pet map" }; close.Click += (_, _) => Close(); menu.Items.Add(close); ContextMenu = menu;
         OverlayPlacement.Track(this, () => { settings.PetMapLeft = Left; settings.PetMapTop = Top; save(); });
     }
+    internal void SetupSample(){status.Visibility=Visibility.Collapsed;detail.Visibility=Visibility.Collapsed;}
     internal void Update(IReadOnlyList<NearbyPet> pets, CapturedPosition? position, long now, bool capturing, int goal, MapPositionPresentation? presentation = null)
     {
         string? map = LocalPositionTracker.MapKey(position?.MapId ?? 0);

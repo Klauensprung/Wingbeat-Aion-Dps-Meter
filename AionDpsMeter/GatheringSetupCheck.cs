@@ -29,17 +29,26 @@ public sealed partial class MainWindow
         var resource=LayoutVisuals<ComboBox>(window).Single(c=>c.Tag?.ToString()=="Gathering route resource");
         if(resource.Items.Count==0||!start.IsEnabled)throw new Exception("Fresh position did not populate materials and enable Start.");
         var selected=(GatherRouteChoice)resource.SelectedItem;
+        var second=LayoutVisuals<ComboBox>(window).Single(c=>c.Tag?.ToString()=="Gathering route second resource");
+        second.SelectedItem=selected;if(start.IsEnabled)throw new Exception("Duplicate material accepted for both routes.");
+        second.SelectedItem=second.Items.OfType<GatherRouteChoice>().First(c=>c.ItemId!=selected.ItemId);
+        var secondSelected=(GatherRouteChoice)second.SelectedItem;
         start.RaiseEvent(new RoutedEventArgs(System.Windows.Controls.Button.ClickEvent));Wait();
         var overlay=Application.Current.Windows.OfType<GatheringMapOverlay>().Single();
         if(overlay.StopCount==0)throw new Exception("Start did not open a populated overlay.");
         Position(90000);
-        if(overlay.ResourceLabel!=selected.Name||overlay.StopCount==0)throw new Exception("Teleport lost route or material.");
+        if(!overlay.ResourceLabel.Contains(selected.Name)||!overlay.ResourceLabel.Contains(secondSelected.Name)||overlay.SecondStopCount==0||overlay.StopCount<=overlay.SecondStopCount)throw new Exception("Teleport lost route or material.");
         if(!LayoutVisuals<TextBlock>(window).Single(t=>t.Tag?.ToString()=="Gathering route feedback").Text.Contains("refreshed"))throw new Exception("Teleport did not refresh route.");
         lootTracking.Record(selected.ItemId,1000000);Wait();
         if(!Application.Current.Windows.OfType<GatheringMapOverlay>().Any()||!Find("Stop route").IsEnabled||overlay.StopCount==0)throw new Exception("Gathering items stopped the continuous route.");
         window.UpdateLayout();Render(window,"gathering-setup.png");
         Find("Stop route").RaiseEvent(new RoutedEventArgs(System.Windows.Controls.Button.ClickEvent));
         if(Application.Current.Windows.OfType<GatheringMapOverlay>().Any()||Find("Stop route").IsEnabled)throw new Exception("Explicit stop did not finish route.");
+        second.SelectedItem=null;
+        start.RaiseEvent(new RoutedEventArgs(System.Windows.Controls.Button.ClickEvent));Wait();
+        var single=Application.Current.Windows.OfType<GatheringMapOverlay>().Single();
+        if(single.SecondStopCount!=0||single.StopCount==0)throw new Exception("Removing second resource did not restore a single route.");
+        Find("Stop route").RaiseEvent(new RoutedEventArgs(System.Windows.Controls.Button.ClickEvent));
         window.Close();
     }
 }

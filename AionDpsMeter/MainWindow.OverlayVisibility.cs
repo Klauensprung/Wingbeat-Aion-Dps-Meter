@@ -49,14 +49,18 @@ public sealed partial class MainWindow
     }
     void RefreshCooldownVisibility()
     {
+        if(placementSetup!=null){foreach(var window in SetupWindows())if(window?.IsVisible==true)window.Hide();refreshGatheringMapVisibility?.Invoke(false);return;}
         bool menuHidden=HideForGameMenu();
         bool suppressOverlays=overlaysHidden||menuHidden;
         bool foregroundAllowed=demoMode||(!(preferences.OverlaysGameOnly||refreshGatheringMapVisibility!=null||preferences.BossAlertsEnabled))||GameForeground.AllowsOverlays();
         refreshGatheringMapVisibility?.Invoke(foregroundAllowed&&!suppressOverlays);
         RefreshBossAlerts(foregroundAllowed&&!suppressOverlays&&OverlayHideControls.Allows(bossAlertOverlay));
         bool allowed = !suppressOverlays && CooldownVisibility.ForegroundAllows(preferences.OverlaysGameOnly,foregroundAllowed);
+        RefreshPartyAttackWarning(allowed);
         RefreshNearbyEnemies(allowed&&OverlayHideControls.Allows(nearbyEnemiesOverlay));
         RefreshPingOverlay(allowed&&OverlayHideControls.Allows(pingOverlay));
+        RefreshHiddenCubeOverlay(allowed&&OverlayHideControls.Allows(hiddenCubeOverlay));
+        RefreshFlightPowerOverlay(allowed&&OverlayHideControls.Allows(flightPowerOverlay));
         RefreshLootOverlay(allowed&&OverlayHideControls.Allows(lootOverlay));
         RefreshFarmingOverlay(allowed&&OverlayHideControls.Allows(farmingOverlay));
         RefreshCurrencyOverlay(allowed&&OverlayHideControls.Allows(currencyOverlay));

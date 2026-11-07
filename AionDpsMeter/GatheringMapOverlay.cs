@@ -53,6 +53,7 @@ internal sealed class GatheringMapOverlay : Window
     internal bool NativeVisible=>IsWindowVisible(new WindowInteropHelper(this).Handle);
     internal bool RouteVisible=>plot.IsVisible&&plot.RouteCount>0;
     internal int StopCount=>plot.RouteCount;
+    internal int SecondStopCount=>plot.SecondRouteCount;
     [DllImport("user32.dll")] [return:MarshalAs(UnmanagedType.Bool)] static extern bool IsWindowVisible(IntPtr handle);
     internal bool ClickThrough => (GetStyle(new WindowInteropHelper(this).Handle,-20)&0x20)!=0;
     internal MapViewportState AlignmentView=>plot.Viewport;
@@ -79,19 +80,25 @@ internal sealed class GatheringMapOverlay : Window
         IsVisibleChanged+=(_,_)=>{SetRendering(IsVisible);if(!IsVisible)Save();};
         Closed+=(_,_)=>{closed=true;saveTimer.Stop();SetRendering(false);Save();};
     }
-    internal void UpdateMap(int world,PetSpawnPoint[] route,PetSpawnPoint[]? gatherables=null) {
+    internal void UpdateMap(int world,PetSpawnPoint[] route,PetSpawnPoint[]? gatherables=null,PetSpawnPoint[]? secondRoute=null) {
         if(map!=world){Save();restoring=true;try{prediction.Clear();map=world;plot.SetSite(new(0,LocalPositionTracker.MapKey(world)??"", "Route alignment",route));plot.FitWithPlayer(20000);
             if(saved.TryGetValue(world,out var a)||saved.TryGetValue(0,out a)){Width=a.Width;Height=a.Height;
                 Left=Math.Clamp(a.Left,SystemParameters.VirtualScreenLeft,SystemParameters.VirtualScreenLeft+Math.Max(0,SystemParameters.VirtualScreenWidth-Width));
                 Top=Math.Clamp(a.Top,SystemParameters.VirtualScreenTop,SystemParameters.VirtualScreenTop+Math.Max(0,SystemParameters.VirtualScreenHeight-Height));plot.RestoreViewport(a.View);SetLocked(a.Locked);}
             else SetLocked(false);
         }finally{restoring=false;}}
-        currentRoute=route;selectedPoints=gatherables??route;plot.SetPoints(selectedPoints);plot.SetRoute(route);plot.Visibility=Visibility.Visible;
+        currentRoute=[..route,..secondRoute??[]];selectedPoints=gatherables??currentRoute;plot.SetPoints(selectedPoints);plot.SetRoute(route);plot.SetSecondRoute(secondRoute??[]);plot.Visibility=Visibility.Visible;
     }
     internal void SetLocked(bool value) {
         Locked=value;plot.AlignmentGuide=!value;plot.IsHitTestVisible=!value;heading.Visibility=resize.Visibility=value?Visibility.Hidden:Visibility.Visible;
         var handle=new WindowInteropHelper(this).Handle;if(handle!=IntPtr.Zero){int style=GetStyle(handle,-20);SetStyle(handle,-20,value?style|0x20:style&~0x20);}
         plot.InvalidateVisual();Save();
+    }
+    internal void SetupSample(){heading.Visibility=Visibility.Collapsed;movementStatus.Visibility=Visibility.Collapsed;resize.Visibility=Visibility.Collapsed;}
+    internal void ApplySetupBounds(Rect bounds){
+        Left=bounds.X;Top=bounds.Y;Width=Math.Clamp(bounds.Width,MinWidth,4000);Height=Math.Clamp(bounds.Height,MinHeight,4000);
+        foreach(int key in saved.Keys.ToArray())saved[key]=saved[key] with{Left=Left,Top=Top,Width=Width,Height=Height};
+        Save();
     }
     void Save(){
         if(restoring||map<=0||path==null||!double.IsFinite(Left)||!double.IsFinite(Top))return;

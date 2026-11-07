@@ -25,7 +25,12 @@ internal sealed class PetSpawnPlot : FrameworkElement
     readonly Pen grid = new(UiTheme.Brush("#253346"), 1);
     PetSpawnPoint[] points = [];
     PetSpawnPoint[] route = [];
-    internal int RouteCount=>route.Length;
+    internal int RouteCount=>route.Length+secondRoute.Length;
+    internal int SecondRouteCount=>secondRoute.Length;
+    PetSpawnPoint[] secondRoute=[];
+    FormattedText[] secondLabels=[];
+    readonly Pen secondPen=new(UiTheme.Brush("#FF6268"),2);
+    internal void SetSecondRoute(PetSpawnPoint[] value){if(secondRoute.AsSpan().SequenceEqual(value))return;secondRoute=value;secondLabels=[];InvalidateVisual();}
     int routeStart = 1;
     FormattedText[] routeLabels=[];
     double labelDpi;
@@ -103,6 +108,23 @@ internal sealed class PetSpawnPlot : FrameworkElement
             var label = routeLabels[i];
             dc.DrawText(label, new(next.X - label.Width / 2, next.Y - 11 - label.Height));
             routeLast = next;
+        }
+        if(secondLabels.Length!=secondRoute.Length||secondLabels.Any(t=>t.PixelsPerDip!=dpi))
+            secondLabels=Enumerable.Range(1,secondRoute.Length).Select(n=>new FormattedText(n.ToString(),System.Globalization.CultureInfo.InvariantCulture,FlowDirection.LeftToRight,new Typeface("Segoe UI"),10,secondPen.Brush,dpi)).ToArray();
+        Point? secondLast = player == null ? null : viewport.Project(player.X, player.Y, RenderSize);
+        for (int i = 0; i < secondRoute.Length; i++) {
+            var next = viewport.Project(secondRoute[i].X, secondRoute[i].Y, RenderSize);
+            if (secondLast is Point from) {
+                var direction = next - from;
+                if (direction.Length > 20) {
+                    direction.Normalize();
+                    dc.DrawLine(secondPen, from + direction * 10, next - direction * 10);
+                }
+            }
+            dc.DrawEllipse(null, secondPen, next, 9, 9);
+            var label = secondLabels[i];
+            dc.DrawText(label, new(next.X - label.Width / 2, next.Y - 11 - label.Height));
+            secondLast = next;
         }
         if (player is { } location) {
             var point = viewport.Project(location.X, location.Y, RenderSize);
