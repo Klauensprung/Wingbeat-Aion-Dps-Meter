@@ -14,6 +14,7 @@
     <Version>0.5.52</Version>
   </PropertyGroup>
   <ItemGroup>
+    <EmbeddedResource Include="../examples/overlay-showcase.json" LogicalName="Wingbeat.Showcase.json" />
     <EmbeddedResource Include="Assets/cooldown-voice.json" LogicalName="Wingbeat.CooldownVoice.json" />
     <EmbeddedResource Include="Assets/cooldown-voice/*.mp3" LogicalName="Wingbeat.CooldownVoice.%(Filename)%(Extension)" />
     <EmbeddedResource Include="Assets/skill-names-de.json" LogicalName="Wingbeat.SkillNames.de.json" />

@@ -1,142 +1,134 @@
-Wingbeat ♥ Aion 2 DPS Meter
-============================
+Wingbeat | Aion 2 DPS Meter
+===========================
 
-Wingbeat is a free AION 2 DPS meter for Windows with real-time damage and healing
-tracking, skill cooldown overlays, and combat statistics.
+**Know your damage. Keep your party alive.**
 
-**Combat data stays on your PC.**
+Live DPS, healer-friendly party bars, cooldown voice alerts and boss warnings—in
+movable overlays that fit around your game. Free, local, and no account required.
 
-No logins, combat uploads, automatic installation, or telemetry. Wingbeat checks
-GitHub for newer releases on startup. An available update opens its download page
-in your browser when you click it; downloading and installing remain manual.
+`Download for Windows <https://github.com/Klauensprung/Wingbeat-Aion-Dps-Meter/releases/latest/download/Klauensprung.Wingbeat-win-Setup.exe>`_
+· `Portable ZIP & release notes <https://github.com/Klauensprung/Wingbeat-Aion-Dps-Meter/releases/latest>`_
+· `Report a bug <https://github.com/Klauensprung/Wingbeat-Aion-Dps-Meter/issues>`_
 
-No account or subscription.
-
-.. image:: docs/images/ui-overview.svg
-   :alt: Current Wingbeat encounter screen beside the DPS and cooldown overlays, using demo data.
+.. image:: docs/images/wingbeat-hero.png
+   :alt: Wingbeat's real damage, party health, cooldown, boss warning, farming, pet soul and nearby player overlays arranged together.
    :width: 100%
-   :target: docs/images/ui-overview.svg
+   :target: docs/images/wingbeat-hero.png
+
+Actual Wingbeat interface. Player names, fights and values in these screenshots are fictional showcase data.
+
+Your fight, at a glance
+-----------------------
+
+* **DPS and party health, side by side.** Two independent meters let you keep damage,
+  healing or party HP wherever you need it. Class icons, smooth bars and skill
+  breakdowns make the important numbers easy to find.
+* **A clearer view for healers.** See captured HP, regeneration previews and debuffs.
+  Low health pulses red; debuffs add green bubbles without covering the missing-health
+  area. Members known to be far away are grayed out and moved down the list.
+* **Hear when your skills are ready.** Choose cooldowns and buff uptimes to track,
+  pick square, round or bar layouts, and enable optional spoken skill-name alerts.
+  Keep separate presets for your characters.
+* **Keep an eye on the boss.** Supported casts and mechanics get visible warnings
+  and smooth countdowns. Alerts disappear when there is nothing to show.
+* **Build your own layout.** Overlay setup shows real previews with sample data.
+  Drag, resize or scale, then enable only what you want. Hide overlays with a
+  configurable hotkey or snooze an individual overlay for 60 seconds.
+
+See what made the difference
+----------------------------
+
+Review an encounter's damage, healing and skills, or browse your local encounter
+log by date or boss. Compare attempts without uploading your fights.
+
+.. image:: docs/images/encounter-showcase.png
+   :alt: A fictional four-player Vakron encounter with player totals, skill contributions and a damage timeline.
+   :width: 100%
+   :target: docs/images/encounter-showcase.png
+
+.. image:: docs/images/encounter-log-showcase.png
+   :alt: The encounter log groups fictional attempts into a day with totals and individual fights.
+   :width: 100%
+   :target: docs/images/encounter-log-showcase.png
+
+More than a meter
+-----------------
+
+**For the Abyss:** an optional nearby-enemy overlay shows identified players,
+classes, CP comparisons, available health and captured distance. Your current target
+moves to the top. A first captured PvP hit on another party member can trigger
+**“Playername gets attacked!”**, without repeating on every hit.
+
+**For gathering:** select two materials and follow separate gold and red routes.
+Routes start near your captured position and refresh after teleports. Small,
+transparent counters track collected materials and pet souls.
+
+**For exploration:** optional flight-power and hidden-cube overlays. Cube routes
+show possible locations; the live compass only points to supported cube types
+actually detected in captured traffic.
+
+Start in a few minutes
+----------------------
+
+1. Download and run **Klauensprung.Wingbeat-win-Setup.exe**. Wingbeat installs for
+   your Windows user and appears in the Start menu. The .NET runtime is included.
+2. Install `Npcap <https://npcap.com/#download>`_ for live capture if it is not
+   already installed. Wingbeat provides the download link when it is missing.
+3. Open Aion 2, connect to a server, and click **Start capture**. Adapter detection
+   is automatic; manual selection is available in **Settings > Capture**.
+4. Open **Overlay setup** at the top. Position the previews and choose **Enable**
+   or **Skip**. Use **DPS overlays: On/Off** to toggle your selected meters together.
+5. Select your skills in **Cooldowns**. Use **Timer setup** for notifications and
+   **Gathering routes** to choose materials.
+
+If character details are missing, change zones while capture is running so Wingbeat
+can receive the identity packets. **Settings > Startup** controls capture and
+layout restoration on the next launch.
+
+Installed versions with updating support can download new releases through
+Wingbeat's GitHub updater and restart when ready. Portable builds open the GitHub
+download page instead. Settings and cached data stay in
+``%LOCALAPPDATA%\Wingbeat`` across updates.
 
 Local by design
 ---------------
 
-A packet-capture tool should earn your trust. Wingbeat processes captured traffic
-on your PC, calculates your combat statistics locally, and keeps settings,
-player profiles and encounter history in local files.
+No account, subscription or combat uploads. Captured traffic, encounter history
+and player profiles are processed and stored on your PC. Wingbeat passively reads
+traffic through Npcap; it does not inject packets or modify game memory.
 
-* **No combat uploads.** The meter does not send captured traffic or combat
-  statistics to an external service. Its GitHub release check requests public
-  release metadata and includes the installed application version.
-* **No cloud dependency.** Skill names, icons and NPC data are bundled, so the
-  meter needs no external service to analyse your fights. Aion still needs its
-  own game connection.
-* **Passive capture.** Wingbeat reads packets through Npcap; it does not inject
-  packets or modify the game's memory.
-* **Source you can inspect.** Review the capture, decoding and storage code here,
-  or build the application yourself.
+Skill names, icons and reference data are bundled. GitHub is used for release
+checks and requested updates. Interface and game-name language settings are separate,
+with English and German support.
 
-Features
---------
+What the meter can see
+----------------------
 
-* Live DPS and healing meters, parties of up to 10 players, and multiple PvP opponents.
-* Damage and healing breakdowns by player, skill and target, with contribution bars.
-* Two independent, movable meters: **DPS1** and optional **DPS2**, each with its own
-  mode, position and size. Show damage alongside party health or healing.
-* Party-health bars with captured HP percentages and supported debuffs. Bars fade
-  from green at 75% to yellow at 50%, then red at 25% and below.
-* Transparent overlays with class icons, class colours, themes and death counts.
-* Boss alerts for supported captured casts and mechanics, with smooth full-card
-  countdowns. Alerts stay invisible while idle; placement preview is available in setup.
-  HP-based preparation warnings cover selected bosses, not every encounter.
-* A separate cooldown overlay with skill icons and countdowns, including charge variants.
-  Its live cast row shows captured cast time and cancellation/interruption feedback;
-  charges without a reported duration use an indeterminate bar.
-* Zoomable party rotations and boss analysis with captured skills, damage and HP.
-* Saved encounters and DPS/HPS trends: average, latest and best performance per encounter.
-* CP, cached player classes, local ping, loot energy and captured player stats.
-* Bundled skill names, icons, NPC names and a searchable boss catalogue.
-* Automatic adapter detection, optional startup capture and saved overlay positions.
-* Optional personal skill bars and player/target filters in the DPS overlay.
-* Square, round and bar cooldown layouts, ready glow, captured timer reductions,
-  optional combat-only visibility and live effect countdowns.
-* Local timed training with notes, groups and per-skill attempt comparisons.
-* PvP confirmed kills, peak five-second damage and per-opponent exchange timelines.
-* Captured boss health, local personal-best notifications and copyable fight summaries.
+Readings depend on the supported packets Wingbeat captures. Party health is the
+last captured value; unknown values stay unknown. Range is a position-based estimate,
+not a guarantee of healing range or line of sight. Regeneration is a reported
+remaining amount, not a promise of future healing.
 
-Effects with unknown durations are marked explicitly. Source-skill icons are not
-proof of an effect's name or type; stack counts and maximum HP are not inferred.
-Personal bests compare the same character, server, class and exact boss NPC template
-after a captured boss death. They describe your local records, not global rankings.
+Boss warnings cover supported casts and selected mechanics, not every boss phase.
+Gathering routes suggest straight-line stops, not paths around terrain. Hidden-cube
+locations are possible spawns; live detection currently covers two verified cube
+templates. PvP attack warnings require an identified player and a confirmed party
+member, and begin on the first captured damaging hit.
 
-Live decoding is experimental; readings depend on supported packets being captured.
-Party health shows the last captured HP, and missing values are labelled unknown.
-Until a party roster is captured, the health meter can show observed combat players;
-once the roster arrives, it uses confirmed party members. Debuffs require supported
-effect packets and confirmed party identity.
+Build it yourself
+-----------------
 
-.. list-table::
-   :widths: 50 50
-
-   * - |trends|
-     - |boss|
-   * - |rotations|
-     - |pvp|
-
-.. |trends| image:: docs/images/encounter-trends.png
-   :alt: Encounter trends with average, latest and best DPS.
-   :target: docs/images/encounter-trends.png
-
-.. |boss| image:: docs/images/boss-analysis.png
-   :alt: Boss analysis with captured casts, rotation timeline and skill breakdown.
-   :target: docs/images/boss-analysis.png
-
-.. |rotations| image:: docs/images/party-rotations.png
-   :alt: Zoomable party damage and healing rotation timeline.
-   :target: docs/images/party-rotations.png
-
-.. |pvp| image:: docs/images/pvp-tracking.png
-   :alt: PvP tracking with damage from multiple opponents.
-   :target: docs/images/pvp-tracking.png
-
-Synthetic demo data. More previews: `Skills <docs/images/skills.png>`_,
-`Healing <docs/images/healing.png>`_ and `Party <docs/images/party-meter.png>`_.
-
-Setup
------
-
-.. image:: docs/images/setup-guide.svg
-   :alt: Install Npcap, connect Aion 2, start capture, and open the overlays.
-   :width: 100%
-
-1. Download the **Windows x64 ZIP** from Releases and extract it.
-2. Install `Npcap <https://npcap.com/#download>`_ for live capture.
-   Wingbeat also offers this link if Npcap is missing.
-3. Run ``Wingbeat.exe``. The release includes the .NET runtime.
-4. Open Aion 2, connect to a server, then click **Start capture**.
-   Wingbeat detects the game adapter; use **Settings > Capture** to select it manually if needed.
-5. Change zones while capture is running to receive your character identity and CP.
-6. Use the first-run placement setup to arrange your DPS meter and boss alerts.
-   Click **DPS1 overlay** to show the primary meter; its menu switches between
-   damage, healing and **Party health**. Enable **DPS2 overlay** for a second meter
-   with independent settings, for example party health beside your DPS display.
-7. Open **Cooldowns**, choose your skills, then click **Cooldown overlay**.
-   Configure a cooldown duration if the game does not report one.
-
-Drag the DPS overlay header or cooldown icons to move them. Resize from the corner.
-The toolbar overlay buttons toggle visibility; positions are saved automatically.
-Use **Boss alerts** in the header to enable mechanic warnings. To preview their
-position while no alert is active, use the placement controls in Settings.
-
-**Settings > Startup** controls automatic capture and overlay restoration.
-Resuming a configured setup is enabled by default.
-
-Settings, cached profiles and saved fights stay in ``%LOCALAPPDATA%\Wingbeat``
-and survive application updates. Use **More > Open data folder** to access them.
-
-**Build from source:** install the .NET 10 SDK on Windows, then run from the repository root::
+On Windows with the .NET 10 SDK, run from the repository root::
 
     powershell -File .\Build-Windows.ps1
 
-The standalone ZIP is written to ``releases/``. Npcap is installed separately.
+Rebuild the public screenshot set from its synthetic fixture::
 
-`Third-party notices <THIRD-PARTY-NOTICES.txt>`_ · `Third-party licenses <licenses/>`_
+    dotnet build .\AionDpsMeter\AionDpsMeter.csproj -c Release
+    .\AionDpsMeter\bin\Release\net10.0-windows\Wingbeat.exe --export-readme
+
+Images are written to ``readme-showcase`` beside that executable. The exporter
+uses isolated test settings and ``examples/overlay-showcase.json``; it does not
+read your saved encounters or capture network traffic.
+
+`Third-party notices <THIRD-PARTY-NOTICES.txt>`_ · `Licenses <licenses/>`_

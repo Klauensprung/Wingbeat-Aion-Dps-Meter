@@ -1,0 +1,52 @@
+{
+  "description": "Fictional display data informed by local encounter durations, class mixes and observed skill IDs. No captured player identities or raw events.",
+  "boss": "Vakron",
+  "durationSeconds": 112,
+  "players": [
+    {
+      "name": "Aeris",
+      "job": "Chanter",
+      "dps": 14280,
+      "hp": 100,
+      "skills": [
+        18040120,
+        18020340,
+        18300010,
+        18050120,
+        18010340
+      ]
+    },
+    {
+      "name": "Sora",
+      "job": "Sorcerer",
+      "dps": 24650,
+      "hp": 82,
+      "skills": [
+        15280142,
+        15040240,
+        15780007
+      ]
+    },
+    {
+      "name": "Kael",
+      "job": "Templar",
+      "dps": 15120,
+      "hp": 64,
+      "skills": [
+        12040340,
+        12010340
+      ]
+    },
+    {
+      "name": "Nyx",
+      "job": "Assassin",
+      "dps": 9720,
+      "hp": 23,
+      "skills": [
+        13040340,
+        13030340,
+        13010340
+      ]
+    }
+  ]
+}
