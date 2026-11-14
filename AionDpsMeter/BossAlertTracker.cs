@@ -61,6 +61,9 @@ internal sealed class BossAlertTracker
             case "boss-enrage":lane="enrage";state="Enrage";visible=5000;break;
             default:return;
         }
+        var cue=message.Kind is "cast-start" or "boss-cast" ? BossMechanicCues.Cast(actor.NpcId,skill)
+            : message.Kind=="actor-phase" ? BossMechanicCues.Phase(actor.NpcId,Number("Phase")) : null;
+        if(cue is {} mechanic){state=Localization.T(mechanic.Title);visible=6000;}
         var key=(entity,lane);
         if(alerts.TryGetValue(key,out var previous)){
             if(now<previous.Started)return;
@@ -69,7 +72,8 @@ internal sealed class BossAlertTracker
         foreach(var expired in alerts.Where(p=>p.Value.Until<=now).Select(p=>p.Key).ToArray())alerts.Remove(expired);
         if(!alerts.ContainsKey(key)&&alerts.Count>=16)alerts.Remove(alerts.MinBy(p=>p.Value.Started).Key);
         Remember(entity,now);
-        alerts[key]=new(entity,actor.Name,skill,state,now,now+(duration>0?duration:visible),duration,fight.LocalPlayer>0&&Number("TargetId")==fight.LocalPlayer);
+        alerts[key]=new(entity,actor.Name,skill,state,now,now+(duration>0?duration:visible),duration,fight.LocalPlayer>0&&Number("TargetId")==fight.LocalPlayer,
+            cue is {} instruction ? Localization.T(instruction.Detail) : null);
     }
     internal BossAlert[] Snapshot(long now)=>alerts.Values.Where(a=>now>=a.Started&&now<a.Until).OrderByDescending(a=>a.TargetsYou).ThenByDescending(a=>a.Started).Take(3).ToArray();
 }

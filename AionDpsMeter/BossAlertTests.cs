@@ -4,6 +4,23 @@ namespace AionDpsMeter.Local;
 internal static class BossAlertTests
 {
     internal static void Run(Action<bool,string> check){
+        var mechanics=new BossAlertTracker();var raid=new Fight();
+        raid.Actors[90]=new Actor(90,"Isolation Specialist Rahu",false,false,0,"Unknown",0){NpcId=2301006,CapturedBoss=true};
+        NetworkEvent CueEvent(string kind,long at,object fields)=>new(kind,at,"saved-analysis",JsonSerializer.SerializeToElement(fields));
+        mechanics.Apply(CueEvent("boss-cast",1000,new {CasterId=90,SkillCode=1802900}),raid);
+        check(mechanics.Snapshot(1100) is [{Duration:0,Detail:not null}],"Recorded Rahu cast produces an instruction without inventing a cast timer");
+        mechanics.Apply(CueEvent("boss-cast",2000,new {CasterId=90,SkillCode=1802981}),raid);
+        check(mechanics.Snapshot(2100).Single().Detail==Localization.T("Aim the marked line through a monster; keep passing the bomb."),"Feeding Time follow-up variant retains its mechanic instruction");
+        mechanics.Apply(CueEvent("local-zone",3000,new {MapId=600082}),raid);
+        check(mechanics.Snapshot(3100).Length==0,"Teleport clears specific raid instructions");
+        raid.Actors[90]=raid.Actors[90] with {NpcId=2301014,Name="Eternal Ludra"};
+        mechanics.Apply(CueEvent("actor-phase",4000,new {EntityId=90,Phase=1}),raid);
+        check(mechanics.Snapshot(4100).Single().State==Localization.T("Ludra: second phase"),"Captured Ludra wire phase one identifies the second attack phase");
+        mechanics.ResetEncounter();
+        mechanics.Apply(CueEvent("actor-phase",5000,new {EntityId=90,Phase=1}),raid);
+        check(mechanics.Snapshot(5100).Single().Started==5000,"Ludra phase cue rearms after a retry");
+        check(BossMechanicCues.Cast(123,1802900)==null&&BossMechanicCues.Cast(2301006,999)==null&&BossMechanicCues.Phase(123,1)==null&&BossMechanicCues.Phase(2301014,2)==null,
+            "Unknown bosses, skills and phase values retain generic warnings");
         var tracker=new BossAlertTracker();var fight=new Fight{LocalPlayer=1};
         fight.Actors[10]=new Actor(10,"Example boss",false,false,0,"Unknown",0){NpcId=123,CapturedBoss=true};
         fight.Actors[11]=new Actor(11,"Normal mob",false,false,0,"Unknown",0){NpcId=124,CapturedBoss=false};

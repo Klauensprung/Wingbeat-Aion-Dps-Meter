@@ -1499,5 +1499,11 @@
   "Select matching": "Treffer auswählen",
   "Clear matching": "Treffer abwählen",
   "No matching materials": "Keine passenden Materialien",
-  "Red: enemies / Green: detected materials / Forward: movement": "Rot: Feinde / Grün: erfasste Materialien / Vorwärts: Bewegung"
+  "Red: enemies / Green: detected materials / Forward: movement": "Rot: Feinde / Grün: erfasste Materialien / Vorwärts: Bewegung",
+  "Wheel of Torment": "Rad der Qual",
+  "Regroup on the marked player; rotate together.": "Beim markierten Spieler sammeln; gemeinsam weiterdrehen.",
+  "Feeding Time": "Fütterungszeit",
+  "Aim the marked line through a monster; keep passing the bomb.": "Die markierte Linie durch ein Monster lenken; die Bombe weitergeben.",
+  "Ludra: second phase": "Ludra: zweite Phase",
+  "Watch for jump rings; keep collecting assigned orbs.": "Ringe überspringen; weiterhin die zugewiesenen Kugeln einsammeln."
 }
