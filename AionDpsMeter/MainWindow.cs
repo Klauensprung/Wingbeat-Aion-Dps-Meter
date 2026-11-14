@@ -52,6 +52,15 @@ public sealed class Preferences
     public double? NearbyEnemiesLeft { get; set; }
     public double? NearbyEnemiesTop { get; set; }
     public bool PingLocked { get; set; }
+    public double? RadarLeft {get;set;}
+    public double? RadarTop {get;set;}
+    public double RadarWidth {get;set;} = 420;
+    public double RadarHeight {get;set;} = 400;
+    public int RadarRange {get;set;} = 3000;
+    public bool RadarShowEnemies {get;set;} = true;
+    public bool RadarShowMaterials {get;set;} = true;
+    public string RadarMaterialMode {get;set;} = "Tracked";
+    public int[] RadarMaterialObjects {get;set;} = [];
     public double? HiddenCubeLeft {get;set;}
     public double? HiddenCubeTop {get;set;}
     public bool HiddenCubeLocked {get;set;}
@@ -301,6 +310,7 @@ public sealed partial class MainWindow : Window
         OverlayAction(UiIcon.Network, global::AionDpsMeter.Local.Localization.T("Ping overlay"), TogglePingOverlay, () => pingOverlay != null);
         OverlayAction(UiIcon.Boss,global::AionDpsMeter.Local.Localization.T("Boss alerts"),()=>ConfigureBossAlerts(!preferences.BossAlertsEnabled,false),()=>preferences.BossAlertsEnabled);
         OverlayAction(UiIcon.Cooldowns, global::AionDpsMeter.Local.Localization.T("Control alerts"), () => ConfigureControlAlerts(!preferences.ControlAlertsEnabled, true), () => preferences.ControlAlertsEnabled);
+        OverlayAction(UiIcon.Chart, Localization.T("3D radar"), ToggleRadarOverlay, () => radarOverlay != null);
         OverlayAction(UiIcon.Chart, Localization.T("Flight power"), ToggleFlightPowerOverlay, () => flightPowerOverlay != null);
         OverlayAction(UiIcon.Chart, Localization.T("Hidden cubes"), ToggleHiddenCubeOverlay, () => hiddenCubeOverlay != null);
         OverlayAction(UiIcon.Catalogue,Localization.T("Pet map overlay"),TogglePetMap,()=>petMapOverlay!=null||preferences.SetupOverlayEnabled.GetValueOrDefault("PetMap"));
@@ -451,7 +461,7 @@ public sealed partial class MainWindow : Window
             if (shuttingDown) return;
             try { capture?.Dispose(); engine.StopTraining(DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()); LogCapture(); capture = null; FinishAutosave(); engine.SaveCompleted(store); var f = LiveSnapshot(); if (f.HasRecordedData) SaveFight(f); playerProfiles.Save(); dutyMissions.Save(); accountCharacters.Save(); shopPurchases.Save(); crafting.Save(); gatheringTracking.Save(); killTracking.Save(); lootTracking.Save(); soulTracking.Save(); petRegistrationTracking.Save(); petLevelTracking.Save(); engine.SaveVisibilityMemory(); engine.FieldBossCache.Save(); ArmUpdateAfterSave(); }
             catch (Exception ex) { e.Cancel = true; notice = global::AionDpsMeter.Local.Localization.T("Could not save before closing: ") + ex.Message; Refresh(); return; }
-            SaveSetupExtras();SavePreferences();shuttingDown = true;placementSetup?.Close(); secondMeter?.Close(); archiveLoading?.Cancel(); timer.Stop(); settingsWindow.Shutdown(); reminderToast?.Close(); reminderSound.Close(); windowsNotifications?.Dispose(); bossAlertOverlay?.Close(); controlOverlay?.Close();partyAttackWarning?.Close(); ticketOverlay?.Close(); currencyOverlay?.Close(); lootOverlay?.Close(); farmingOverlay?.Close(); petTrackerOverlay?.Close(); petMapOverlay?.Close(); pingOverlay?.Close(); flightPowerOverlay?.Close(); hiddenCubeOverlay?.Close(); nearbyEnemiesOverlay?.Close(); cooldownOverlay?.Close(); overlay?.Close(); LocalLog.Write("Application closed.");
+            SaveSetupExtras();SavePreferences();shuttingDown = true;radarOverlay?.Close();placementSetup?.Close(); secondMeter?.Close(); archiveLoading?.Cancel(); timer.Stop(); settingsWindow.Shutdown(); reminderToast?.Close(); reminderSound.Close(); windowsNotifications?.Dispose(); bossAlertOverlay?.Close(); controlOverlay?.Close();partyAttackWarning?.Close(); ticketOverlay?.Close(); currencyOverlay?.Close(); lootOverlay?.Close(); farmingOverlay?.Close(); petTrackerOverlay?.Close(); petMapOverlay?.Close(); pingOverlay?.Close(); flightPowerOverlay?.Close(); hiddenCubeOverlay?.Close(); nearbyEnemiesOverlay?.Close(); cooldownOverlay?.Close(); overlay?.Close(); LocalLog.Write("Application closed.");
         };
     }
     static TextBlock Label(string text) => new() { Text = Localization.T(text), VerticalAlignment = VerticalAlignment.Center, Margin = new(6) };

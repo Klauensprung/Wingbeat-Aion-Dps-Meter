@@ -14,8 +14,11 @@ internal static class WorldObjectTests
             var result=HiddenCubes.Nearest([Cube(1,x,y)],901,origin,1000);
             check(result?.Cardinal==cardinal&&result.Bearing==bearing,$"Hidden cube compass points {cardinal} from the player");
         }
+        int[] cubeTemplates=[1200036,1200037,1200039,1200040,1200041,1200667,1201502,1201503,1201504,1201505,1300081,1300082,1300754,1301199,1301200,1301242,1301243,1301244,1301245];
+        check(cubeTemplates.All(id=>HiddenCubes.IsCube(Cube(1,0,0) with{ObjectId=id,CanInteract=false})),"Hidden cube detection recognizes all 19 reference templates without gating on interaction permission");
+        check(!HiddenCubes.IsCube(Cube(1,0,0) with{ObjectId=1200038}),"Hidden cube detection does not infer templates from numeric ranges");
         var cubes=new[]{Cube(1,100,0),Cube(2,0,-20),Cube(3,1,0) with{ObjectId=1234},Cube(4,2,0) with{CanInteract=false}};
-        check(HiddenCubes.Nearest(cubes,901,origin,2000)?.EntityId==2,"Hidden cube compass selects nearest interactable verified cube, ignoring unrelated objects");
+        check(HiddenCubes.Nearest(cubes,901,origin,2000)?.EntityId==4,"Hidden cube compass detects the nearest cube even when interaction is unavailable");
         check(HiddenCubes.Nearest(cubes,902,origin,2000)==null&&HiddenCubes.Nearest(cubes,901,origin,6001)==null&&HiddenCubes.Nearest(cubes,901,null,2000)==null,
             "Cube compass suppresses stale, absent and different-map player directions");
         check(HiddenCubes.Nearest([],901,origin,1000)==null,"Cube compass does not invent cubes from static map spots");

@@ -18,7 +18,7 @@ public sealed partial class MainWindow
         }
         SavePreferences();RefreshCooldownVisibility();
     }
-    Window?[] SetupWindows()=>[partyAttackWarning,overlay,secondMeter,cooldownOverlay,bossAlertOverlay,controlOverlay,nearbyEnemiesOverlay,lootOverlay,farmingOverlay,petTrackerOverlay,petMapOverlay,pingOverlay,flightPowerOverlay,hiddenCubeOverlay,currencyOverlay,ticketOverlay];
+    Window?[] SetupWindows()=>[radarOverlay,partyAttackWarning,overlay,secondMeter,cooldownOverlay,bossAlertOverlay,controlOverlay,nearbyEnemiesOverlay,lootOverlay,farmingOverlay,petTrackerOverlay,petMapOverlay,pingOverlay,flightPowerOverlay,hiddenCubeOverlay,currencyOverlay,ticketOverlay];
     void ShowOverlayPlacementSetup(){
         if(placementSetup!=null){placementSetup.Activate();return;}
         var steps=new List<OverlaySetupStep>();
@@ -59,6 +59,7 @@ public sealed partial class MainWindow
         Optional("Ping overlay","Ping",()=>pingOverlay,TogglePingOverlay,180,80);
         Optional("Flight power","FlightPower",()=>flightPowerOverlay,ToggleFlightPowerOverlay,130,300);
         Optional("Hidden cubes","HiddenCube",()=>hiddenCubeOverlay,ToggleHiddenCubeOverlay,235,130);
+        Optional("3D radar","Radar",()=>radarOverlay,ToggleRadarOverlay,420,400);
         Add("Gathering map","GatheringSetup",()=>null,on=>{
             stopGatheringRoute?.Invoke();preferences.GatheringSetupPending=on;
             if(on)ShowGatheringRoutes();
@@ -76,11 +77,11 @@ public sealed partial class MainWindow
         foreach(var (key,live,open) in new (string,Func<Window?>,Action)[]{
             ("FarmingOverlay",()=>farmingOverlay,OpenFarmingOverlay),("PetTracker",()=>petTrackerOverlay,OpenPetTracker),
             ("PetMap",()=>petMapOverlay,OpenPetMap),("Ping",()=>pingOverlay,TogglePingOverlay),
-            ("FlightPower",()=>flightPowerOverlay,ToggleFlightPowerOverlay),("HiddenCube",()=>hiddenCubeOverlay,ToggleHiddenCubeOverlay)})
+            ("Radar",()=>radarOverlay,ToggleRadarOverlay),("FlightPower",()=>flightPowerOverlay,ToggleFlightPowerOverlay),("HiddenCube",()=>hiddenCubeOverlay,ToggleHiddenCubeOverlay)})
             if(preferences.SetupOverlayEnabled.GetValueOrDefault(key)&&live()==null)open();
     }
     void SaveSetupExtras(){
-        foreach(var (key,window) in new (string,Window?)[]{("FarmingOverlay",farmingOverlay),("PetTracker",petTrackerOverlay),("PetMap",petMapOverlay),("Ping",pingOverlay),("FlightPower",flightPowerOverlay),("HiddenCube",hiddenCubeOverlay)})
+        foreach(var (key,window) in new (string,Window?)[]{("FarmingOverlay",farmingOverlay),("PetTracker",petTrackerOverlay),("PetMap",petMapOverlay),("Ping",pingOverlay),("Radar",radarOverlay),("FlightPower",flightPowerOverlay),("HiddenCube",hiddenCubeOverlay)})
             if(preferences.SetupOverlayEnabled.ContainsKey(key))preferences.SetupOverlayEnabled[key]=window!=null;
     }
 }

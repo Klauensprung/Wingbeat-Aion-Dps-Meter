@@ -60,6 +60,7 @@ public sealed partial class MainWindow
         RefreshNearbyEnemies(allowed&&OverlayHideControls.Allows(nearbyEnemiesOverlay));
         RefreshPingOverlay(allowed&&OverlayHideControls.Allows(pingOverlay));
         RefreshHiddenCubeOverlay(allowed&&OverlayHideControls.Allows(hiddenCubeOverlay));
+        RefreshRadarOverlay(allowed&&OverlayHideControls.Allows(radarOverlay));
         RefreshFlightPowerOverlay(allowed&&OverlayHideControls.Allows(flightPowerOverlay));
         RefreshLootOverlay(allowed&&OverlayHideControls.Allows(lootOverlay));
         RefreshFarmingOverlay(allowed&&OverlayHideControls.Allows(farmingOverlay));

@@ -26,6 +26,8 @@ internal sealed record ShowcaseData(string Description,string Boss,int DurationS
             }
             fight.Network.Add(new("hp",start+DurationSeconds*1000,"synthetic",JsonSerializer.SerializeToElement(new{EntityId=i+1,CurrentHp=player.Hp*100,MaximumHp=10000})));
         }
+        foreach (var (second, phase) in new[] { (0, 1), (38, 2), (76, 3) })
+            fight.Network.Add(new("actor-phase", start + second * 1000, "synthetic", JsonSerializer.SerializeToElement(new { EntityId = 100, Phase = phase })));
         fight.Deaths.Add(new(100,start+DurationSeconds*1000));return fight;
     }
 }
@@ -71,6 +73,9 @@ public sealed partial class MainWindow
         Show();timer.Stop();var data=ShowcaseData.Load();var fight=data.Fight();viewed=fight;
         archive.Clear();archive.AddRange(Enumerable.Range(0,8).Select(i=>FightArchiveSummary.Create(data.Fight(i+1))));archiveChanged=true;
         Width=1400;Height=940;NavigateTo("Encounter");Refresh();ReadmeShowcase.Pump();UpdateLayout();ReadmeShowcase.Save((FrameworkElement)Content,"encounter.png",Background);
+        encounterView.ShowSpectrum();UpdateLayout();ReadmeShowcase.Pump();encounterView.CheckSpectrum();ReadmeShowcase.Save((FrameworkElement)Content,"damage-spectrum.png",Background);
+        var spectrumWindow = encounterView.ExpandSpectrum(true);
+        if (spectrumWindow != null) { spectrumWindow.UpdateLayout();ReadmeShowcase.Save((FrameworkElement)spectrumWindow.Content,"damage-spectrum-expanded.png",spectrumWindow.Background);spectrumWindow.Close(); }
         NavigateTo("Encounter log");Refresh();UpdateLayout();ReadmeShowcase.Save((FrameworkElement)Content,"encounter-log.png",Background);
         var opened=new Dictionary<string,Window>();
         void Add(string key,Window window){window.Left=-32000;window.Top=-32000;window.ShowActivated=false;OverlayHideControls.SetupPreview(window);window.Show();window.UpdateLayout();opened.Add(key,window);}
@@ -81,11 +86,13 @@ public sealed partial class MainWindow
             for(int i=0;i<p.CooldownSkills.Length;i++)cooldowns.Capture(new("skill-cooldown",tick,"synthetic",JsonSerializer.SerializeToElement(new{SkillCode=p.CooldownSkills[i],RemainingMs=6000+i*7000})),1);
             Add("cooldowns",new CooldownOverlayWindow(p,cooldowns,skills,skillIcons,()=>true,()=>{},()=>{}));
             var boss=new BossAlertOverlayWindow(new(),()=>{});long now=DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();boss.Update([new(100,data.Boss,18040120,"Casting",now,now+8000,10000,true)],now,_=>"Heavy strike");Add("boss",boss);
+            Add("radar",CreateOverlaySample("3D radar"));
             Add("farming",CreateOverlaySample("Farming overlay"));Add("pets",CreateOverlaySample("Pet farming"));Add("enemies",CreateOverlaySample("Nearby enemies"));
             opened["enemies"].Height=180;opened["enemies"].Width=450;
             ReadmeShowcase.Pump();
             foreach(var (key,window) in opened){window.UpdateLayout();ReadmeShowcase.Save(window,key+"-overlay.png");}
             ReadmeShowcase.Hero(opened);
+            preferences.RadarMaterialMode="Custom";ShowRadarTracking();radarTrackingWindow!.Left=-32000;radarTrackingWindow.Top=-32000;radarTrackingWindow.UpdateLayout();ReadmeShowcase.Save(radarTrackingWindow,"radar-tracking.png");radarTrackingWindow.Close();
             ShowOverlayPlacementSetup();placementSetup!.Left=-32000;placementSetup.Top=-32000;placementSetup.UpdateLayout();ReadmeShowcase.Save(placementSetup,"overlay-setup.png");placementSetup.Close();
         }finally{foreach(var window in opened.Values)window.Close();}
     }

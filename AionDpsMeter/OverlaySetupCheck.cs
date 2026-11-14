@@ -40,7 +40,7 @@ public sealed partial class MainWindow
             button.RaiseEvent(new RoutedEventArgs(System.Windows.Controls.Button.ClickEvent));
             if(++count>20)throw new Exception("Setup did not complete.");
         }
-        if(count!=15||!preferences.OverlayPlacementSetupCompleted||!meterWanted||!SecondMeterOptions.Enabled||preferences.OverlayLeft!=80||SecondMeterOptions.Left!=90||preferences.BossAlertsEnabled||preferences.PetGatheringAutoShow)throw new Exception("Setup did not save enable/skip decisions and placement.");
+        if(count!=16||!preferences.OverlayPlacementSetupCompleted||!meterWanted||!SecondMeterOptions.Enabled||preferences.OverlayLeft!=80||SecondMeterOptions.Left!=90||preferences.BossAlertsEnabled||preferences.PetGatheringAutoShow)throw new Exception("Setup did not save enable/skip decisions and placement.");
         if(Application.Current.Windows.OfType<Window>().Any(w=>w.Title==Localization.T("Overlay setup")))throw new Exception("Setup left a window behind.");
         ToggleDpsMeters();if(meterWanted||SecondMeterOptions.Enabled)throw new Exception("DPS toggle did not disable both.");
         ToggleDpsMeters();if(!meterWanted||!SecondMeterOptions.Enabled)throw new Exception("DPS toggle did not restore both.");

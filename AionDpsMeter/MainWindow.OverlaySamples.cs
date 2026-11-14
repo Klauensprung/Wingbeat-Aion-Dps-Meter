@@ -39,6 +39,9 @@ public sealed partial class MainWindow
             case "Pet map":{var w=new PetMapOverlayWindow(p,()=>{});w.Update([new(1002,"Unstable Spider","Spider",13,"12 / 25","altgard",1000,new(1,1000,1500,0)),new(1005,"Young Kailin","Kailin",3,"2 / 5","altgard",3000,new(2,-2000,2500,0))],new(1010,0,0,0,now),now,true,1);w.SetupSample();return w;}
             case "Ping overlay":{var w=new PingOverlayWindow(p,()=>{});w.Update(new(42,now,"sample"),now);return w;}
             case "Flight power":{var w=new FlightPowerOverlayWindow(p,()=>{});w.Update(new(now,Fp:650,MaximumFp:1000),true);return w;}
+            case "3D radar": { var w=new RadarOverlayWindow(p,()=>{});w.Update(new(new(1010,10000,20000,500,now),[
+                new("e1","Shade",11000,19000,1300,true),new("e2","Ember",9200,21500,0,true),
+                new("g1","Orichalcum",10500,19500,700,false),new("g2","Odyle",8500,18000,1200,false)]));return w; }
             case "Hidden cubes":{var w=new HiddenCubeOverlayWindow(p,()=>{});w.Update(new(1,45,"NE"));return w;}
             case "Gathering map":{var w=new GatheringMapOverlay(null);w.UpdateMap(1010,[new(1,0,0,0),new(2,1000,2000,0),new(3,3000,1000,0)]);w.SetupSample();return w;}
             default:throw new InvalidOperationException("Missing overlay preview: "+name);

@@ -32,6 +32,11 @@ internal sealed class EncounterView : Grid
     readonly TextBlock skillHeading = new() { Text = global::AionDpsMeter.Local.Localization.T("Skill contribution"), FontSize = 14, FontWeight = FontWeights.SemiBold, VerticalAlignment = VerticalAlignment.Center };
     readonly TextBlock empty = new() { Text = global::AionDpsMeter.Local.Localization.T("Start capture to record an encounter, or select one from your saved history."), TextWrapping = TextWrapping.Wrap, Margin = new(8), Foreground = UiTheme.Brush("#93A2B8") };
     readonly EncounterTimelinePlot timeline = new();
+    readonly DamageSpectrumView spectrum = new();
+    readonly TabControl detailTabs = new();
+    internal void ShowSpectrum() => detailTabs.SelectedIndex = 1;
+    internal void CheckSpectrum() => spectrum.CheckPresentation();
+    internal Window? ExpandSpectrum(bool offscreen = false) => spectrum.OpenExpanded(offscreen);
     readonly TextBlock timelineLabel = new() { Text = global::AionDpsMeter.Local.Localization.T("DAMAGE OVER TIME"), FontSize = 10, FontWeight = FontWeights.SemiBold, Margin = new(0, 0, 0, 8) };
     readonly Func<int, string> skillName;
     Dictionary<string, Fight> choices = new();
@@ -91,11 +96,21 @@ internal sealed class EncounterView : Grid
         var skillPanel = new DockPanel(); DockPanel.SetDock(skillTitle, Dock.Top); skillPanel.Children.Add(skillTitle); skillPanel.Children.Add(skills);
         timeline.Height=64;
         var graph = new StackPanel(); graph.Children.Add(timelineLabel); graph.Children.Add(timeline);
-        var graphCard = UiTheme.Card(graph, new Thickness(10)); graphCard.Margin = new(0, 0, 0, 10); SetRow(graphCard, 1); body.Children.Add(graphCard);
+        var graphCard = UiTheme.Card(graph, new Thickness(10)); graphCard.Margin = new(0, 0, 0, 10); SetRow(graphCard, 1);
         SizeChanged+=(_,_)=>graphCard.Visibility=ActualHeight<400?Visibility.Collapsed:Visibility.Visible;
         var split=new Grid();split.ColumnDefinitions.Add(new(){Width=new GridLength(0.42,GridUnitType.Star),MinWidth=330});split.ColumnDefinitions.Add(new(){Width=new GridLength(0.58,GridUnitType.Star),MinWidth=330});
         var partyCard=UiTheme.Card(participantPanel,new Thickness(16));partyCard.Margin=new(0,0,12,0);split.Children.Add(partyCard);
-        var skillCard=UiTheme.Card(skillPanel,new Thickness(16));SetColumn(skillCard,1);split.Children.Add(skillCard);SetRow(split,2);body.Children.Add(split);
+        var skillCard=UiTheme.Card(skillPanel,new Thickness(16));SetColumn(skillCard,1);split.Children.Add(skillCard);SetRow(split,1);
+        var overview = new Grid(); overview.RowDefinitions.Add(new(){Height=GridLength.Auto}); overview.RowDefinitions.Add(new(){Height=new GridLength(1,GridUnitType.Star)});
+        SetRow(graphCard,0); overview.Children.Add(graphCard); overview.Children.Add(split);
+        detailTabs.Template = (ControlTemplate)System.Windows.Markup.XamlReader.Parse("""
+          <ControlTemplate xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" TargetType="TabControl">
+            <DockPanel><TabPanel DockPanel.Dock="Top" IsItemsHost="True" Margin="0,0,0,12"/><ContentPresenter ContentSource="SelectedContent"/></DockPanel>
+          </ControlTemplate>
+          """);
+        detailTabs.Items.Add(new TabItem{Header=Localization.T("Overview"),Content=overview});
+        detailTabs.Items.Add(new TabItem{Header=Localization.T("Damage spectrum"),Content=spectrum});
+        SetRow(detailTabs,1);SetRowSpan(detailTabs,2);body.Children.Add(detailTabs);
 
         var skill = new FrameworkElementFactory(typeof(DockPanel));
         var image = new FrameworkElementFactory(typeof(Image)); image.SetValue(WidthProperty, 28d); image.SetValue(HeightProperty, 28d); image.SetValue(MarginProperty, new Thickness(0, 0, 7, 0));
@@ -141,6 +156,7 @@ internal sealed class EncounterView : Grid
             }
             heading.Text = EncounterOverview.Title(current); heading.ToolTip = heading.Text;
             var people = currentPeople = EncounterOverview.Participants(current);
+            spectrum.Update(current, people);
             subtitle.Text = global::AionDpsMeter.Local.Localization.F($"{people.Length} players  |  {MeterPresentation.Duration(current)}  |  {people.Sum(p => p.Damage):N0} damage  |  {people.Sum(p => p.Healing):N0} healing");
             empty.Visibility = current.HasEvents ? Visibility.Collapsed : Visibility.Visible;
             participants.SetRows(people);

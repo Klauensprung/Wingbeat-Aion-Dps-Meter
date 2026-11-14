@@ -3,9 +3,13 @@ namespace AionDpsMeter.Local;
 internal sealed record HiddenCubeDirection(int EntityId, double Bearing, string Cardinal);
 internal static class HiddenCubes
 {
-    // Verified live spawn templates: github.com/dr89mh/aion2-cube-radar/config/cubes.json.
-    // Static map pins are possible spawn sites, not evidence that a cube is present.
-    internal static bool IsCube(WorldObjectReading value) => value.ObjectId is 1200039 or 1200041 && value.CanInteract;
+    // Object templates observed in the installed Questlog cube detector.
+    // Interaction permission is not presence: a detected cube can be out of reach.
+    // Only live world-object observations are eligible, never static map pins.
+    internal static bool IsCube(WorldObjectReading value) => value.ObjectId is
+        1200036 or 1200037 or 1200039 or 1200040 or 1200041 or 1200667 or
+        1201502 or 1201503 or 1201504 or 1201505 or 1300081 or 1300082 or
+        1300754 or 1301199 or 1301200 or 1301242 or 1301243 or 1301244 or 1301245;
     internal static HiddenCubeDirection? Nearest(IEnumerable<WorldObjectReading> objects, int map,
         CapturedPosition? position, long now)
     {

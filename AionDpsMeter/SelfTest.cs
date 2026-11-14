@@ -359,6 +359,8 @@ public static class SelfTest
             BossCatalogueTests.Run(Check);
             BossEncounterTests.Run(Check);
             EncounterOverviewTests.Run(Check);
+            DamageSpectrumTests.Run(Check);
+            RadarSpaceTests.Run(Check);
             FeatureTests.Run(Check, temp);
             EncounterTrendTests.Run(Check);
             RotationTests.Run(Check);
