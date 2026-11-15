@@ -43,8 +43,35 @@ internal static class RadarSpaceTests
             "3D radar includes only hostile players and selected interactable materials with real height");
         check(RadarSpace.Build(fight,spatial,origin with{MapId=1110},objects,1010,materials,10000).Points.Length==0,
             "3D radar never mixes positions from different maps");
-        check(RadarSpace.Build(fight,spatial,origin,objects,1010,materials,16000).Origin==null,
-            "3D radar clears markers when player position expires");
+        check(RadarSpace.Build(fight,spatial,origin,objects,1010,materials,60000) is { Origin:not null, Points.Length:2 },
+            "Packet gaps retain the last player position and observed enemy/material scan");
+        Send("entity-removed",61000,new{EntityId=3});
+        check(RadarSpace.Build(fight,spatial,origin,objects,1010,materials,61000).Points.All(p=>!p.Enemy),
+            "Explicit enemy removal still clears a retained radar marker");
+        var motion=new RadarMotion();
+        RadarFrame Sample(long at,double x,bool stopped=false,long scene=1,long relocation=1) {
+            var p=origin with {Timestamp=at,X=x};
+            return new(p,frame.Points){Movement=new(p,stopped,scene,true,relocation)};
+        }
+        motion.Present(Sample(10000,100),10000);
+        motion.Present(Sample(16000,700),16000);
+        var predicted=motion.Present(Sample(16000,700),19000);
+        check(predicted.Origin is {X:>990 and <1010} && predicted.Points.Length==2 && !motion.Desynced,
+            "Radar predicts across a six-second measured network interval without losing the scan");
+        var frozen=motion.Present(Sample(16000,700),23000);
+        var held=motion.Present(Sample(16000,700),90000);
+        check(motion.Desynced && frozen.Origin==held.Origin && held.Origin is {X:>1290 and <1310},
+            "Overdue radar prediction freezes at the median interval and retains its last scan");
+        var resumed=motion.Present(Sample(24000,1500),24000);
+        check(resumed.Origin is {X:>1290 and <1310},"A late packet smoothly corrects the held radar position instead of snapping");
+        motion.Present(Sample(26000,1600,true),26000);
+        var stopped=motion.Present(Sample(26000,1600,true),27000);
+        check(stopped.Origin is {X:>1599 and <1601},"An explicit stop disables radar movement prediction");
+        var teleport=motion.Present(Sample(28000,5000,true,relocation:2),28000);
+        check(teleport.Origin?.X==5000,"Same-map teleport resets radar prediction immediately");
+        motion.Present(new(null,[]),29000);
+        check(motion.Present(Sample(30000,8000,scene:2),30000).Origin?.X==8000,
+            "Scene changes discard previous radar motion");
         fight.Actors[1]=fight.Actors[1] with{Race=null};
         check(RadarSpace.Build(fight,spatial,origin,objects,1010,materials,10000).Points.All(p=>!p.Enemy),
             "3D radar does not classify unknown factions as enemies");

@@ -5,6 +5,7 @@ namespace AionDpsMeter.Local;
 public sealed record PartyMemberSummary(string Name, int Server, string Job, int Level, int GearScore, int CombatPower);
 public sealed record PartyRoster(int[] Members, string Source = "Imported", bool Complete = true, bool Replace = true, bool Alliance = false)
 {
+    public Dictionary<int,long> Groups { get; init; } = new();
     public string? LeaderName { get; init; }
     public PartyMemberSummary[] Summaries { get; init; } = [];
     public long Timestamp { get; init; }
@@ -28,6 +29,8 @@ public static class FightMetadata
     }
     public static void Validate(PartyRoster roster)
     {
+        if (roster.Members == null || roster.Groups == null || roster.Groups.Count > 64 || roster.Groups.Any(p => p.Key <= 0 || p.Value <= 0 || !roster.Members.Contains(p.Key)))
+            throw new InvalidDataException("Invalid party subgroup mapping.");
         if (roster.Timestamp < 0 || roster.Summaries == null || roster.Summaries.Length > 64 || roster.Summaries.Any(m => m == null ||
             string.IsNullOrWhiteSpace(m.Name) || m.Name.Length > 4096 || m.Job == null || m.Job.Length > 80 || m.Server < 0 || m.Level < 0 || m.CombatPower < 0))
             throw new InvalidDataException("Invalid roster member summaries.");
@@ -44,6 +47,8 @@ public static class FightMetadata
         if (!roster.Replace) members.UnionWith(fight.Actors.Values.Where(a => a.Party).Select(a => a.Id));
         if (fight.LocalPlayer > 0) members.Add(fight.LocalPlayer);
         if (members.Count > (roster.Alliance ? 64 : 10)) throw new InvalidDataException("Roster capacity includes your own character.");
+        fight.PartyAlliance = roster.Alliance;
+        fight.PartyGroups = roster.Replace ? new(roster.Groups) : fight.PartyGroups.Concat(roster.Groups).GroupBy(p=>p.Key).ToDictionary(g=>g.Key,g=>g.Last().Value);
         foreach (var (id, actor) in fight.Actors.ToArray()) fight.Actors[id] = actor with { Party = members.Contains(id) };
         fight.PartyKnown = roster.Complete || !roster.Replace && fight.PartyKnown; fight.PartySource = roster.Source; fight.PartyLeaderName = roster.LeaderName;
     }

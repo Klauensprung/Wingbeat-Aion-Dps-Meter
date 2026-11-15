@@ -75,6 +75,7 @@ public sealed partial class MainWindow
             return option;
         }
         meterOptions.Children.Add(OverlayOption("Show my skills below my DPS bar", () => preferences.OverlayShowSkills, value => preferences.OverlayShowSkills = value));
+        meterOptions.Children.Add(OverlayOption("Only my direct party (health bars)", () => preferences.OverlayDirectPartyOnly, value => preferences.OverlayDirectPartyOnly = value));
         meterOptions.Children.Add(OverlayOption("Compact meter rows", () => preferences.OverlayCompact, value => preferences.OverlayCompact = value));
         meterOptions.Children.Add(OverlayOption("Show target health", () => preferences.OverlayShowTargetHealth, value => preferences.OverlayShowTargetHealth = value));
         meterOptions.Children.Add(SettingsAction(UiIcon.Meter, global::AionDpsMeter.Local.Localization.T("Toggle DPS overlay"), ToggleOverlay));

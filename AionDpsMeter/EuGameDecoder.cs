@@ -710,6 +710,7 @@ public sealed class EuGameDecoder(int serverPort = 13328, IReadOnlySet<int>? hea
         events.Add(new("party", Party: new(partyMembers.Values.Where(m => m.EntityId > 0).Select(m => m.EntityId).ToArray(),
             partyComplete ? forceRoster ? "Captured alliance roster" : "Captured party roster" : "Partial captured roster",
             Complete: partyComplete, Replace: true, Alliance: forceRoster) { LeaderName = partyMembers.GetValueOrDefault(partyLeader)?.Name,
+                Groups = partyMembers.Values.Where(m=>m.EntityId>0 && m.GroupKey>0).ToDictionary(m=>m.EntityId,m=>m.GroupKey),
                 Timestamp = time, Summaries = partyMembers.Values.Select(m => new PartyMemberSummary(m.Name, m.Server, CapturedClass.Name(m.ClassId), m.Level, m.GearScore, m.CombatPower)).ToArray() }));
     }
     static DecodedCombatEvent PartyActor(CapturedPartyMember member, long time) => new("actor",

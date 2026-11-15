@@ -214,7 +214,7 @@ public sealed partial class CombatEngine
                     {
                         actorCarryover.Clear();
                         Fight.Pets = null;
-                        Fight.Actors.Clear(); Fight.Specs.Clear(); Fight.Builds.Clear(); Fight.PartyProfiles = []; Fight.LocalPing = null; Fight.LocalStats = null; Fight.LocalResources = null; Fight.PartyKnown = false; Fight.PartySource = "Not captured"; Fight.PartyLeaderName = null; Fight.LocalPlayer = local.Id;
+                        Fight.Actors.Clear(); Fight.Specs.Clear(); Fight.Builds.Clear(); Fight.PartyProfiles = []; Fight.LocalPing = null; Fight.LocalStats = null; Fight.LocalResources = null; Fight.PartyAlliance = false; Fight.PartyGroups.Clear(); Fight.PartyKnown = false; Fight.PartySource = "Not captured"; Fight.PartyLeaderName = null; Fight.LocalPlayer = local.Id;
                     }
                     PartyPosition.Clear(zone: true);
                     Fight.LocalPlayer = local.Id; cachedLocalIdentity = false; profiles.RememberLocal(local);
@@ -742,7 +742,7 @@ public sealed partial class CombatEngine
             foreach (var (id, actor) in edited.Actors) Fight.Actors[id] = actor;
             Fight.Builds = edited.Builds.ToDictionary(p => p.Key, p => FightMetadata.Copy(p.Value));
             Fight.Specs = edited.Specs.ToDictionary(p => p.Key, p => p.Value with { Choices = p.Value.Choices.ToArray() });
-            Fight.PartyKnown = edited.PartyKnown; Fight.PartySource = edited.PartySource; Fight.PartyLeaderName = edited.PartyLeaderName; revision++;
+            Fight.PartyAlliance = edited.PartyAlliance; Fight.PartyGroups = new(edited.PartyGroups); Fight.PartyKnown = edited.PartyKnown; Fight.PartySource = edited.PartySource; Fight.PartyLeaderName = edited.PartyLeaderName; revision++;
         }
     }
     public void NewFight(string label, bool preserveOverlayBoss = false, bool preserveHealth = true)
@@ -758,7 +758,7 @@ public sealed partial class CombatEngine
             fightMapChanged = false;
             var pets = previous.Pets;
             Fight = new() { Label = label, LocalPlayer = previous.LocalPlayer, Actors = actorCarryover.Select(previous), Specs = new(previous.Specs), Energy = previous.Energy, PartyProfiles = [..previous.PartyProfiles], LocalPing = previous.LocalPing, LocalStats = CharacterReadings.Copy(previous.LocalStats), LocalResources = previous.LocalResources,
-                Builds = previous.Builds.Where(p => previous.Actors.GetValueOrDefault(p.Key)?.OriginalEntityId == 0).ToDictionary(p => p.Key, p => FightMetadata.Copy(p.Value)), PartyKnown = previous.PartyKnown, PartySource = previous.PartySource, PartyLeaderName = previous.PartyLeaderName };
+                Builds = previous.Builds.Where(p => previous.Actors.GetValueOrDefault(p.Key)?.OriginalEntityId == 0).ToDictionary(p => p.Key, p => FightMetadata.Copy(p.Value)), PartyAlliance = previous.PartyAlliance, PartyGroups = new(previous.PartyGroups), PartyKnown = previous.PartyKnown, PartySource = previous.PartySource, PartyLeaderName = previous.PartyLeaderName };
             lastDeaths.Clear(); lastCombat = null; lastPartyCombat = null; lastOverlayHealing=null; recoveryBlocked = false; resumable = null; recoveryCasts = null; recoveryLoot = null; resumeTargets.Clear(); phaseAnchors.Clear();
             Fight.Pets = pets;
             networkRetention.Reset();BossAlerts.ResetEncounter();
@@ -871,7 +871,7 @@ public sealed partial class CombatEngine
                 Fight.LiveCasts = recoveryCasts?.Copy();
                 Fight.LiveLoot = recoveryLoot?.Copy();
                 foreach (var entry in current.Actors) Fight.Actors[entry.Key] = entry.Value;
-                Fight.LocalPlayer = current.LocalPlayer; Fight.PartyKnown = current.PartyKnown; Fight.PartySource = current.PartySource; Fight.PartyLeaderName = current.PartyLeaderName;
+                Fight.LocalPlayer = current.LocalPlayer; Fight.PartyAlliance = current.PartyAlliance; Fight.PartyGroups = new(current.PartyGroups); Fight.PartyKnown = current.PartyKnown; Fight.PartySource = current.PartySource; Fight.PartyLeaderName = current.PartyLeaderName;
                 Fight.PartyProfiles = current.PartyProfiles; Fight.LocalPing = current.LocalPing; Fight.LocalStats = current.LocalStats; Fight.LocalResources = current.LocalResources;
                 Fight.Energy = current.Energy; Fight.Specs = current.Specs; Fight.Label = current.Label;
                 Fight.Pets = current.Pets;

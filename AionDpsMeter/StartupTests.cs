@@ -6,6 +6,10 @@ internal static class StartupTests
 {
     internal static void Run(Action<bool, string> check, string temp)
     {
+        var partySettings=new SecondMeterSettings {DirectPartyOnly=true};
+        partySettings.Capture(partySettings.Create());
+        check(JsonSerializer.Deserialize<SecondMeterSettings>(JsonSerializer.Serialize(partySettings))!.Create().OverlayDirectPartyOnly && !new Preferences().OverlayDirectPartyOnly,
+            "Second meter persists its own party-only health choice independently");
         var settings = JsonSerializer.Deserialize<Preferences>("{}")!;
         check(!settings.OverlayPlacementSetupCompleted,"Fresh and older settings offer the new one-time overlay placement step");
         settings.OverlayPlacementSetupCompleted=true;

@@ -165,6 +165,7 @@ public sealed class OverlayWindow : Window
         Item("Damage · DPS", !preferences.OverlayPartyHealth && !preferences.OverlayHealing, () => { preferences.OverlayPartyHealth=false; preferences.OverlayHealing=false; });
         Item("Healing · HPS", !preferences.OverlayPartyHealth && preferences.OverlayHealing, () => { preferences.OverlayPartyHealth=false; preferences.OverlayHealing=true; });
         Item("Party health · HP and debuffs", preferences.OverlayPartyHealth, () => preferences.OverlayPartyHealth=true);
+        Item("Only my direct party (health bars)", preferences.OverlayDirectPartyOnly, () => preferences.OverlayDirectPartyOnly = !preferences.OverlayDirectPartyOnly);
         Item("Show my skills", preferences.OverlayShowSkills, () => preferences.OverlayShowSkills = !preferences.OverlayShowSkills);
         Item("Show target / boss health", preferences.OverlayShowTargetHealth, () => preferences.OverlayShowTargetHealth = !preferences.OverlayShowTargetHealth);
         menu.Items.Add(new Separator());
@@ -316,7 +317,7 @@ public sealed class OverlayWindow : Window
             duration.Text = MeterPresentation.Duration(fight.Seconds);
         }
         if (showHealth) {
-            var healthRows = PartyHealthView.Build(fight, health, PartyDebuffs?.Invoke() ?? [], PartyRecovery?.Invoke());
+            var healthRows = PartyHealthView.Build(fight, health, PartyDebuffs?.Invoke() ?? [], PartyRecovery?.Invoke(), preferences.OverlayDirectPartyOnly);
             var distances = PartyDistances?.Invoke(fight);
             var ranges=PartyRanges?.Invoke(fight);
             if(ranges!=null)healthRows=healthRows.Select(row=>row with {Range=row.Entity==fight.LocalPlayer?PartyRange.Nearby:ranges.GetValueOrDefault(row.Entity,PartyRange.Unknown)}).ToArray();
@@ -330,6 +331,8 @@ public sealed class OverlayWindow : Window
             encounter.Text = fight.PartyKnown ? global::AionDpsMeter.Local.Localization.T("Party health · last captured HP") : PartyHealthView.HasRoster(fight)
                 ? global::AionDpsMeter.Local.Localization.T("Party health · partial roster · last captured HP") : global::AionDpsMeter.Local.Localization.T("Party health · waiting for party roster");
         }
+        if(showHealth && preferences.OverlayDirectPartyOnly && PartyHealthView.IsForce(fight) && fight.PartyGroups.GetValueOrDefault(fight.LocalPlayer)<=0)
+            encounter.Text=Localization.T("Waiting for your direct party roster");
         string headerText=summary+" | "+(Notification.Length>0?Notification:status);
         if(headerSummary.Text!=headerText){headerSummary.Text=headerText;headerSummary.ToolTip=headerText;}
         encounter.ToolTip = encounter.Text;

@@ -14,7 +14,7 @@ internal static class OverlayCombatFilter
             Damage = source.Damage.Where(h => Matches(h.TargetId)).ToList(),
             Healing = source.Healing.Where(h => Matches(h.TargetId)).ToList(),
             Defense = source.Defense.Where(h => Matches(h.ActorId) || Matches(h.TargetId)).ToList(),
-            Deaths = source.Deaths, Network = source.Network, PartyKnown = source.PartyKnown, PartySource = source.PartySource,
+            Deaths = source.Deaths, Network = source.Network, PartyAlliance = source.PartyAlliance, PartyGroups = new(source.PartyGroups), PartyKnown = source.PartyKnown, PartySource = source.PartySource,
             PartyProfiles = source.PartyProfiles, LocalStats = source.LocalStats, LocalPing = source.LocalPing, Energy = source.Energy
         };
     }

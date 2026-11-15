@@ -32,10 +32,23 @@ internal static class ForceWireTests
         check(engine.Fight.PartyKnown && engine.Fight.Actors.Values.Count(a => a.Party) == 6 &&
             result.Events.All(e => e.Network?.Kind != "resources"),
             "Alliance snapshot binds all subgroups with shared booleans and does not invent MP readings");
+        int[] Direct(Fight f,int local) {
+            var copy=f.Copy();copy.LocalPlayer=local;
+            return PartyHealthView.Build(copy,CapturedHealth.Build(copy),[],directPartyOnly:true).Select(r=>r.Entity).Order().ToArray();
+        }
+        check(Direct(engine.Fight,1).SequenceEqual(new[]{1,2,3}) && Direct(engine.Fight,4).SequenceEqual(new[]{4,5,6}),
+            "Party-only health uses the local player's actual force subgroup");
+        var unmapped=engine.Fight.Copy();unmapped.PartyGroups.Clear();
+        check(Direct(unmapped,1).SequenceEqual(new[]{1}),"Unknown force subgroup never falls back to all force members");
+        var persisted=System.Text.Json.JsonSerializer.Deserialize<Fight>(System.Text.Json.JsonSerializer.Serialize(engine.Fight))!;
+        check(Direct(persisted,4).SequenceEqual(new[]{4,5,6}),"Force subgroup membership survives saved fight serialization");
+        engine.NewFight("Next");
+        check(Direct(engine.Fight,1).SequenceEqual(new[]{1,2,3}),"New encounters preserve direct party membership");
         var subgroup = Decode(0, 0x92, PartyWireTests.Full());
         foreach (var e in subgroup.Events) engine.Apply(e);
         check(engine.Fight.Actors.Values.Count(a => a.Party) == 5 && !engine.Fight.Actors[3].Party && engine.Fight.Actors[6].Party,
             "Party snapshot inside alliance replaces only its matching subgroup");
+        check(Direct(engine.Fight,1).SequenceEqual(new[]{1,2}),"Subgroup refresh removes departed members without adding the other force group");
         var remove = new PartyWireTests.Writer(); remove.Long(6000000005); remove.Long(457); remove.Raw(0);
         foreach (var e in Decode(0x22, 0x96, remove.Bytes.ToArray()).Events) engine.Apply(e);
         check(!engine.Fight.Actors[6].Party && engine.Fight.Actors[4].Party,
@@ -44,6 +57,7 @@ internal static class ForceWireTests
         foreach (var e in Decode(0x1b, 0x96, reconnect.Bytes.ToArray()).Events) engine.Apply(e);
         check(engine.Fight.Actors[40].Party && !engine.Fight.Actors[4].Party,
             "Alliance reconnect replaces a member's temporary combat ID");
+        check(Direct(engine.Fight,40).SequenceEqual(new[]{5,40}),"Reconnected local player resolves the same subgroup through its new entity ID");
         foreach (bool alliance in new[] { false, true }) {
             var status = new PartyWireTests.Writer(); status.Long(6000000003); status.Int(29); status.Zero(24); status.Int(alliance ? 52 : 51); status.Zero(8); status.Text(alliance ? "" : "Changed guild"); status.Int(0);
             if (!alliance) status.Bool(true); status.Long(70000); status.Raw(1);
@@ -64,6 +78,7 @@ internal static class ForceWireTests
             Decode(2, 0x96, [..full, 0], new()).Events.Count == 0,
             "Alliance truncations and unknown trailers publish no partial roster");
         foreach (var e in Decode(0x1a, 0x96, []).Events) engine.Apply(e);
+        check(!engine.Fight.PartyAlliance && engine.Fight.PartyGroups.Count==0,"Leaving a force clears subgroup membership");
         check(engine.Fight.Actors.Values.All(a => !a.Party) && engine.Fight.PartyKnown,
             "Alliance disband clears captured membership");
     }

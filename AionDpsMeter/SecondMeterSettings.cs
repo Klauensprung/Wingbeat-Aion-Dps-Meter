@@ -5,6 +5,7 @@ public sealed class SecondMeterSettings
 {
     public bool Enabled { get; set; }
     public bool PartyHealth { get; set; } = true;
+    public bool DirectPartyOnly { get; set; }
     public bool Healing { get; set; }
     public bool ShowSkills { get; set; }
     public bool ShowTargetHealth { get; set; } = true;
@@ -21,14 +22,14 @@ public sealed class SecondMeterSettings
     public double Width { get; set; } = 390;
     public double Height { get; set; } = 420;
     internal Preferences Create() => new() {
-        OverlayPartyHealth=PartyHealth,OverlayHealing=Healing,OverlayShowSkills=ShowSkills,
+        OverlayDirectPartyOnly=DirectPartyOnly,OverlayPartyHealth=PartyHealth,OverlayHealing=Healing,OverlayShowSkills=ShowSkills,
         OverlayShowTargetHealth=ShowTargetHealth,OverlayCompact=Compact,OverlayLocked=Locked,
         OverlayPinLocal=PinLocal,OverlayCustomBars=CustomBars,OverlayAllActors=AllActors,
         OverlayBossesOnly=BossesOnly,OverlayFollowGameTarget=FollowTarget,OverlayScope=Scope,
         OverlayLeft=Left,OverlayTop=Top,OverlayWidth=Width,OverlayHeight=Height
     };
     internal void Capture(Preferences p) {
-        PartyHealth=p.OverlayPartyHealth;Healing=p.OverlayHealing;ShowSkills=p.OverlayShowSkills;
+        DirectPartyOnly=p.OverlayDirectPartyOnly;PartyHealth=p.OverlayPartyHealth;Healing=p.OverlayHealing;ShowSkills=p.OverlayShowSkills;
         ShowTargetHealth=p.OverlayShowTargetHealth;Compact=p.OverlayCompact;Locked=p.OverlayLocked;
         PinLocal=p.OverlayPinLocal;CustomBars=p.OverlayCustomBars;AllActors=p.OverlayAllActors;
         BossesOnly=p.OverlayBossesOnly;FollowTarget=p.OverlayFollowGameTarget;Scope=p.OverlayScope;

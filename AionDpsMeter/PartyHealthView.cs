@@ -37,18 +37,26 @@ internal sealed class PartyHealthView : AnimatedStackPanel
         return Color.FromRgb(Mix(from.R,to.R),Mix(from.G,to.G),Mix(from.B,to.B));
     }
     internal static bool HasRoster(Fight fight) => fight.PartyKnown || fight.Actors.Values.Any(a=>a.Player&&a.OriginalEntityId==0&&a.Party&&a.Id!=fight.LocalPlayer);
-    internal static PartyHealthRow[] Build(Fight fight, IReadOnlyDictionary<int,HealthReading> health, IEnumerable<PartyMemberDebuff> effects, IReadOnlyDictionary<int,double>? recovery=null) {
+    internal static PartyHealthRow[] Build(Fight fight, IReadOnlyDictionary<int,HealthReading> health, IEnumerable<PartyMemberDebuff> effects, IReadOnlyDictionary<int,double>? recovery=null, bool directPartyOnly=false) {
         var observed=effects.ToArray();
         var poisoned=observed.Where(PartyHealthEffects.IsPoison).Select(e=>e.Target).ToHashSet();
-        var debuffs=observed.GroupBy(e=>e.Target).ToDictionary(g=>g.Key,g=>string.Join("  ·  ",g.Select(e=>e.Name+(e.Seconds is double seconds?$" {Math.Ceiling(seconds):0}s":""))));
+        var debuffs=observed.GroupBy(e=>e.Target).ToDictionary(g=>g.Key,g=>string.Join("  Ã‚·  ",g.Select(e=>e.Name+(e.Seconds is double seconds?$" {Math.Ceiling(seconds):0}s":""))));
         // Combat proximity is not evidence of party membership.
         return fight.Actors.Values.Where(a=>a.Player&&a.OriginalEntityId==0&&(a.Id==fight.LocalPlayer||a.Party))
+            .Where(a=>!directPartyOnly || InDirectParty(fight,a.Id))
             .OrderByDescending(a=>a.Id==fight.LocalPlayer).ThenBy(a=>a.Id).Take(64).Select(a=>{
                 var hp=health.GetValueOrDefault(a.Id);
                 double? percent=hp?.Value is long value && value>=0 && hp.Maximum is > 0 && value<=hp.Maximum ? value*100d/hp.Maximum.Value : hp?.Value==0?0:null;
                 string label=percent is double p?(p==0?"Dead":$"{p:0.#}%"):"HP unknown";
                 return new PartyHealthRow(a.Id,a.Name+(a.Id==fight.LocalPlayer?" (you)":""),percent,label,debuffs.GetValueOrDefault(a.Id,"")) { Job=a.Job, Poisoned=poisoned.Contains(a.Id), RecoveryPercent=percent is >0 and <100 && hp?.Maximum is >0 ? Math.Min(100-percent.Value,Math.Max(0,recovery?.GetValueOrDefault(a.Id)??0)*100/hp.Maximum.Value):0 };
             }).ToArray();
+    }
+    internal static bool IsForce(Fight fight) => fight.PartyAlliance || fight.PartySource.Contains("alliance",StringComparison.OrdinalIgnoreCase) || fight.Actors.Values.Count(a=>a.Party)>10;
+    internal static bool InDirectParty(Fight fight,int id) {
+        if(id==fight.LocalPlayer)return true;
+        if(!IsForce(fight))return fight.Actors.GetValueOrDefault(id)?.Party==true;
+        return fight.PartyGroups.TryGetValue(fight.LocalPlayer,out long group) && group>0
+            && fight.PartyGroups.GetValueOrDefault(id)==group;
     }
     internal void Update(PartyHealthRow[] data,bool compact) {
         data=data.OrderBy(row=>row.Unavailable).ToArray();

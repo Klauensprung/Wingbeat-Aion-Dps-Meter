@@ -136,6 +136,7 @@ public sealed class Preferences
     public bool? AutoDetectAdapter { get; set; }
     public bool OverlayHealing { get; set; }
     public bool OverlayPartyHealth { get; set; }
+    public bool OverlayDirectPartyOnly { get; set; }
     public SecondMeterSettings? SecondMeter { get; set; }
     public bool OverlayShowSkills { get; set; }
     public bool OverlayBossesOnly { get; set; }

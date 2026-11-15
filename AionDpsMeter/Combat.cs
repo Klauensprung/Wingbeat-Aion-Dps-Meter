@@ -84,6 +84,8 @@ public sealed class Fight
     public Dictionary<int,HealthReading> InitialHealth {get;set;}=new();
     public Dictionary<int, Spec> Specs { get; set; } = new();
     public Dictionary<int, ActorBuild> Builds { get; set; } = new();
+    public bool PartyAlliance { get; set; }
+    public Dictionary<int,long> PartyGroups { get; set; } = new();
     public bool PartyKnown { get; set; }
     public string PartySource { get; set; } = "Not captured";
     public LootEnergyEvent? Energy { get; set; }
@@ -105,7 +107,7 @@ public sealed class Fight
     public Fight Copy() => new() { LiveCooldowns = LiveCooldowns?.Copy(), StaggerBreaks = StaggerBreaks?.ToArray(), StaggerBreaksTruncated = StaggerBreaksTruncated, LiveLoot = LiveLoot?.Copy(), LiveCasts = LiveCasts?.Copy(), Telegraphs = new(Telegraphs), OmittedTelegraphs = OmittedTelegraphs, GatheredObjects = new(GatheredObjects), OmittedGathers = OmittedGathers, LocalResources = LocalResources, SavedShields = SavedShields, SavedLoot = SavedLoot, SavedCasts = SavedCasts == null ? null : CastOutcomes.Copy(SavedCasts), SavedEffects = SavedEffects, DungeonRun = DungeonRun, ObservedRun = ObservedRun, MixedRunContexts = MixedRunContexts, LocalPosition = LocalPosition, LocalTarget = LocalTarget, PartyBossTarget = PartyBossTarget, Pets = Pets, BossRecords = BossRecords, Training = Training, DisplayWindow = DisplayWindow, ArchiveSummary = ArchiveSummary, Version = Version, Id = Id, Label = Label, Created = Created, Demo = Demo, LocalPlayer = LocalPlayer,
         InitialHealth = new(InitialHealth), Actors = new(Actors), Damage = new(Damage), Healing = new(Healing), Defense = new(Defense), Network = new(Network), Deaths = new(Deaths), PartyProfiles = [..PartyProfiles], LocalPing = LocalPing, LocalStats = CharacterReadings.Copy(LocalStats),
         Specs = Specs.ToDictionary(p => p.Key, p => p.Value with { Choices = p.Value.Choices.ToArray() }), Energy = Energy,
-        Builds = Builds.ToDictionary(p => p.Key, p => FightMetadata.Copy(p.Value)), PartyKnown = PartyKnown, PartySource = PartySource, PartyLeaderName = PartyLeaderName };
+        Builds = Builds.ToDictionary(p => p.Key, p => FightMetadata.Copy(p.Value)), PartyAlliance = PartyAlliance, PartyGroups = new(PartyGroups), PartyKnown = PartyKnown, PartySource = PartySource, PartyLeaderName = PartyLeaderName };
 }
 
 public sealed record TotalRow(int Id, string Character, string Role, int CP, long Damage, double DPS, long Healing, double HPS, double CritPercent);
@@ -214,6 +216,7 @@ public sealed class FightStore
         BossTelegraphs.Validate(f);
         if (f.OmittedGathers < 0 || f.GatheredObjects == null || f.GatheredObjects.Count > 4096 || f.GatheredObjects.Any(p => p.Key <= 0 || p.Value <= 0)) throw new InvalidDataException("Invalid gathering summary.");
         if (f.PartyLeaderName?.Length > 4096 || f.Builds == null || f.PartySource == null || f.Builds.Count > 512 || f.Actors.Values.Any(a => a.Cp < 0 || a.Server < 0 || a.ProfileSource == null)) throw new InvalidDataException("Invalid character metadata.");
+        if(f.PartyGroups == null || f.PartyGroups.Count>64 || f.PartyGroups.Any(p=>p.Key<=0 || p.Value<=0)) throw new InvalidDataException("Invalid saved party subgroup mapping.");
         PlayerTelemetry.Validate(f.PartyProfiles);
         if (f.Pets != null) PetCollection.Validate(f.Pets);
         if (f.LocalPosition != null) LocalPositionTracker.Validate(f.LocalPosition);
@@ -235,7 +238,7 @@ public sealed class FightStore
         if (f.PartyKnown)
         {
             var roster = f.Actors.Values.Where(a => a.Party || a.Id == f.LocalPlayer).ToArray();
-            FightMetadata.Validate(new PartyRoster(roster.Select(a => a.Id).ToArray(), f.PartySource));
+            FightMetadata.Validate(new PartyRoster(roster.Select(a => a.Id).ToArray(), f.PartySource, Alliance: f.PartyAlliance || roster.Length > 10) { Groups = f.PartyGroups });
             if (roster.Any(a => !a.Player)) throw new InvalidDataException("Party roster contains a non-player.");
         }
         f.Healing.RemoveAll(HealingSkills.SummonInitialization);

@@ -1,7 +1,10 @@
 namespace AionDpsMeter.Local;
 
 internal sealed record RadarPoint(string Key, string Name, double X, double Y, double Z, bool Enemy);
-internal sealed record RadarFrame(CapturedPosition? Origin, RadarPoint[] Points);
+internal sealed record RadarFrame(CapturedPosition? Origin, RadarPoint[] Points)
+{
+    internal RouteMovement? Movement { get; init; }
+}
 internal static class RadarSpace
 {
     internal static bool Fresh(CapturedPosition? p, long now) => p is { MapId: > 0, Timestamp: >= 0 } && p.Timestamp <= now && now - p.Timestamp <= 5000 &&
@@ -14,7 +17,9 @@ internal static class RadarSpace
     internal static RadarFrame Build(Fight fight, SpatialEvidence spatial, CapturedPosition? origin, IEnumerable<WorldObjectReading> objects, int objectMap,
         IReadOnlyDictionary<int, string> materials, long now, bool showEnemies = true)
     {
-        if (origin == null || !Fresh(origin, now)) return new(null, []);
+        // Silence is not a removal. Keep the last observed scene until new evidence arrives.
+        if (origin is not { MapId: > 0, Timestamp: >= 0 } || origin.Timestamp>now || origin.Timestamp<spatial.Boundary ||
+            !double.IsFinite(origin.X) || !double.IsFinite(origin.Y) || !double.IsFinite(origin.Z)) return new(null, []);
         var points = new List<RadarPoint>();
         string? race = NearbyEnemies.EffectiveRace(fight.Actors.GetValueOrDefault(fight.LocalPlayer));
         if (showEnemies && origin!.MapId == spatial.MapId && race is "light" or "dark") {
@@ -22,7 +27,7 @@ internal static class RadarSpace
                 var actor = fight.Actors.GetValueOrDefault(entity.Id);
                 if (!entity.Visible || entity.Kind != "player" || actor is not { Player: true, OriginalEntityId: 0 } || actor.Id == fight.LocalPlayer || actor.Party ||
                     NearbyEnemies.EffectiveRace(actor) is not ("light" or "dark") || NearbyEnemies.EffectiveRace(actor) == race ||
-                    entity.PositionAt < spatial.Boundary || entity.PositionAt > now || now - entity.PositionAt > 5000 ||
+                    entity.PositionAt < spatial.Boundary || entity.PositionAt > now ||
                     entity.X is not double x || entity.Y is not double y || entity.Z is not double z) continue;
                 points.Add(new("p:" + actor.Id, actor.Name, x, y, z, true));
             }

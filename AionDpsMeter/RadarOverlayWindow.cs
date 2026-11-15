@@ -44,6 +44,7 @@ internal sealed class RadarOverlayWindow : Window
     {
         radar.Update(frame);
         status.Text = Localization.T(frame.Origin == null ? "Waiting for fresh player position" : "Red: enemies / Green: detected materials / Forward: movement") +
+            (frame.Origin != null && !RadarSpace.Fresh(frame.Origin,DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()) ? "\n" + Localization.T("Delayed updates - showing last known scan") : "") +
             (frame.Origin == null ? "" : $"\nX {frame.Origin.X:N0}  Y {frame.Origin.Y:N0}  Z {frame.Origin.Z:N0}");
     }
 }
@@ -52,6 +53,7 @@ internal sealed class RadarCanvas : FrameworkElement
     readonly DispatcherTimer timer = new() { Interval = TimeSpan.FromMilliseconds(33) };
     RadarFrame frame = new(null, []);
     CapturedPosition? previous;
+    readonly RadarMotion motion = new();
     double heading, targetHeading;
     long lastTick;
     internal double Range { get; set; } = 3000;
@@ -63,7 +65,7 @@ internal sealed class RadarCanvas : FrameworkElement
             double delta = Math.Atan2(Math.Sin(targetHeading - heading), Math.Cos(targetHeading - heading));
             double dt = Math.Clamp((Environment.TickCount64 - lastTick) / 1000d, 0, .1); lastTick = Environment.TickCount64;
             heading += delta * (1 - Math.Exp(-dt * 10)); InvalidateVisual();
-            if (Math.Abs(delta) < .001) timer.Stop();
+            if (Math.Abs(delta) < .001 && (frame.Movement == null || motion.Desynced)) timer.Stop();
         };
         IsVisibleChanged += (_, _) => { if (!IsVisible) timer.Stop(); else Animate(); };
     }
@@ -72,11 +74,11 @@ internal sealed class RadarCanvas : FrameworkElement
     internal void Update(RadarFrame next)
     {
         var p = next.Origin;
-        if (p == null) { previous = null; HasHeading = false; frame = next; timer.Stop(); InvalidateVisual(); return; }
+        if (p == null) { motion.Clear(); previous = null; HasHeading = false; frame = next; timer.Stop(); InvalidateVisual(); return; }
         if (previous == null || previous.MapId != p.MapId) { heading = targetHeading = 0; HasHeading = false; }
         else if (p.Timestamp > previous.Timestamp) {
             double dx = p.X - previous.X, dy = p.Y - previous.Y, distance = Math.Sqrt(dx * dx + dy * dy);
-            if (distance > 5000 || p.Timestamp - previous.Timestamp > 5000) { heading = targetHeading = 0; HasHeading = false; }
+            if (distance > 10000 || next.Movement?.Scene != frame.Movement?.Scene || next.Movement?.Relocation != frame.Movement?.Relocation) { heading = targetHeading = 0; HasHeading = false; }
             else if (distance > 30) { targetHeading = Math.Atan2(dx, -dy); HasHeading = true; }
         }
         previous = p; frame = next; Animate(); InvalidateVisual();
@@ -108,7 +110,7 @@ internal sealed class RadarCanvas : FrameworkElement
         dc.DrawEllipse(white,null,Project(0,0,0),4,4);
         Text("+Z",Project(-1,-1,1),white); Text("-Z",Project(-1,-1,-1),white);
         Text(Localization.T(HasHeading ? "Movement heading" : "North-up / waiting for movement"),new(4,2),white);
-        if (frame.Origin is not {} origin) return;
+        if (motion.Present(frame,DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()).Origin is not {} origin) return;
         var points = frame.Points.Select(p => (Point:p, Pos:RadarSpace.Relative(p,origin,heading)))
             .Where(p => Math.Abs(p.Pos.Right)<=Range && Math.Abs(p.Pos.Forward)<=Range && Math.Abs(p.Pos.Up)<=Range)
             .OrderByDescending(p => p.Pos.Forward).ToArray();

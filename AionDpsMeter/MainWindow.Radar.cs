@@ -31,7 +31,7 @@ public sealed partial class MainWindow
         RadarFrame frame = new(null, []);
         if (capture != null) lock (engine.Gate) {
             if (engine.LiveIdentityReady) frame = RadarSpace.Build(engine.Fight, engine.Spatial, engine.Position.Latest,
-                engine.WorldObjects.Snapshot(), engine.WorldObjects.MapId, radarMaterials, DateTimeOffset.UtcNow.ToUnixTimeMilliseconds(), preferences.RadarShowEnemies);
+                engine.WorldObjects.Snapshot(), engine.WorldObjects.MapId, radarMaterials, DateTimeOffset.UtcNow.ToUnixTimeMilliseconds(), preferences.RadarShowEnemies) with { Movement = new(engine.Position.Latest, engine.Position.MovementStopped, engine.LiveSceneRevision, true, engine.Position.RelocationRevision) };
         }
         radarOverlay.Update(frame); if (!radarOverlay.IsVisible) radarOverlay.Show();
     }
