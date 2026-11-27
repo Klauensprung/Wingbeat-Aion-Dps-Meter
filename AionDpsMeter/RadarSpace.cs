@@ -1,12 +1,36 @@
 namespace AionDpsMeter.Local;
 
 internal sealed record RadarPoint(string Key, string Name, double X, double Y, double Z, bool Enemy);
+internal sealed record RadarProjection(RadarPoint Point, (double Right,double Forward,double Up) Pos, bool AtEdge);
 internal sealed record RadarFrame(CapturedPosition? Origin, RadarPoint[] Points)
 {
     internal RouteMovement? Movement { get; init; }
+    internal bool Estimated { get; init; }
+    internal bool HasAltitude { get; init; } = true;
+    internal double Accuracy { get; init; }
 }
 internal static class RadarSpace
 {
+    internal static double DetectedRange(RadarFrame frame, CapturedPosition origin) => Math.Max(1000,
+        frame.Points.Select(p=>Math.Max(double.Hypot(p.X-origin.X,p.Y-origin.Y),frame.HasAltitude?Math.Abs(p.Z-origin.Z):0))
+            .Where(double.IsFinite).DefaultIfEmpty(0).Max()*1.1);
+    internal static RadarProjection[] Project(RadarFrame frame, CapturedPosition origin, double heading, double range, long now)
+    {
+        if (!double.IsFinite(range) || range<=0) return [];
+        bool uncertain=frame.Estimated || !Fresh(frame.Origin,now);
+        var visible=new List<RadarProjection>();
+        foreach(var point in frame.Points) {
+            var relative=Relative(frame.HasAltitude?point:point with{Z=origin.Z},origin,heading);
+            double extent=Math.Max(Math.Abs(relative.Right),Math.Max(Math.Abs(relative.Forward),Math.Abs(relative.Up)));
+            bool outside=extent>range;
+            if(outside && (point.Enemy || !uncertain)) continue;
+            // Keep detected materials visible at the boundary while our origin is uncertain.
+            // This changes rendering only; removal packets still remove the underlying point.
+            if(outside) { double factor=range*.96/extent; relative=(relative.Right*factor,relative.Forward*factor,relative.Up*factor); }
+            visible.Add(new(point,relative,outside));
+        }
+        return visible.OrderByDescending(p=>p.Pos.Forward).ToArray();
+    }
     internal static bool Fresh(CapturedPosition? p, long now) => p is { MapId: > 0, Timestamp: >= 0 } && p.Timestamp <= now && now - p.Timestamp <= 5000 &&
         double.IsFinite(p.X) && double.IsFinite(p.Y) && double.IsFinite(p.Z);
     internal static (double Right, double Forward, double Up) Relative(RadarPoint point, CapturedPosition origin, double heading)

@@ -9,6 +9,25 @@ internal static class LocalPositionTests
     internal static void Run(Action<bool, string> check, string temp)
     {
         NetworkEvent Message(string kind, long time, object fields) => new(kind, time, "synthetic", JsonSerializer.SerializeToElement(fields));
+        // Anonymized 2A38 self-effect layout from the flight/ground capture.
+        var effectEngine=new CombatEngine();
+        effectEngine.Apply(new("local-player",Actor:new(1343,"Local test player",true,true,0,"Unknown",0)));
+        effectEngine.Apply(new("network",Network:Message("local-zone",1000,new {MapId=1110})));
+        var effectDecoder=new EuGameDecoder();
+        for(int i=0;i<4;i++) {
+            var body=new PartyWireTests.Writer();body.Var(1343);body.Var(1);body.Raw(0x11);body.Var(61+i);body.Int(231);
+            body.Long(200);body.Long(0);body.Var(1343);body.Raw(1);body.Bool(false);
+            body.Raw(BitConverter.GetBytes(1000f+i*100));body.Raw(BitConverter.GetBytes(2000f+i*50));body.Raw(BitConverter.GetBytes(300f-i*20));
+            var packet=new PartyWireTests.Writer();packet.Var(body.Bytes.Count+6);packet.Raw(0x2a,0x38);packet.Raw(body.Bytes.ToArray());
+            long at=2000+i*10000;
+            var decoded=effectDecoder.Decode(new CapturedPayload(13328,50000,packet.Bytes.ToArray()){TimestampMs=at});
+            foreach(var item in decoded.Events)effectEngine.Apply(item);
+            var measured=effectEngine.Position.Latest;
+            check(measured==new CapturedPosition(1110,1000+i*100,2000+i*50,300-i*20,at) && effectEngine.Snapshot().LocalPosition==measured,
+                "Self-effect packet updates live and saved position without a movement packet, sample "+i);
+            check(RadarSpace.Build(effectEngine.Fight,effectEngine.Spatial,measured,[],1110,new Dictionary<int,string>(),at+6000).Origin==measured,
+                "Radar retains self-effect position through sparse ground updates, sample "+i);
+        }
         var tracker = new LocalPositionTracker();
         var midSession = new LocalPositionTracker();
         midSession.Apply(Message("abnormal-refresh", 2000, new { CasterId = 1, TargetId = 1, CasterX = 100, CasterY = 200, CasterZ = 300 }), 1);

@@ -7,13 +7,10 @@ using System.Windows.Threading;
 
 namespace AionDpsMeter.Local;
 
-internal sealed class OverlaySnooze
+internal sealed class OverlayControlState
 {
     internal bool SetupPreview {get;set;}
     internal Panel? Controls { get; set; }
-    internal long Until { get; private set; }
-    internal void HideForMinute(long now) => Until = now + 60000;
-    internal bool Allows(long now) => now >= Until;
 }
 
 internal static class OverlayHideControls
@@ -23,7 +20,7 @@ internal static class OverlayHideControls
     [DllImport("user32.dll")] static extern bool GetCursorPos(out Point point);
     [DllImport("user32.dll")] static extern bool GetWindowRect(nint window,out Rect rect);
     [DllImport("user32.dll")] static extern bool IsWindowVisible(nint window);
-    static readonly ConditionalWeakTable<Window,OverlaySnooze> states = new();
+    static readonly ConditionalWeakTable<Window,OverlayControlState> states = new();
     static readonly DispatcherTimer hoverTimer=new(){Interval=TimeSpan.FromMilliseconds(100)};
     static OverlayHideControls(){hoverTimer.Tick+=(_,_)=>RefreshHover();}
     static void RefreshHover()
@@ -59,7 +56,7 @@ internal static class OverlayHideControls
         }
         return false;
     }
-    internal static bool Allows(Window? window) => window == null || !states.TryGetValue(window,out var state) || state.Allows(Environment.TickCount64);
+    internal static bool Allows(Window? window) => true;
     internal static void SetupPreview(Window window){if(states.TryGetValue(window,out var state)){state.SetupPreview=true;if(state.Controls!=null)state.Controls.Visibility=Visibility.Collapsed;}}
     internal static void Attach(Window window)
     {
@@ -72,17 +69,14 @@ internal static class OverlayHideControls
               </Grid>
             </ControlTemplate>
             """);
-        var state = new OverlaySnooze(); states.Add(window,state);
+        var state = new OverlayControlState(); states.Add(window,state);
         var content = window.Content as UIElement;
         if (content == null) return;
         window.Content = null;
         var shell = new DockPanel();
-        var hide = new Button { Content=global::AionDpsMeter.Local.Localization.T("Hide 60s"), FontSize=10, Padding=new(5,1,5,1), Margin=new(2),
-            HorizontalAlignment=HorizontalAlignment.Right, Focusable=false, ToolTip=global::AionDpsMeter.Local.Localization.T("Hide this overlay for 60 seconds. Its position and tracking are preserved.") };
-        hide.Click += (_,_) => { state.HideForMinute(Environment.TickCount64); window.Hide(); };
         var controls=new StackPanel{Orientation=Orientation.Horizontal,HorizontalAlignment=HorizontalAlignment.Right,Visibility=Visibility.Hidden};
         state.Controls=controls;
-        controls.Children.Add(hide);DockPanel.SetDock(controls,Dock.Top);
+        DockPanel.SetDock(controls,Dock.Top);
         shell.Children.Add(controls);shell.Children.Add(content);window.Content=shell;
         OverlayScale.Attach(window,shell,controls);
         window.IsVisibleChanged+=(_,_)=>RefreshHover();

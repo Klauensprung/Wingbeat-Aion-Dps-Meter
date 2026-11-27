@@ -31,6 +31,25 @@ internal static class RadarSpaceTests
         WorldObjectReading[] objects=[new(20,77,500,600,700,0,true,0,0,0,0),new(21,88,0,0,0,0,true,0,0,0,0)];
         var materials=new Dictionary<int,string>{{77,"Ore"}};
         var frame=RadarSpace.Build(fight,spatial,origin,objects,1010,materials,10000);
+        var beyond=new RadarPoint("g:far","Ore",origin.X+4000,origin.Y,origin.Z,false);
+        var edgeFrame=new RadarFrame(origin,[beyond,beyond with{Key="p:far",Enemy=true}]);
+        double detectedRange=RadarSpace.DetectedRange(edgeFrame,origin);
+        check(detectedRange==4400 && RadarSpace.Project(edgeFrame,origin,Math.PI/4,detectedRange,10000).Length==2,
+            "Detected radar range fits server-observed points regardless of movement heading");
+        check(RadarSpace.DetectedRange(new(origin,[]),origin)==1000 &&
+            RadarSpace.DetectedRange(new(origin,[beyond with{X=origin.X,Z=origin.Z+10000}]),origin)==11000,
+            "Detected radar range handles empty scenes and vertical separation");
+        check(RadarSpace.Project(edgeFrame,origin,0,3000,10000).Length==0,
+            "Fresh radar positions retain the selected range limit");
+        var retained=RadarSpace.Project(edgeFrame,origin,0,3000,16000);
+        check(retained is [{AtEdge:true,Point.Enemy:false}] && Math.Abs(retained[0].Pos.Right-2880)<.01,
+            "Stale radar positions retain detected gatherables at the edge without adding distant enemies");
+        check(RadarSpace.Project(edgeFrame with{Estimated=true},origin,Math.PI/2,3000,10000) is [{AtEdge:true}],
+            "Estimated origin and heading changes cannot clip detected materials out of the scan");
+        check(RadarSpace.Project(edgeFrame with{Points=[]},origin,0,3000,16000).Length==0,
+            "Removed materials are not resurrected by stale-position rendering");
+        check(RadarSpace.Project(new(origin,[beyond with{X=origin.X+50}]),origin,0,3000,16000) is [{AtEdge:false}],
+            "In-range materials keep their normal position and appearance during stale updates");
         check(RadarSpace.Build(fight,spatial,origin,objects,1010,materials,10000,false).Points.All(p=>!p.Enemy),"Radar enemy toggle excludes player markers without disabling materials");
         check(RadarSpace.Build(fight,spatial,origin,[],1010,materials,10000).Points.All(p=>p.Enemy),"Catalogue matches alone never create theoretical gathering spawn markers");
         check(RadarSpace.Build(fight,spatial,origin,objects.Select(o=>o with{CanInteract=false}),1010,materials,10000).Points.All(p=>p.Enemy),"Radar excludes captured materials that cannot be interacted with");
@@ -49,6 +68,28 @@ internal static class RadarSpaceTests
         check(RadarSpace.Build(fight,spatial,origin,objects,1010,materials,61000).Points.All(p=>!p.Enemy),
             "Explicit enemy removal still clears a retained radar marker");
         var motion=new RadarMotion();
+        var selection=new RadarPosition();
+        var inferred=new EstimatedPosition(1010,800,900,null,16000,300,false);
+        selection.Update(origin,inferred,1010,1,1,1,16000);
+        check(selection is {Estimated:true,HasAltitude:true,Current.X:800,Current.Z:300},
+            "Radar uses nearby-object XY estimates while retaining the measured player altitude");
+        selection.Update(origin,inferred with{Lost=true},1010,1,1,1,30000);
+        check(selection is {Estimated:true,Current.X:800},"Lost radar estimates hold the last scan without waiting-state flicker");
+        selection.Update(origin with{X=1000,Timestamp=31000},inferred,1010,1,1,1,31000);
+        check(selection is {Estimated:false,Current.X:1000},"Fresh player measurements replace radar estimates");
+        selection.Update(null,inferred,1110,32000,2,2,32000);
+        check(selection.Current==null,"Scene change clears retained estimates and rejects old-map evidence");
+        selection.Update(null,inferred,1010,1,3,3,16000);
+        check(selection is {Estimated:true,HasAltitude:false,Current.X:800},
+            "Radar supports horizontal inference before player altitude is known");
+        foreach(var invalid in new[]{inferred with{Lost=true},inferred with{Timestamp=17000},inferred with{Timestamp=1000},
+            inferred with{Accuracy=3000},inferred with{Accuracy=double.NaN},inferred with{Z=double.NaN},inferred with{MapId=1110}}) {
+            selection.Clear(); selection.Update(null,invalid,1010,1,3,3,16000);
+            check(selection.Current==null,"Invalid radar estimate cannot initialize a scan");
+        }
+        selection.Update(null,inferred,1010,1,3,3,16000);
+        selection.Update(null,null,1010,1,3,4,17000);
+        check(selection.Current==null,"Same-map teleport clears inferred radar origin");
         RadarFrame Sample(long at,double x,bool stopped=false,long scene=1,long relocation=1) {
             var p=origin with {Timestamp=at,X=x};
             return new(p,frame.Points){Movement=new(p,stopped,scene,true,relocation)};

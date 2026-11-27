@@ -56,7 +56,7 @@ public sealed class Preferences
     public double? RadarTop {get;set;}
     public double RadarWidth {get;set;} = 420;
     public double RadarHeight {get;set;} = 400;
-    public int RadarRange {get;set;} = 3000;
+    public int RadarRange {get;set;} = 0;
     public bool RadarShowEnemies {get;set;} = true;
     public bool RadarShowMaterials {get;set;} = true;
     public string RadarMaterialMode {get;set;} = "Tracked";

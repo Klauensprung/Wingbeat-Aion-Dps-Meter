@@ -19,9 +19,27 @@ internal static class WorldObjectTests
         check(!HiddenCubes.IsCube(Cube(1,0,0) with{ObjectId=1200038}),"Hidden cube detection does not infer templates from numeric ranges");
         var cubes=new[]{Cube(1,100,0),Cube(2,0,-20),Cube(3,1,0) with{ObjectId=1234},Cube(4,2,0) with{CanInteract=false}};
         check(HiddenCubes.Nearest(cubes,901,origin,2000)?.EntityId==4,"Hidden cube compass detects the nearest cube even when interaction is unavailable");
-        check(HiddenCubes.Nearest(cubes,902,origin,2000)==null&&HiddenCubes.Nearest(cubes,901,origin,6001)==null&&HiddenCubes.Nearest(cubes,901,null,2000)==null,
+        check(HiddenCubes.Nearest(cubes,902,origin,2000)==null&&HiddenCubes.Nearest(cubes,901,origin,61000)==null&&HiddenCubes.Nearest(cubes,901,null,2000)==null,
             "Cube compass suppresses stale, absent and different-map player directions");
+        check(HiddenCubes.Nearest(cubes,901,origin,6001) is {LastKnown:true} && HiddenCubes.Nearest(cubes,901,origin,60999)!=null,"Cube direction retains explicitly labeled last-known position for up to sixty seconds");
+        check(HiddenCubes.Nearest(cubes,901,origin,999)==null,"Future positions cannot produce a cube direction");
         check(HiddenCubes.Nearest([],901,origin,1000)==null,"Cube compass does not invent cubes from static map spots");
+        var estimate=new EstimatedPosition(901,100,0,null,7000,100,false);
+        var distant=new[]{Cube(10,100,-2000)};
+        check(HiddenCubes.Locate(distant,901,origin,estimate,7000) is {Estimated:true,Cardinal:"N",LastKnown:false},
+            "Cube compass uses labeled nearby-object inference when captured position is stale");
+        check(HiddenCubes.Locate(distant,901,origin with {Timestamp=7000},estimate,7000) is {Estimated:false,LastKnown:false},
+            "Fresh captured coordinates take priority over inference");
+        check(HiddenCubes.Locate(distant,901,null,estimate,7000) is {Estimated:true},
+            "Located nearby evidence can guide cubes before the first direct player position");
+        check(new[]{estimate with{Lost=true},estimate with{MapId=902},estimate with{Timestamp=7001},
+            estimate with{Timestamp=0},estimate with{Accuracy=double.NaN},estimate with{Accuracy=3000},
+            estimate with{X=double.NaN},estimate with{Accuracy=1100}}
+            .All(e=>HiddenCubes.Locate(distant,901,null,e,7000)==null),
+            "Lost, wrong-map, future, stale, invalid and overly uncertain cube directions are suppressed");
+        check(HiddenCubes.Locate(distant,901,origin,estimate with{Lost=true},7000) is {LastKnown:true,Estimated:false}
+            && HiddenCubes.Locate([],901,null,estimate,7000)==null,
+            "Unavailable inference preserves labeled last-known direction and cannot invent a cube");
         var cubeTracker=new WorldObjectTracker();
         cubeTracker.Apply(new("local-zone",900,"test",JsonSerializer.SerializeToElement(new{MapId=901})));
         cubeTracker.Apply(new("world-object",1000,"test",JsonSerializer.SerializeToElement(Cube(1,0,-10))));

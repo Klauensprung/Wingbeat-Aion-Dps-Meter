@@ -24,6 +24,8 @@ public sealed partial class MainWindow
         int count=0;
         while(placementSetup!=null){
             bool enable=count<2;
+            if(wizard.PreviewWindow.Opacity!=.7 || wizard.PlacedPreviews.Count!=Math.Min(count,2) || wizard.PlacedPreviews.Any(w=>!w.IsVisible || w.Opacity!=.45))throw new Exception("Placed previews must remain visible and translucent.");
+            if(LayoutVisuals<Button>(wizard.PreviewWindow).Any(b=>b.Content?.ToString()==Localization.T("Hide 60s")))throw new Exception("Removed snooze button remains visible.");
             if(wizard.PreviewWindow.GetType()==typeof(Window))throw new Exception("Generic preview instead of actual overlay.");
             var handle=LayoutVisuals<System.Windows.Controls.Primitives.Thumb>(wizard.PreviewWindow).Single(t=>t.Tag?.ToString()=="SetupResizeHandle");
             if(!handle.IsVisible)throw new Exception("Resize handle is not visible.");

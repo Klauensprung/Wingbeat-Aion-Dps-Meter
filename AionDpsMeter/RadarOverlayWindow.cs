@@ -20,10 +20,11 @@ internal sealed class RadarOverlayWindow : Window
         var root = new DockPanel { Margin = new(12, 28, 12, 6) };
         var header = new DockPanel { Background = Brushes.Transparent, Margin = new(0, 0, 0, 6) };
         var title = new TextBlock { Text = Localization.T("3D radar"), FontWeight = FontWeights.SemiBold, Foreground = Brushes.White, VerticalAlignment = VerticalAlignment.Center };
-        var range = new ComboBox { Width = 92, ItemsSource = new[] { 1000, 3000, 6000, 10000 }, SelectedItem = settings.RadarRange };
-        if (range.SelectedIndex < 0) range.SelectedIndex = 1;
-        radar.Range = (int)range.SelectedItem;
-        range.SelectionChanged += (_, _) => { if (range.SelectedItem is int value) { radar.Range = value; settings.RadarRange = value; save(); radar.InvalidateVisual(); } };
+        var choices = new[] { new {Value=0,Label=Localization.T("Detected")}, new {Value=1000,Label="1000"}, new {Value=3000,Label="3000"}, new {Value=6000,Label="6000"}, new {Value=10000,Label="10000"} };
+        var range = new ComboBox { Width = 92, ItemsSource = choices, DisplayMemberPath="Label", SelectedValuePath="Value", SelectedValue = settings.RadarRange };
+        if (range.SelectedIndex < 0) range.SelectedIndex = 0;
+        radar.Range = (int)range.SelectedValue;
+        range.SelectionChanged += (_, _) => { if (range.SelectedValue is int value) { radar.Range = value; settings.RadarRange = value; save(); radar.InvalidateVisual(); } };
         range.ToolTip = Localization.T("Cube radius in world units"); DockPanel.SetDock(range, Dock.Right); header.Children.Add(range);
         var track = new Button { Content = Localization.T("Track"), Padding = new(8,4,8,4), Margin = new(0,0,6,0), FontSize = 11 };
         track.Click += (_,_) => TrackingRequested?.Invoke(); DockPanel.SetDock(track,Dock.Right); header.Children.Add(track); header.Children.Add(title);
@@ -45,7 +46,9 @@ internal sealed class RadarOverlayWindow : Window
         radar.Update(frame);
         status.Text = Localization.T(frame.Origin == null ? "Waiting for fresh player position" : "Red: enemies / Green: detected materials / Forward: movement") +
             (frame.Origin != null && !RadarSpace.Fresh(frame.Origin,DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()) ? "\n" + Localization.T("Delayed updates - showing last known scan") : "") +
-            (frame.Origin == null ? "" : $"\nX {frame.Origin.X:N0}  Y {frame.Origin.Y:N0}  Z {frame.Origin.Z:N0}");
+            (frame.Estimated ? "\n"+Localization.T("Estimated position")+$" (~{frame.Accuracy:N0})" : "") +
+            (!frame.HasAltitude ? "\n"+Localization.T("Altitude unknown - horizontal scan") : "") +
+            (frame.Origin == null ? "" : $"\nX {frame.Origin.X:N0}  Y {frame.Origin.Y:N0}"+(frame.HasAltitude?$"  Z {frame.Origin.Z:N0}":""));
     }
 }
 internal sealed class RadarCanvas : FrameworkElement
@@ -56,7 +59,8 @@ internal sealed class RadarCanvas : FrameworkElement
     readonly RadarMotion motion = new();
     double heading, targetHeading;
     long lastTick;
-    internal double Range { get; set; } = 3000;
+    internal double Range { get; set; }
+    double detectedRange=1000;
     internal bool HasHeading {get;private set;}
     internal RadarCanvas()
     {
@@ -74,7 +78,8 @@ internal sealed class RadarCanvas : FrameworkElement
     internal void Update(RadarFrame next)
     {
         var p = next.Origin;
-        if (p == null) { motion.Clear(); previous = null; HasHeading = false; frame = next; timer.Stop(); InvalidateVisual(); return; }
+        if (p == null) { motion.Clear(); previous = null; HasHeading = false; detectedRange=1000; frame = next; timer.Stop(); InvalidateVisual(); return; }
+        if(previous?.MapId!=p.MapId || next.Movement?.Scene!=frame.Movement?.Scene || next.Movement?.Relocation!=frame.Movement?.Relocation) detectedRange=1000;
         if (previous == null || previous.MapId != p.MapId) { heading = targetHeading = 0; HasHeading = false; }
         else if (p.Timestamp > previous.Timestamp) {
             double dx = p.X - previous.X, dy = p.Y - previous.Y, distance = Math.Sqrt(dx * dx + dy * dy);
@@ -111,19 +116,19 @@ internal sealed class RadarCanvas : FrameworkElement
         Text("+Z",Project(-1,-1,1),white); Text("-Z",Project(-1,-1,-1),white);
         Text(Localization.T(HasHeading ? "Movement heading" : "North-up / waiting for movement"),new(4,2),white);
         if (motion.Present(frame,DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()).Origin is not {} origin) return;
-        var points = frame.Points.Select(p => (Point:p, Pos:RadarSpace.Relative(p,origin,heading)))
-            .Where(p => Math.Abs(p.Pos.Right)<=Range && Math.Abs(p.Pos.Forward)<=Range && Math.Abs(p.Pos.Up)<=Range)
-            .OrderByDescending(p => p.Pos.Forward).ToArray();
-        foreach (var (point,pos) in points) {
-            var at = Project(pos.Right/Range,pos.Forward/Range,pos.Up/Range); var floor = Project(pos.Right/Range,pos.Forward/Range,0);
+        detectedRange=Math.Max(detectedRange,RadarSpace.DetectedRange(frame,origin));
+        double range=Range>0?Range:detectedRange;
+        var points = RadarSpace.Project(frame,origin,heading,range,DateTimeOffset.UtcNow.ToUnixTimeMilliseconds());
+        foreach (var (point,pos,atEdge) in points) {
+            var at = Project(pos.Right/range,pos.Forward/range,pos.Up/range); var floor = Project(pos.Right/range,pos.Forward/range,0);
             var brush = UiTheme.Brush(point.Enemy ? "#FF6375" : "#64E4A9");
             dc.DrawLine(new Pen(UiTheme.Brush(point.Enemy ? "#60FF6375" : "#6064E4A9"),1){DashStyle=DashStyles.Dot},floor,at);
-            dc.DrawEllipse(null,new Pen(brush,.7),floor,2,1.5); dc.DrawEllipse(brush,new Pen(UiTheme.Brush("#D0101823"),1),at,point.Enemy?4:3.5,point.Enemy?4:3.5);
+            dc.DrawEllipse(null,new Pen(brush,.7),floor,2,1.5); dc.DrawEllipse(atEdge?null:brush,new Pen(atEdge?brush:UiTheme.Brush("#D0101823"),1),at,point.Enemy?4:3.5,point.Enemy?4:3.5);
         }
         // Label only the closest few to avoid an unreadable cloud of text.
-        foreach (var (point,pos) in points.OrderBy(p => p.Pos.Right*p.Pos.Right+p.Pos.Forward*p.Pos.Forward+p.Pos.Up*p.Pos.Up).Take(3)) {
-            var at=Project(pos.Right/Range,pos.Forward/Range,pos.Up/Range); string name=point.Name.Length>20?point.Name[..18]+"..":point.Name;
-            Text(name,new(at.X+7,at.Y-13),UiTheme.Brush(point.Enemy?"#FFADB6":"#91E8BD"));
+        foreach (var (point,pos,atEdge) in points.OrderBy(p => p.Pos.Right*p.Pos.Right+p.Pos.Forward*p.Pos.Forward+p.Pos.Up*p.Pos.Up).Take(3)) {
+            var at=Project(pos.Right/range,pos.Forward/range,pos.Up/range); string name=point.Name.Length>20?point.Name[..18]+"..":point.Name;
+            Text((atEdge?"~ ":"")+name,new(at.X+7,at.Y-13),UiTheme.Brush(point.Enemy?"#FFADB6":"#91E8BD"));
         }
         Text($"{points.Count(p=>p.Point.Enemy)} {Localization.T("enemies")} / {points.Count(p=>!p.Point.Enemy)} {Localization.T("materials")}",new(4,ActualHeight-15),white);
     }

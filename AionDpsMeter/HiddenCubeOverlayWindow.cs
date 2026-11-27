@@ -13,7 +13,7 @@ internal sealed class HiddenCubeOverlayWindow : Window
         Title=Localization.T("Hidden cubes");Width=235;SizeToContent=SizeToContent.Height;WindowStyle=WindowStyle.None;ResizeMode=ResizeMode.NoResize;
         AllowsTransparency=true;Topmost=true;ShowActivated=false;ShowInTaskbar=false;UiTheme.Apply(this,settings);Background=Brushes.Transparent;
         var body=new StackPanel{Margin=new(12,30,12,12)};
-        body.Children.Add(new TextBlock{Text=Localization.T("Hidden cube nearby"),Foreground=Brushes.White,FontSize=13,FontWeight=FontWeights.Bold});
+        body.Children.Add(new TextBlock{Text=Localization.T("Hidden cube detected"),Foreground=Brushes.White,FontSize=13,FontWeight=FontWeights.Bold});
         var row=new StackPanel{Orientation=Orientation.Horizontal,Margin=new(0,8,0,0)};arrow.RenderTransform=rotation;row.Children.Add(arrow);direction.Margin=new(12,4,0,0);row.Children.Add(direction);body.Children.Add(row);Content=body;
         ToolTip=Localization.T("Compass direction from your character. North is up on the map. Only detected cubes are shown.");
         if(settings.HiddenCubeLeft is double x&&settings.HiddenCubeTop is double y&&double.IsFinite(x)&&double.IsFinite(y)){
@@ -28,8 +28,8 @@ internal sealed class HiddenCubeOverlayWindow : Window
     }
     internal void Update(HiddenCubeDirection? cube){
         arrow.Visibility=cube==null?Visibility.Collapsed:Visibility.Visible;
-        direction.FontSize=cube==null?12:18;
-        direction.Text=cube==null?Localization.T("Waiting for player position"):Localization.T(cube.Cardinal);
+        direction.FontSize=cube==null||cube.LastKnown||cube.Estimated?12:18;
+        direction.Text=cube==null?Localization.T("Direction unavailable"):Localization.T(cube.Cardinal)+(cube.Estimated ? "\n"+Localization.T("Estimated direction") : cube.LastKnown ? "\n"+Localization.T("Last known position") : "");
         if(cube!=null)rotation.Angle=cube.Bearing;
     }
 }

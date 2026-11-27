@@ -15,25 +15,29 @@ internal sealed class OverlayPlacementSetupWindow : Window
     int index;
     double previewScale;
     bool completed;
+    readonly List<Window> placedPreviews=[];
     Window? preview;
+    internal IReadOnlyList<Window> PlacedPreviews=>placedPreviews;
     internal Window PreviewWindow=>preview!;
     internal OverlayPlacementSetupWindow(Preferences settings,OverlaySetupStep[] steps,Action finish){
         this.settings=settings;this.steps=steps;this.finish=finish;
         Title=Localization.T("Overlay setup");WindowStyle=WindowStyle.None;AllowsTransparency=true;Background=Brushes.Transparent;
         Topmost=true;ShowInTaskbar=false;Width=340;SizeToContent=SizeToContent.Height;ResizeMode=ResizeMode.NoResize;WindowStartupLocation=WindowStartupLocation.CenterOwner;
         UiTheme.Apply(this,settings);Background=Brushes.Transparent;
-        Closed+=(_,_)=>{preview?.Close();if(completed){foreach(var choice in decisions){choice.Step.Apply(choice.Enabled,choice.Bounds);if(!choice.Step.Resizable)OverlayScale.Set(choice.Key,choice.Scale);}finish();}};
+        Closed+=(_,_)=>{preview?.Close();foreach(var placed in placedPreviews)placed.Close();placedPreviews.Clear();if(completed){foreach(var choice in decisions){choice.Step.Apply(choice.Enabled,choice.Bounds);if(!choice.Step.Resizable)OverlayScale.Set(choice.Key,choice.Scale);}finish();}};
         ShowStep();
     }
     void Decide(bool enabled){
         decisions.Add((steps[index],enabled,new Rect(preview!.Left,preview.Top,preview.ActualWidth,preview.ActualHeight),OverlayScale.Key(preview),previewScale));
+        if(enabled){preview.Opacity=.45;preview.IsHitTestVisible=false;placedPreviews.Add(preview);}else preview.Close();
+        preview=null;
         if(++index==steps.Length){completed=true;Close();}else ShowStep();
     }
     void ShowStep(){
         var step=steps[index];string[] colors=["#55D6BE","#7C9EF7","#B087E9","#FFC857","#FF8484"];
         var color=UiTheme.Brush(colors[index%colors.Length]);
-        preview?.Close();
         preview=step.CreatePreview();
+        preview.Opacity=.7;
         preview.Title=Localization.T(step.Name);preview.ShowActivated=false;
         OverlayHideControls.SetupPreview(preview);
         preview.Left=step.Bounds.X;preview.Top=step.Bounds.Y;

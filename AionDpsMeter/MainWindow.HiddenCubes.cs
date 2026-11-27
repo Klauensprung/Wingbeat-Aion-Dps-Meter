@@ -13,7 +13,7 @@ public sealed partial class MainWindow
         if(capture!=null)lock(engine.Gate){
             if(engine.LiveIdentityReady){
                 var objects=engine.WorldObjects.Snapshot();detected=objects.Any(HiddenCubes.IsCube);
-                target=HiddenCubes.Nearest(objects,engine.WorldObjects.MapId,engine.Position.Latest,DateTimeOffset.UtcNow.ToUnixTimeMilliseconds());
+                target=HiddenCubes.Locate(objects,engine.WorldObjects.MapId,engine.Position.Latest,engine.PositionPrediction.Current,DateTimeOffset.UtcNow.ToUnixTimeMilliseconds());
             }
         }
         hiddenCubeOverlay.Update(target);

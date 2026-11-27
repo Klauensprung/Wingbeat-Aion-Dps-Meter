@@ -73,11 +73,6 @@ internal static class OverlayVisibilityTests
             "Losing game focus or cursor-read failure releases automatic hiding");
         check(!menus.Observe(111000,true,true,true,false,false,true)&&!menus.Armed,
             "Classic control packets disarm cursor-based hiding");
-        var snooze = new OverlaySnooze();
-        snooze.HideForMinute(1000);
-        check(!snooze.Allows(1000)&&!snooze.Allows(60999)&&snooze.Allows(61000),"Overlay snooze lasts exactly sixty seconds on the monotonic clock");
-        snooze.HideForMinute(62000);
-        check(!snooze.Allows(121999)&&snooze.Allows(122000),"Repeated overlay snooze starts a fresh minute");
         var hotkey = JsonSerializer.Deserialize<Preferences>(JsonSerializer.Serialize(new Preferences { OverlayHideKey=0x78,OverlayHideModifiers=3 }))!;
         check(hotkey.OverlayHideKey==0x78&&hotkey.OverlayHideModifiers==3&&OverlayHotkey.Label(0x79,6)=="Ctrl + Shift + F10"&&OverlayHotkey.Label(0,6)=="Disabled",
             "Configurable global overlay hotkey persists with a readable default and disabled state");

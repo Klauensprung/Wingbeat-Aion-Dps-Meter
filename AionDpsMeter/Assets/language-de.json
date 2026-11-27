@@ -1508,5 +1508,12 @@
   "Watch for jump rings; keep collecting assigned orbs.": "Ringe überspringen; weiterhin die zugewiesenen Kugeln einsammeln.",
   "Only my direct party (health bars)": "Nur meine direkte Gruppe (Lebensbalken)",
   "Waiting for your direct party roster": "Warte auf die Mitglieder deiner direkten Gruppe",
-  "Delayed updates - showing last known scan": "Verzögerte Updates - letzter bekannter Scan wird angezeigt"
+  "Delayed updates - showing last known scan": "Verzögerte Updates - letzter bekannter Scan wird angezeigt",
+  "Last known position": "Letzte bekannte Position",
+  "Hidden cube detected": "Versteckter Würfel entdeckt",
+  "Direction unavailable": "Richtung unbekannt",
+  "Estimated direction": "Geschätzte Richtung",
+  "Altitude unknown - horizontal scan": "Höhe unbekannt - horizontale Ansicht",
+  "Estimated position": "Geschätzte Position",
+  "Detected": "Erfasst"
 }

@@ -2,6 +2,7 @@ namespace AionDpsMeter.Local;
 public sealed partial class MainWindow
 {
     RadarOverlayWindow? radarOverlay;
+    readonly RadarPosition radarPosition = new();
     string? radarMaterialKey;
     Dictionary<int,string> radarMaterials = new();
     void ToggleRadarOverlay()
@@ -30,9 +31,17 @@ public sealed partial class MainWindow
         }
         RadarFrame frame = new(null, []);
         if (capture != null) lock (engine.Gate) {
-            if (engine.LiveIdentityReady) frame = RadarSpace.Build(engine.Fight, engine.Spatial, engine.Position.Latest,
-                engine.WorldObjects.Snapshot(), engine.WorldObjects.MapId, radarMaterials, DateTimeOffset.UtcNow.ToUnixTimeMilliseconds(), preferences.RadarShowEnemies) with { Movement = new(engine.Position.Latest, engine.Position.MovementStopped, engine.LiveSceneRevision, true, engine.Position.RelocationRevision) };
+            if (engine.LiveIdentityReady) {
+                long now=DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+                radarPosition.Update(engine.Position.Latest,engine.PositionPrediction.Current,engine.Spatial.MapId,engine.Spatial.Boundary,
+                    engine.LiveSceneRevision,engine.Position.RelocationRevision,now);
+                frame = RadarSpace.Build(engine.Fight, engine.Spatial, radarPosition.Current,
+                    engine.WorldObjects.Snapshot(), engine.WorldObjects.MapId, radarMaterials, now, preferences.RadarShowEnemies) with {
+                    Estimated=radarPosition.Estimated, HasAltitude=radarPosition.HasAltitude, Accuracy=radarPosition.Accuracy,
+                    Movement = new(radarPosition.Current, radarPosition.Estimated || engine.Position.MovementStopped, engine.LiveSceneRevision, true, engine.Position.RelocationRevision) };
+            } else radarPosition.Clear();
         }
+        else radarPosition.Clear();
         radarOverlay.Update(frame); if (!radarOverlay.IsVisible) radarOverlay.Show();
     }
 }
